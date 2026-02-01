@@ -1,7 +1,4 @@
-"""
-plotting_utils.py
-=================
-Unified visual utilities for TopoToolbox-like StreamObject and FlowObject analysis.
+"""Unified visual utilities for TopoToolbox StreamObject and FlowObject analysis.
 
 All main plotting functions accept:
     view_mode: "crop" | "zoom" | "overview"
@@ -10,16 +7,33 @@ All main plotting functions accept:
         - "overview": full DEM + full network, no zoom
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple
+
 import numpy as np
+import numpy.typing as npt
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.collections import LineCollection
+from matplotlib.figure import Figure
+from matplotlib.axes import Axes
+
+if TYPE_CHECKING:
+    import pandas as pd
+    from .coupling_analysis import CouplingAnalyzer
+
+# Type aliases
+ViewMode = Literal["crop", "zoom", "overview"]
+BBox = Tuple[float, float, float, float]  # (left, right, bottom, top)
 
 # ---------------------------------------------------------------------
 # Internal utilities
 # ---------------------------------------------------------------------
 
-def _get_rc(stream_obj):
+
+def _get_rc(stream_obj: Any) -> Tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+    """Extract row and column arrays from StreamObject.node_indices."""
     ni = stream_obj.node_indices
     if callable(ni):
         r, c = ni()
@@ -27,30 +41,40 @@ def _get_rc(stream_obj):
         r, c = ni
     return np.asarray(r), np.asarray(c)
 
-def _xy_all_nodes(stream_obj):
+
+def _xy_all_nodes(stream_obj: Any) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """Convert all stream nodes to world coordinates (x, y)."""
     r, c = _get_rc(stream_obj)
     xs, ys = stream_obj.transform * np.vstack((c, r))
     return np.asarray(xs), np.asarray(ys)
 
-def _plot_segments(ax, segments, **kwargs):
+
+def _plot_segments(ax: Axes, segments: List[Any], **kwargs: Any) -> LineCollection:
+    """Plot stream segments as a LineCollection."""
     lines = [np.asarray(seg) for seg in segments if len(seg) > 1]
     lc = LineCollection(lines, **({"color": "steelblue", "linewidth": 0.9} | kwargs))
     ax.add_collection(lc)
     return lc
 
-def _stream_bbox(s_up):
+
+def _stream_bbox(s_up: Any) -> BBox:
+    """Compute bounding box of stream segments."""
     segs = s_up.xy()
     xs = np.concatenate([np.fromiter((p[0] for p in seg), float) for seg in segs if seg])
     ys = np.concatenate([np.fromiter((p[1] for p in seg), float) for seg in segs if seg])
     return xs.min(), xs.max(), ys.min(), ys.max()
 
-def _clamp_bbox(L, R, B, T, dem):
-    dL, dR, dB, dT = dem.extent
-    L = max(L, dL); R = min(R, dR)
-    B = max(B, dB); T = min(T, dT)
-    return L, R, B, T
 
-def _maybe_crop_dem(dem, s_up, view_mode="crop", pad_frac=0.05):
+def _clamp_bbox(L: float, R: float, B: float, T: float, dem: Any) -> BBox:
+    """Clamp bounding box to DEM extent."""
+    dL, dR, dB, dT = dem.extent
+    return max(L, dL), min(R, dR), max(B, dB), min(T, dT)
+
+
+def _maybe_crop_dem(
+    dem: Any, s_up: Any, view_mode: ViewMode = "crop", pad_frac: float = 0.05
+) -> Tuple[Any, BBox]:
+    """Optionally crop DEM to stream extent with padding."""
     xmin, xmax, ymin, ymax = _stream_bbox(s_up)
     dx, dy = xmax - xmin, ymax - ymin
     px, py = max(dx * pad_frac, 1e-9), max(dy * pad_frac, 1e-9)
@@ -59,10 +83,13 @@ def _maybe_crop_dem(dem, s_up, view_mode="crop", pad_frac=0.05):
 
     if view_mode == "crop":
         return dem.crop(left=L, right=R, top=T, bottom=B, mode="coordinate"), (L, R, B, T)
-    else:
-        return dem, (L, R, B, T)
+    return dem, (L, R, B, T)
 
-def _bbox_from_pair_masks(dem, s, dep_i, dep_j, confluence_id, pad_frac):
+
+def _bbox_from_pair_masks(
+    dem: Any, s: Any, dep_i: Any, dep_j: Any, confluence_id: int, pad_frac: float
+) -> BBox:
+    """Compute bounding box from union of two dependence masks."""
     U = np.asarray(dep_i.z | dep_j.z, dtype=bool)
     yy, xx = np.nonzero(U)
     r, c = _get_rc(s)
@@ -74,18 +101,22 @@ def _bbox_from_pair_masks(dem, s, dep_i, dep_j, confluence_id, pad_frac):
     Xs, Ys = s.transform * np.vstack((xx, yy))
     xmin, xmax = min(Xs.min(), cx), max(Xs.max(), cx)
     ymin, ymax = min(Ys.min(), cy), max(Ys.max(), cy)
-    dx = max(xmax - xmin, 1e-9); dy = max(ymax - ymin, 1e-9)
+    dx, dy = max(xmax - xmin, 1e-9), max(ymax - ymin, 1e-9)
     px, py = dx * pad_frac, dy * pad_frac
     return xmin - px, xmax + px, ymin - py, ymax + py
 
-def _bbox_from_points(s, head_i, head_j, confluence_id, pad_frac):
+
+def _bbox_from_points(
+    s: Any, head_i: int, head_j: int, confluence_id: int, pad_frac: float
+) -> BBox:
+    """Compute bounding box from three point locations."""
     r, c = _get_rc(s)
     xs, ys = s.transform * np.vstack((c, r))
     xpts = np.array([xs[head_i], xs[head_j], xs[confluence_id]])
     ypts = np.array([ys[head_i], ys[head_j], ys[confluence_id]])
     xmin, xmax = xpts.min(), xpts.max()
     ymin, ymax = ypts.min(), ypts.max()
-    dx = max(xmax - xmin, 1e-9); dy = max(ymax - ymin, 1e-9)
+    dx, dy = max(xmax - xmin, 1e-9), max(ymax - ymin, 1e-9)
     px, py = dx * pad_frac, dy * pad_frac
     return xmin - px, xmax + px, ymin - py, ymax + py
 
@@ -93,13 +124,46 @@ def _bbox_from_points(s, head_i, head_j, confluence_id, pad_frac):
 # 1. Single coupled pair
 # ---------------------------------------------------------------------
 
-def plot_coupled_pair(fd, s, dem, confluence_id, head_i, head_j,
-                      view_mode="crop", pad_frac=0.05, alpha=0.35,
-                      focus="points"):
-    """
-    Plot two coupled heads + confluence with unified view modes.
-    view_mode: 'crop' (default) | 'zoom' | 'overview'
-    focus: 'points' (tight box around heads+confluence) | 'masks' (union of dependence maps)
+def plot_coupled_pair(
+    fd: Any,
+    s: Any,
+    dem: Any,
+    confluence_id: int,
+    head_i: int,
+    head_j: int,
+    view_mode: ViewMode = "crop",
+    pad_frac: float = 0.05,
+    alpha: float = 0.35,
+    focus: Literal["points", "masks"] = "points",
+) -> Tuple[Figure, Axes]:
+    """Plot two coupled channel heads with their confluence.
+
+    Parameters
+    ----------
+    fd : FlowObject
+        TopoToolbox flow direction object.
+    s : StreamObject
+        TopoToolbox stream network object.
+    dem : GridObject
+        Digital elevation model.
+    confluence_id : int
+        Node ID of the confluence.
+    head_i, head_j : int
+        Node IDs of the two channel heads.
+    view_mode : {'crop', 'zoom', 'overview'}
+        View mode for the plot (default: 'crop').
+    pad_frac : float
+        Fractional padding around the bounding box (default: 0.05).
+    alpha : float
+        Transparency for basin overlays (default: 0.35).
+    focus : {'points', 'masks'}
+        Bounding box source: 'points' for tight box around heads+confluence,
+        'masks' for union of dependence maps (default: 'points').
+
+    Returns
+    -------
+    Tuple[Figure, Axes]
+        Matplotlib figure and axes objects.
     """
     # seeds & dependence maps
     r, c = _get_rc(s)
@@ -119,23 +183,22 @@ def plot_coupled_pair(fd, s, dem, confluence_id, head_i, head_j,
     L, R, B, T = _clamp_bbox(L, R, B, T, dem)
 
     # DEM / overlay extent
+    # IMPORTANT: dep_i.z and dep_j.z are full DEM size, so always use dem.extent for overlays
     if view_mode == "crop":
         dem_used = dem.crop(left=L, right=R, top=T, bottom=B, mode="coordinate")
-        overlay_extent = dem_used.extent
     else:
         dem_used = dem
-        overlay_extent = dem.extent
 
     # draw
     fig, ax = plt.subplots(figsize=(8, 6))
     dem_used.plot(ax=ax, cmap="terrain", alpha=0.95)
     _plot_segments(ax, s.xy(), color="black", alpha=0.5)
 
-    # overlays — use the chosen extent so crops look tight
-    ax.imshow(dep_i.z, cmap="Blues",  alpha=alpha, extent=overlay_extent, origin="upper")
-    ax.imshow(dep_j.z, cmap="Reds",   alpha=alpha, extent=overlay_extent, origin="upper")
+    # overlays — use full DEM extent since dep_i/dep_j are full-size masks
+    ax.imshow(dep_i.z, cmap="Blues",  alpha=alpha, extent=dem.extent, origin="upper")
+    ax.imshow(dep_j.z, cmap="Reds",   alpha=alpha, extent=dem.extent, origin="upper")
     if np.any(overlap):
-        ax.imshow(overlap, cmap="Purples", alpha=0.5, extent=overlay_extent, origin="upper")
+        ax.imshow(overlap, cmap="Purples", alpha=0.5, extent=dem.extent, origin="upper")
 
     xs_all, ys_all = s.transform * np.vstack((c, r))
     ax.scatter(xs_all[head_i], ys_all[head_i], s=60, c="blue", edgecolor="k", zorder=5)
@@ -154,9 +217,36 @@ def plot_coupled_pair(fd, s, dem, confluence_id, head_i, head_j,
 # 2. Outlet view (crop / zoom / overview)
 # ---------------------------------------------------------------------
 
-def plot_outlet_view(s, outlet_id, dem=None, by_outlet=None,
-                     view_mode="crop", pad_frac=0.05):
-    """Unified outlet visualization."""
+def plot_outlet_view(
+    s: Any,
+    outlet_id: int,
+    dem: Optional[Any] = None,
+    by_outlet: Optional[Dict[int, Any]] = None,
+    view_mode: ViewMode = "crop",
+    pad_frac: float = 0.05,
+) -> Tuple[Figure, Axes]:
+    """Plot outlet subnetwork with stream network and key features.
+
+    Parameters
+    ----------
+    s : StreamObject
+        TopoToolbox stream network object.
+    outlet_id : int
+        Node ID of the outlet.
+    dem : GridObject, optional
+        Digital elevation model for background.
+    by_outlet : Dict[int, Any], optional
+        Pre-computed outlet data (with 's_up' key for upstream StreamObject).
+    view_mode : {'crop', 'zoom', 'overview'}
+        View mode for the plot (default: 'crop').
+    pad_frac : float
+        Fractional padding around the bounding box (default: 0.05).
+
+    Returns
+    -------
+    Tuple[Figure, Axes]
+        Matplotlib figure and axes objects.
+    """
     if by_outlet and outlet_id in by_outlet:
         s_up = by_outlet[outlet_id]["s_up"]
     else:
@@ -190,10 +280,48 @@ def plot_outlet_view(s, outlet_id, dem=None, by_outlet=None,
 # 3. All coupled pairs overview (gold confluences)
 # ---------------------------------------------------------------------
 
-def plot_all_coupled_pairs_for_outlet(fd, s, dem, an, df_touching, outlet_id,
-                                      view_mode="crop", pad_frac=0.05,
-                                      alpha=0.25, max_pairs=None):
-    """Plot all touching pairs for one outlet, with unified view modes."""
+def plot_all_coupled_pairs_for_outlet(
+    fd: Any,
+    s: Any,
+    dem: Any,
+    an: "CouplingAnalyzer",
+    df_touching: "pd.DataFrame",
+    outlet_id: int,
+    view_mode: ViewMode = "crop",
+    pad_frac: float = 0.05,
+    alpha: float = 0.25,
+    max_pairs: Optional[int] = None,
+) -> Tuple[Optional[Figure], Optional[Axes]]:
+    """Plot all touching channel head pairs for an outlet.
+
+    Parameters
+    ----------
+    fd : FlowObject
+        TopoToolbox flow direction object.
+    s : StreamObject
+        TopoToolbox stream network object.
+    dem : GridObject
+        Digital elevation model.
+    an : CouplingAnalyzer
+        Coupling analyzer instance (for influence grids).
+    df_touching : pd.DataFrame
+        DataFrame with coupling results (requires 'outlet', 'head_1', 'head_2', 'confluence' columns).
+    outlet_id : int
+        Node ID of the outlet.
+    view_mode : {'crop', 'zoom', 'overview'}
+        View mode for the plot (default: 'crop').
+    pad_frac : float
+        Fractional padding around the bounding box (default: 0.05).
+    alpha : float
+        Transparency for basin overlays (default: 0.25).
+    max_pairs : int, optional
+        Maximum number of pairs to display.
+
+    Returns
+    -------
+    Tuple[Optional[Figure], Optional[Axes]]
+        Matplotlib figure and axes objects, or (None, None) if no pairs found.
+    """
     df_o = df_touching[df_touching["outlet"] == outlet_id]
     if df_o.empty:
         print(f"No touching pairs for outlet {outlet_id}.")
@@ -212,7 +340,7 @@ def plot_all_coupled_pairs_for_outlet(fd, s, dem, an, df_touching, outlet_id,
 
     r, c = _get_rc(s)
     xs, ys = s.transform * np.vstack((c, r))
-    cmap = plt.cm.get_cmap("tab20", len(df_o))
+    cmap = plt.colormaps["tab20"].resampled(len(df_o))
     patches = []
 
     for idx, row in enumerate(df_o.itertuples(index=False)):
@@ -241,16 +369,59 @@ def plot_all_coupled_pairs_for_outlet(fd, s, dem, an, df_touching, outlet_id,
     plt.tight_layout()
     return fig, ax
 
-def plot_all_coupled_pairs_for_outlet_3d(fd, s, dem, an, df_touching, outlet_id,
-                                         view_mode="crop", pad_frac=0.05,
-                                         alpha=0.25, max_pairs=None,
-                                         dem_stride=2,
-                                         surface_kwargs=None,
-                                         stream_kwargs=None,
-                                         z_exaggeration=1.0):
-    """
-    3D version: plot DEM surface + stream network + coupled channel heads,
-    keeping the same inputs/behavior as your 2D function where possible.
+def plot_all_coupled_pairs_for_outlet_3d(
+    fd: Any,
+    s: Any,
+    dem: Any,
+    an: "CouplingAnalyzer",
+    df_touching: "pd.DataFrame",
+    outlet_id: int,
+    view_mode: ViewMode = "crop",
+    pad_frac: float = 0.05,
+    alpha: float = 0.25,
+    max_pairs: Optional[int] = None,
+    dem_stride: int = 2,
+    surface_kwargs: Optional[Dict[str, Any]] = None,
+    stream_kwargs: Optional[Dict[str, Any]] = None,
+    z_exaggeration: float = 1.0,
+) -> Tuple[Optional[Figure], Optional[Axes]]:
+    """Plot all touching channel head pairs for an outlet in 3D.
+
+    Parameters
+    ----------
+    fd : FlowObject
+        TopoToolbox flow direction object.
+    s : StreamObject
+        TopoToolbox stream network object.
+    dem : GridObject
+        Digital elevation model.
+    an : CouplingAnalyzer
+        Coupling analyzer instance (for influence grids).
+    df_touching : pd.DataFrame
+        DataFrame with coupling results.
+    outlet_id : int
+        Node ID of the outlet.
+    view_mode : {'crop', 'zoom', 'overview'}
+        View mode for the plot (default: 'crop').
+    pad_frac : float
+        Fractional padding around the bounding box (default: 0.05).
+    alpha : float
+        Transparency for basin overlays (default: 0.25).
+    max_pairs : int, optional
+        Maximum number of pairs to display.
+    dem_stride : int
+        Subsampling stride for DEM surface (default: 2).
+    surface_kwargs : dict, optional
+        Additional kwargs for plot_surface().
+    stream_kwargs : dict, optional
+        Additional kwargs for stream line plots.
+    z_exaggeration : float
+        Vertical exaggeration factor (default: 1.0).
+
+    Returns
+    -------
+    Tuple[Optional[Figure], Optional[Axes]]
+        Matplotlib figure and 3D axes objects, or (None, None) if no pairs found.
     """
     if surface_kwargs is None:
         surface_kwargs = dict(cmap="terrain", linewidth=0, antialiased=True, alpha=0.95)
@@ -305,7 +476,7 @@ def plot_all_coupled_pairs_for_outlet_3d(fd, s, dem, an, df_touching, outlet_id,
                     **stream_kwargs)
 
     # --- Coupled heads, influence masks, and confluences ---
-    cmap = plt.cm.get_cmap("tab20", len(df_o))
+    cmap = plt.colormaps["tab20"].resampled(len(df_o))
     patches = []
 
     for idx, row in enumerate(df_o.itertuples(index=False)):

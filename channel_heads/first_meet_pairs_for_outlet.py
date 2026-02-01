@@ -1,16 +1,29 @@
+"""Channel head pairing algorithm for first-meet detection.
+
+This module implements the core algorithm for identifying pairs of channel heads
+that first meet at each confluence in a stream network.
+"""
+
 from __future__ import annotations
-from typing import Dict, Iterable, List, Optional, Set, Tuple
-from collections import defaultdict, deque
+from typing import TYPE_CHECKING, Any, Dict, FrozenSet, List, Set, Tuple
+from collections import defaultdict
 import numpy as np
+import numpy.typing as npt
 from functools import lru_cache
 
+if TYPE_CHECKING:
+    from topotoolbox import StreamObject
 
+# Type aliases for clarity
 NodeId = int
 HeadId = int
 HeadPair = Tuple[HeadId, HeadId]  # normalized (min, max)
-HeadSet = List[HeadId]
+PairsAtConfluence = Dict[int, Set[HeadPair]]
+ParentsList = List[List[NodeId]]
 
 # ------------------------------ helpers ------------------------------
+
+
 def _normalize_pair(h1: int, h2: int) -> HeadPair:
     return (h1, h2) if h1 < h2 else (h2, h1)
 
@@ -35,7 +48,7 @@ def _to_node_id_list(x) -> List[int]:
 
 
 
-def _build_parents_from_stream(s) -> List[List[NodeId]]:
+def _build_parents_from_stream(s: Any) -> ParentsList:
     """parents[v] = list of upstream nodes u with edge (u -> v). Deterministic & duplicate-safe."""
 
 
@@ -61,11 +74,27 @@ def _build_parents_from_stream(s) -> List[List[NodeId]]:
     return [sorted(p) for p in parents_sets]
 
 
-def _collect_basin_nodes_from_outlet(parents: List[List[int]], outlet: int) -> List[int]:
-    """Return all nodes upstream (including the outlet) reachable via `parents` starting at outlet.
-    We do a simple DFS/BFS on the reversed graph.
+def _collect_basin_nodes_from_outlet(parents: ParentsList, outlet: int) -> List[int]:
+    """Return all nodes upstream of an outlet (including the outlet itself).
+
+    Performs depth-first traversal on the reversed graph (parent edges).
+
+    Parameters
+    ----------
+    parents : ParentsList
+        Adjacency list where parents[v] contains upstream neighbors of v.
+    outlet : int
+        Node ID of the outlet to start traversal from.
+
+    Returns
+    -------
+    List[int]
+        Sorted list of all node IDs in the basin.
     """
     n = len(parents)
+    if outlet < 0 or outlet >= n:
+        raise IndexError(f"outlet {outlet} out of range [0, {n})")
+
     seen = [False] * n
     stack = [outlet]
     seen[outlet] = True
@@ -79,32 +108,47 @@ def _collect_basin_nodes_from_outlet(parents: List[List[int]], outlet: int) -> L
 
 
 # ------------------------------ main routine ------------------------------
-def first_meet_pairs_for_outlet(s, outlet: NodeId):
+
+
+def first_meet_pairs_for_outlet(
+    s: Any,  # StreamObject
+    outlet: NodeId,
+) -> Tuple[PairsAtConfluence, List[int]]:
     """Compute first-meet channel-head pairs per confluence for a single outlet.
+
+    This function identifies all pairs of channel heads that first meet at each
+    confluence within the drainage basin of a specified outlet. A "first meet"
+    occurs when two channel heads from different upstream branches converge
+    at a confluence for the first time.
 
     Parameters
     ----------
-    s : StreamObject-like
-        Must expose `.source`, `.target`, `.node_indices`, `.streampoi(key)`.
+    s : StreamObject
+        TopoToolbox StreamObject with `.source`, `.target`, `.node_indices`,
+        and `.streampoi(key)` methods.
     outlet : int
-        Node id for the outlet to analyze.
+        Node ID of the outlet to analyze.
 
     Returns
     -------
-    pairs_at_confluence : Dict[int, Set[Tuple[int,int]]]
-        {confluence_node -> set of normalized head pairs}
+    pairs_at_confluence : Dict[int, Set[Tuple[int, int]]]
+        Dictionary mapping confluence node IDs to sets of normalized head pairs.
+        Each pair is (min_head_id, max_head_id).
     basin_heads : List[int]
-        Sorted list of head node ids within the basin of `outlet`.
+        Sorted list of all channel head node IDs within the outlet's basin.
+
+    Example
+    -------
+    >>> pairs, heads = first_meet_pairs_for_outlet(s, outlet_id=5)
+    >>> for confluence, head_pairs in pairs.items():
+    ...     print(f"Confluence {confluence}: {len(head_pairs)} pairs")
     """
     
-    # 1) parents and basin restriction
+    # 1) Build parent adjacency and restrict to basin
     parents = _build_parents_from_stream(s)
     basin_nodes = set(_collect_basin_nodes_from_outlet(parents, outlet))
-### this can be done for one time to make a global list
-#  for heads and confluences and then filtering for each outlet
 
-
-    # 2) get global POIs via streampoi, then restrict to basin
+    # 2) Get global POIs via streampoi, then restrict to basin
     heads_all = _to_node_id_list(s.streampoi('channelheads'))
     confs_all = _to_node_id_list(s.streampoi('confluences'))
 

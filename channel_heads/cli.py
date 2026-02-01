@@ -1,6 +1,7 @@
 """Command-line interface for channel head coupling analysis."""
 
 import argparse
+import logging
 from pathlib import Path
 import sys
 import pandas as pd
@@ -9,6 +10,9 @@ import topotoolbox as tt3
 from .coupling_analysis import CouplingAnalyzer
 from .first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
 from .stream_utils import outlet_node_ids_from_streampoi
+from .logging_config import setup_logging, get_logger
+
+logger = get_logger(__name__)
 
 
 def main():
@@ -73,41 +77,39 @@ Examples:
 
     args = parser.parse_args()
 
+    # Configure logging based on verbosity
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    setup_logging(level=log_level, console=True)
+
     # Validate DEM path
     if not args.dem.exists():
-        print(f"Error: DEM file not found: {args.dem}", file=sys.stderr)
+        logger.error("DEM file not found: %s", args.dem)
         return 1
 
     try:
         # Load DEM
-        if args.verbose:
-            print(f"Loading DEM: {args.dem}")
+        logger.info("Loading DEM: %s", args.dem)
         dem = tt3.read_tif(str(args.dem))
 
         # Apply elevation mask if requested
         if args.mask_below is not None:
-            if args.verbose:
-                print(f"Masking elevations below {args.mask_below} m")
+            logger.info("Masking elevations below %s m", args.mask_below)
             dem.z[dem.z < args.mask_below] = float('nan')
 
         # Derive flow and stream networks
-        if args.verbose:
-            print("Deriving flow direction...")
+        logger.info("Deriving flow direction...")
         fd = tt3.FlowObject(dem)
 
-        if args.verbose:
-            print(f"Deriving stream network (threshold={args.threshold})...")
+        logger.info("Deriving stream network (threshold=%d)...", args.threshold)
         s = tt3.StreamObject(fd, threshold=args.threshold)
 
         # Select outlets to analyze
         if args.outlets:
             outlet_ids = [int(x.strip()) for x in args.outlets.split(",")]
-            if args.verbose:
-                print(f"Analyzing {len(outlet_ids)} specified outlets: {outlet_ids}")
+            logger.info("Analyzing %d specified outlets: %s", len(outlet_ids), outlet_ids)
         else:
             outlet_ids = outlet_node_ids_from_streampoi(s)
-            if args.verbose:
-                print(f"Analyzing all {len(outlet_ids)} outlets")
+            logger.info("Analyzing all %d outlets", len(outlet_ids))
 
         # Initialize analyzer
         an = CouplingAnalyzer(fd, s, dem, connectivity=args.connectivity)
@@ -115,21 +117,21 @@ Examples:
         # Process each outlet
         all_results = []
         for i, outlet_id in enumerate(outlet_ids, 1):
-            if args.verbose:
-                print(f"  [{i}/{len(outlet_ids)}] Processing outlet {outlet_id}...", end="")
+            logger.debug("[%d/%d] Processing outlet %d...", i, len(outlet_ids), outlet_id)
 
             pairs, heads = first_meet_pairs_for_outlet(s, outlet_id)
             df = an.evaluate_pairs_for_outlet(outlet_id, pairs)
 
             if not df.empty:
                 all_results.append(df)
-                if args.verbose:
-                    n_pairs = len(df)
-                    n_touching = df['touching'].sum()
-                    print(f" {n_pairs} pairs ({n_touching} touching)")
+                n_pairs = len(df)
+                n_touching = df['touching'].sum()
+                logger.debug("  Outlet %d: %d pairs (%d touching)", outlet_id, n_pairs, n_touching)
             else:
-                if args.verbose:
-                    print(" no pairs")
+                logger.debug("  Outlet %d: no pairs", outlet_id)
+
+            # Clear cache between outlets to prevent unbounded memory growth
+            an.clear_cache()
 
         # Save results
         if all_results:
@@ -146,24 +148,22 @@ Examples:
             touching_pairs = df_all['touching'].sum()
             touching_pct = df_all['touching'].mean() * 100
 
-            print(f"\nResults saved to {args.output}")
-            print(f"  Total pairs: {total_pairs}")
-            print(f"  Touching pairs: {touching_pairs} ({touching_pct:.1f}%)")
-            print(f"  Non-touching pairs: {total_pairs - touching_pairs} ({100-touching_pct:.1f}%)")
+            logger.info("Results saved to %s", args.output)
+            logger.info("  Total pairs: %d", total_pairs)
+            logger.info("  Touching pairs: %d (%.1f%%)", touching_pairs, touching_pct)
+            logger.info("  Non-touching pairs: %d (%.1f%%)", total_pairs - touching_pairs, 100 - touching_pct)
 
-            if args.verbose:
-                print(f"\nColumns: {', '.join(df_all.columns)}")
+            logger.debug("Columns: %s", ', '.join(df_all.columns))
         else:
-            print("\nWarning: No pairs found in any outlet", file=sys.stderr)
+            logger.warning("No pairs found in any outlet")
             return 2
 
         return 0
 
     except Exception as e:
-        print(f"\nError: {e}", file=sys.stderr)
+        logger.error("Error: %s", e)
         if args.verbose:
-            import traceback
-            traceback.print_exc()
+            logger.exception("Full traceback:")
         return 1
 
 

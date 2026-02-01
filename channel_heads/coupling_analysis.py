@@ -25,33 +25,96 @@ Main API
 """
 
 from __future__ import annotations
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Set, Tuple
 from dataclasses import dataclass
-from collections import defaultdict
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
+if TYPE_CHECKING:
+    from topotoolbox import FlowObject, GridObject, StreamObject
+
+# Type aliases for clarity
 NodeId = int
 HeadId = int
 HeadPair = Tuple[HeadId, HeadId]
+BoolMask = npt.NDArray[np.bool_]
 
 
-@dataclass
+@dataclass(slots=True)
 class PairTouchResult:
+    """Result of basin contact detection between two channel heads.
+
+    Attributes
+    ----------
+    touching : bool
+        Whether the two basins are touching (contact or overlap).
+    overlap_px : int
+        Number of pixels where the two basins directly overlap.
+    contact_px : int
+        Number of 4- or 8-connected contact pixels (excludes direct overlap).
+    size1_px : int
+        Total pixels in the first basin.
+    size2_px : int
+        Total pixels in the second basin.
+    """
+
     touching: bool
     overlap_px: int
-    contact_px: int  # 4- or 8-connected contact pixels (excludes direct overlap)
+    contact_px: int
     size1_px: int
     size2_px: int
 
 
 class CouplingAnalyzer:
-    """
-    Compute dependence maps via FlowObject.dependencemap and test touching robustly (no wrap-around).
-    Caches per-head influence masks to avoid recomputation across many pairs.
+    """Compute basin coupling between channel heads.
+
+    Uses FlowObject.dependencemap to compute influence masks and tests for
+    spatial contact (touching or overlap) between basin pairs. Caches masks
+    to avoid recomputation across pairs.
+
+    Parameters
+    ----------
+    fd : FlowObject
+        Flow direction object from TopoToolbox.
+    s : StreamObject
+        Stream network object from TopoToolbox.
+    dem : GridObject
+        Digital elevation model as a GridObject.
+    connectivity : int, optional
+        Pixel connectivity for contact detection: 4 or 8 (default: 8).
+
+    Attributes
+    ----------
+    fd : FlowObject
+        Flow direction object.
+    s : StreamObject
+        Stream network object.
+    dem : GridObject
+        Digital elevation model.
+    connectivity : int
+        Connectivity setting (4 or 8).
+
+    Example
+    -------
+    >>> analyzer = CouplingAnalyzer(fd, s, dem, connectivity=8)
+    >>> result = analyzer.pair_touching(head_1=662, head_2=716)
+    >>> print(f"Touching: {result.touching}")
     """
 
-    def __init__(self, fd, s, dem, connectivity: int = 8):
+    fd: Any  # FlowObject
+    s: Any  # StreamObject
+    dem: Any  # GridObject
+    connectivity: int
+    _mask_cache: Dict[int, BoolMask]
+
+    def __init__(
+        self,
+        fd: Any,  # FlowObject
+        s: Any,  # StreamObject
+        dem: Any,  # GridObject
+        connectivity: int = 8,
+    ) -> None:
         # Alignment check
         if getattr(dem, "z", None) is None:
             raise ValueError("`dem` must be a GridObject with a .z array")
@@ -75,22 +138,63 @@ class CouplingAnalyzer:
         # Simple cache: head_id -> np.ndarray[bool] mask (same shape as dem.z)
         self._mask_cache: Dict[int, np.ndarray] = {}
 
+    def clear_cache(self) -> int:
+        """Clear the mask cache to free memory.
+
+        This should be called between outlets when processing in batch to
+        prevent unbounded memory growth. Each mask has shape (dem_rows, dem_cols),
+        so processing many outlets without clearing can consume significant memory.
+
+        Returns
+        -------
+        int
+            Number of cached masks that were cleared.
+
+        Example
+        -------
+        >>> for outlet_id in outlets:
+        ...     pairs, heads = first_meet_pairs_for_outlet(s, outlet_id)
+        ...     df = analyzer.evaluate_pairs_for_outlet(outlet_id, pairs)
+        ...     analyzer.clear_cache()  # Free memory before next outlet
+        """
+        n_cleared = len(self._mask_cache)
+        self._mask_cache.clear()
+        return n_cleared
+
+    @property
+    def cache_size(self) -> int:
+        """Return the number of cached masks."""
+        return len(self._mask_cache)
+
     # ---------- low-level helpers ----------
 
     def _rc_for_head(self, h: int) -> Tuple[int, int]:
+        """Resolve a head identifier to (row, col) in the DEM/Flow grid.
+
+        First tries interpreting `h` as a stream node ID (index into node_indices).
+        If that fails due to index bounds, falls back to treating `h` as a linear
+        pixel index in the flow grid using fd.unravel_index.
+
+        Parameters
+        ----------
+        h : int
+            Head identifier (either stream node ID or linear pixel index).
+
+        Returns
+        -------
+        Tuple[int, int]
+            Row and column indices in the DEM/Flow grid.
         """
-        Resolve a head identifier to (row, col) in the DEM/Flow grid.
-        First try interpreting `h` as a *stream node id* (index into node_indices).
-        If that fails, treat `h` as a *linear pixel index* in the flow grid and use fd.unravel_index.
-        """
-        try:
-            rr = int(self._r_nodes[h]); cc = int(self._c_nodes[h])
-            return rr, cc
-        except Exception:
-            rr_arr, cc_arr = self.fd.unravel_index(int(h))
-            rr = int(np.asarray(rr_arr).item()) if np.ndim(rr_arr) else int(rr_arr)
-            cc = int(np.asarray(cc_arr).item()) if np.ndim(cc_arr) else int(cc_arr)
-            return rr, cc
+        h = int(h)
+        # Try stream node ID first (most common case)
+        if 0 <= h < len(self._r_nodes):
+            return int(self._r_nodes[h]), int(self._c_nodes[h])
+
+        # Fall back to linear pixel index
+        rr_arr, cc_arr = self.fd.unravel_index(h)
+        rr = int(np.asarray(rr_arr).item()) if np.ndim(rr_arr) else int(rr_arr)
+        cc = int(np.asarray(cc_arr).item()) if np.ndim(cc_arr) else int(cc_arr)
+        return rr, cc
 
     def _seed_grid_for_head(self, h: int):
         seed = self.dem.duplicate_with_new_data(np.zeros_like(self.dem.z, dtype=bool))
@@ -105,8 +209,22 @@ class CouplingAnalyzer:
         seed = self._seed_grid_for_head(int(head_id))
         return self.fd.dependencemap(seed)
 
-    def influence_mask(self, head_id: int) -> np.ndarray:
-        """Return boolean numpy mask for a head; uses cache to avoid recomputation."""
+    def influence_mask(self, head_id: int) -> BoolMask:
+        """Return boolean numpy mask for a head.
+
+        Uses internal cache to avoid recomputation for repeated queries.
+
+        Parameters
+        ----------
+        head_id : int
+            Node ID of the channel head.
+
+        Returns
+        -------
+        BoolMask
+            Boolean mask array (same shape as DEM) where True indicates
+            cells in the head's drainage basin.
+        """
         hid = int(head_id)
         if hid not in self._mask_cache:
             G = self.influence_grid(hid)

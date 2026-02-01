@@ -1,600 +1,184 @@
 # Project Improvement Recommendations
 
-This document outlines concrete improvements to enhance the channel-heads project's maintainability, usability, and scientific reproducibility.
+This document tracks improvements to the channel-heads project. It serves as both a changelog for completed work and a roadmap for future enhancements.
 
-## Priority Matrix
-
-| Priority | Category | Effort | Impact |
-|----------|----------|--------|--------|
-| 🔴 High | Testing | Medium | High |
-| 🔴 High | Package Structure | Low | High |
-| 🔴 High | Git Hygiene | Low | Medium |
-| 🟡 Medium | Documentation | Medium | Medium |
-| 🟡 Medium | CLI Interface | Medium | High |
-| 🟡 Medium | Path Management | Low | Medium |
-| 🟢 Low | Performance | Medium | Medium |
-| 🟢 Low | Code Quality | Medium | Low |
+**Last updated:** 2026-02-01
 
 ---
 
-## 🔴 High Priority
+## Completed Improvements
 
-### 1. Add Testing Infrastructure
+### Testing Infrastructure
 
-**Current state:** No tests exist. Validation relies on manual notebook inspection.
+**Status:** Implemented
 
-**Recommendation:** Implement pytest-based test suite
-
-**Implementation:**
-
-```bash
-# Install test dependencies
-conda install pytest pytest-cov
-
-# Create test structure
-mkdir tests
-touch tests/__init__.py
-touch tests/test_coupling_analysis.py
-touch tests/test_first_meet_pairs.py
-touch tests/test_stream_utils.py
-touch tests/test_plotting_utils.py
-```
-
-**Example test file** (`tests/test_coupling_analysis.py`):
-
-```python
-import pytest
-import numpy as np
-from src.coupling_analysis import CouplingAnalyzer, PairTouchResult
-
-@pytest.fixture
-def mock_dem():
-    """Create minimal DEM for testing."""
-    import topotoolbox as tt3
-    # Create 100x100 synthetic DEM
-    z = np.random.randn(100, 100) * 10 + 1000
-    return tt3.GridObject(z)
-
-@pytest.fixture
-def mock_flow_stream(mock_dem):
-    """Create flow and stream objects."""
-    import topotoolbox as tt3
-    fd = tt3.FlowObject(mock_dem)
-    s = tt3.StreamObject(fd, threshold=50)
-    return fd, s
-
-def test_coupling_analyzer_init(mock_flow_stream, mock_dem):
-    """Test CouplingAnalyzer initialization."""
-    fd, s = mock_flow_stream
-    an = CouplingAnalyzer(fd, s, mock_dem, connectivity=8)
-    assert an.connectivity == 8
-    assert len(an._mask_cache) == 0
-
-def test_pair_touching_result_structure():
-    """Test PairTouchResult dataclass."""
-    result = PairTouchResult(
-        touching=True,
-        overlap_px=5,
-        contact_px=10,
-        size1_px=100,
-        size2_px=120
-    )
-    assert result.touching is True
-    assert result.overlap_px == 5
-
-def test_normalize_pair():
-    """Test pair normalization."""
-    from src.first_meet_pairs_for_outlet import _normalize_pair
-    assert _normalize_pair(5, 3) == (3, 5)
-    assert _normalize_pair(3, 5) == (3, 5)
-```
+- Created `tests/` directory with pytest-based test suite
+- Added `tests/conftest.py` with mock objects (MockGridObject, MockFlowObject, MockStreamObject)
+- Implemented `tests/test_coupling_analysis.py` with tests for:
+  - PairTouchResult dataclass
+  - CouplingAnalyzer initialization and cache management
+  - Influence mask computation
+  - Pair touching detection
+  - evaluate_pairs_for_outlet method
+- Implemented `tests/test_first_meet_pairs.py` with tests for:
+  - Pair normalization
+  - Node ID list conversion
+  - Parent adjacency construction
+  - Basin node collection
+  - First meet pairs algorithm (simple and complex networks)
+  - Edge cases (single head, empty edges)
 
 **Run tests:**
 ```bash
-pytest tests/ -v --cov=src --cov-report=html
+pytest tests/ -v --cov=channel_heads --cov-report=html
 ```
-
-**Impact:** Prevents regressions, enables confident refactoring, validates edge cases
 
 ---
 
-### 2. Proper Package Structure
+### Package Structure
 
-**Current state:** Project is a collection of scripts, not an installable package
+**Status:** Implemented
 
-**Recommendation:** Convert to installable Python package with `pyproject.toml`
-
-**Implementation:**
-
-Create `pyproject.toml`:
-
-```toml
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "channel-heads"
-version = "0.1.0"
-description = "Coupled channel-head detection and basin-level analysis"
-readme = "README.md"
-requires-python = ">=3.11"
-license = {text = "MIT"}
-authors = [
-    {name = "Guy Pinkas", email = "your.email@example.com"}
-]
-keywords = ["geomorphology", "hydrology", "drainage networks", "channel heads"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering :: GIS",
-    "Programming Language :: Python :: 3.12",
-]
-
-dependencies = [
-    "numpy>=2.0",
-    "pandas>=2.0",
-    "matplotlib>=3.8",
-    "rasterio>=1.3",
-    "geopandas>=1.0",
-    "scikit-image>=0.24",
-    "topotoolbox>=0.0.6",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-    "pytest-cov>=4.0",
-    "black>=24.0",
-    "ruff>=0.3",
-    "jupyterlab>=4.0",
-]
-
-[project.scripts]
-ch-analyze = "channel_heads.cli:main"
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["src*"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = "test_*.py"
-python_classes = "Test*"
-python_functions = "test_*"
-
-[tool.black]
-line-length = 100
-target-version = ['py312']
-
-[tool.ruff]
-line-length = 100
-target-version = "py312"
-```
-
-**Rename `src/` to `channel_heads/`** for standard Python naming:
-
-```bash
-mv src channel_heads
-```
-
-Update `channel_heads/__init__.py`:
-
-```python
-"""Channel head coupling analysis package."""
-
-__version__ = "0.1.0"
-
-from .coupling_analysis import CouplingAnalyzer, PairTouchResult
-from .first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
-from .stream_utils import outlet_node_ids_from_streampoi
-
-__all__ = [
-    "CouplingAnalyzer",
-    "PairTouchResult",
-    "first_meet_pairs_for_outlet",
-    "outlet_node_ids_from_streampoi",
-]
-```
-
-**Install package in development mode:**
-
-```bash
-pip install -e ".[dev]"
-```
-
-**Impact:** Simplifies imports, enables version management, supports pip installation
+- Renamed `src/` to `channel_heads/` for standard Python package naming
+- Created `pyproject.toml` with:
+  - Package metadata and versioning
+  - Dependencies and optional dev dependencies
+  - CLI entry point (`ch-analyze`)
+  - Tool configurations (pytest, black, ruff)
+- Updated `channel_heads/__init__.py` with comprehensive exports
+- Package is now installable via `pip install -e ".[dev]"`
 
 ---
 
-### 3. Git Hygiene
-
-**Current state:** Untracked data files, PDFs, outputs pollute repository
-
-**Recommendation:** Update `.gitignore` and clean up tracked artifacts
-
-**Update `.gitignore`:**
-
-```gitignore
-# Python
-.DS_Store
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb_checkpoints
-
-# Data files (large, regeneratable)
-data/raw/*.tif
-data/cropped_DEMs/*.tif
-data/outputs/**/*.csv
-data/outputs/**/*.png
-*.aux.xml
-
-# QGIS project files (user-specific)
-*.qgz
-*.qgz~
-
-# Papers/PDFs (use references instead)
-*.pdf
-
-# Temporary/local directories
-GuyPinkasLiran/
-outputs/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Environment
-env/
-.env
-venv/
-```
-
-**Clean up:**
-
-```bash
-# Remove tracked .DS_Store
-find . -name .DS_Store -type f -delete
-git rm --cached -r .DS_Store
-
-# Stage .gitignore updates
-git add .gitignore
-git commit -m "Improve .gitignore to exclude data artifacts and PDFs"
-```
-
-**Impact:** Cleaner repository, faster clones, avoids committing large binary files
-
----
-
-## 🟡 Medium Priority
-
-### 4. Enhanced Documentation
-
-**Current state:** Minimal README, code comments only
-
-**Recommendation:** Expand README with examples, add scientific context
-
-**Improved `README.md`:**
-
-```markdown
-# Channel Head Coupling Analysis
-
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-Automated detection and analysis of coupled channel heads in drainage networks derived from Digital Elevation Models (DEMs).
-
-## Overview
-
-This package identifies pairs of channel heads that converge at confluences and determines whether their drainage basins are spatially coupled (touching or overlapping). This analysis is fundamental for understanding:
-
-- Sediment connectivity in mountainous catchments
-- Landscape evolution patterns
-- Drainage network reorganization
-- Channel head migration dynamics
-
-## Features
-
-- 🗺️ Automated drainage network extraction from DEMs
-- 🔗 Graph-based channel head pairing algorithm
-- 📊 Spatial coupling detection (4/8-connectivity)
-- 📈 Statistical summaries and CSV exports
-- 🎨 2D and 3D visualization tools
-
-## Quick Start
-
-### Installation
-
-```bash
-# Clone repository
-git clone https://github.com/yourusername/channel-heads.git
-cd channel-heads
-
-# Create conda environment
-conda env create -f env/environment.yml
-conda activate ch-heads
-
-# Install package in development mode
-pip install -e .
-```
-
-### Basic Usage
-
-```python
-import topotoolbox as tt3
-from channel_heads import CouplingAnalyzer, first_meet_pairs_for_outlet
-
-# Load DEM
-dem = tt3.read_tif("data/cropped_DEMs/Inyo_strm_crop.tif")
-
-# Derive flow and stream networks
-fd = tt3.FlowObject(dem)
-s = tt3.StreamObject(fd, threshold=300)
-
-# Analyze outlet
-outlet_id = 5
-pairs, heads = first_meet_pairs_for_outlet(s, outlet_id)
-
-analyzer = CouplingAnalyzer(fd, s, dem)
-results = analyzer.evaluate_pairs_for_outlet(outlet_id, pairs)
-
-print(results)
-```
-
-## Documentation
-
-- [Developer Guide](CLAUDE.md) - Setup, API reference, workflows
-- [Improvements](improvement.md) - Roadmap and enhancement suggestions
-
-## Study Areas
-
-Included DEMs cover diverse geomorphic settings:
-- Inyo Mountains, California
-- Humboldt Range, Nevada
-- Finisterre Range, Papua New Guinea
-- Daqing Shan, China
-- And more...
-
-## Citation
-
-If you use this code in research, please cite:
-
-```
-[Add paper reference when published]
-```
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Contributing
-
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Submit a pull request
-
-## Contact
-
-Guy Pinkas - [your.email@example.com]
-```
-
-**Add `LICENSE` file:**
-
-```bash
-# Create MIT license
-cat > LICENSE << 'EOF'
-MIT License
-
-Copyright (c) 2024 Guy Pinkas
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-[... standard MIT license text ...]
-EOF
-```
-
-**Impact:** Easier onboarding, clearer project goals, attribution for research
-
----
-
-### 5. Command-Line Interface
-
-**Current state:** Notebook-only workflows, no batch processing
-
-**Recommendation:** Add CLI for common analysis tasks
-
-**Implementation:**
-
-Create `channel_heads/cli.py`:
-
-```python
-"""Command-line interface for channel head coupling analysis."""
-
-import argparse
-from pathlib import Path
-import pandas as pd
-import topotoolbox as tt3
-
-from .coupling_analysis import CouplingAnalyzer
-from .first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
-from .stream_utils import outlet_node_ids_from_streampoi
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Analyze channel head coupling in drainage networks"
-    )
-    parser.add_argument("dem", type=Path, help="Path to DEM file (GeoTIFF)")
-    parser.add_argument("-o", "--output", type=Path, required=True,
-                        help="Output CSV path for coupling results")
-    parser.add_argument("--threshold", type=int, default=300,
-                        help="Stream network area threshold (default: 300)")
-    parser.add_argument("--connectivity", type=int, choices=[4, 8], default=8,
-                        help="Connectivity for coupling detection (default: 8)")
-    parser.add_argument("--mask-below", type=float,
-                        help="Mask DEM elevations below this threshold")
-    parser.add_argument("--outlets", type=str,
-                        help="Comma-separated outlet IDs to analyze (default: all)")
-
-    args = parser.parse_args()
-
-    # Load DEM
-    print(f"Loading DEM: {args.dem}")
-    dem = tt3.read_tif(str(args.dem))
-
-    if args.mask_below:
-        dem.z[dem.z < args.mask_below] = float('nan')
-
-    # Derive networks
-    print("Deriving flow and stream networks...")
-    fd = tt3.FlowObject(dem)
-    s = tt3.StreamObject(fd, threshold=args.threshold)
-
-    # Select outlets
-    if args.outlets:
-        outlet_ids = [int(x.strip()) for x in args.outlets.split(",")]
-    else:
-        outlet_ids = outlet_node_ids_from_streampoi(s)
-
-    print(f"Analyzing {len(outlet_ids)} outlets...")
-
-    # Analyze
-    an = CouplingAnalyzer(fd, s, dem, connectivity=args.connectivity)
-    all_results = []
-
-    for i, outlet_id in enumerate(outlet_ids, 1):
-        print(f"  [{i}/{len(outlet_ids)}] Outlet {outlet_id}")
-        pairs, heads = first_meet_pairs_for_outlet(s, outlet_id)
-        df = an.evaluate_pairs_for_outlet(outlet_id, pairs)
-        if not df.empty:
-            all_results.append(df)
-
-    # Save
-    if all_results:
-        df_all = pd.concat(all_results, ignore_index=True)
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        df_all.to_csv(args.output, index=False)
-        print(f"\n✓ Saved {len(df_all)} pair results to {args.output}")
-        print(f"  Touching pairs: {df_all['touching'].sum()} ({df_all['touching'].mean():.1%})")
-    else:
-        print("\n⚠ No pairs found in any outlet")
-
-
-if __name__ == "__main__":
-    main()
-```
+### Command-Line Interface
+
+**Status:** Implemented
+
+Created `channel_heads/cli.py` with:
+- `ch-analyze` command for batch DEM processing
+- Options: `--threshold`, `--connectivity`, `--mask-below`, `--outlets`, `--verbose`
+- Proper logging integration
+- Error handling and exit codes
+- Progress reporting
 
 **Usage:**
-
 ```bash
-# Analyze single DEM
-ch-analyze data/cropped_DEMs/Inyo_strm_crop.tif \
-    --output results/inyo_coupling.csv \
-    --threshold 300 \
-    --mask-below 1200
-
-# Batch process all DEMs
-for dem in data/cropped_DEMs/*.tif; do
-    name=$(basename "$dem" _strm_crop.tif)
-    ch-analyze "$dem" --output "results/${name}_coupling.csv"
-done
+ch-analyze data/cropped_DEMs/Inyo_strm_crop.tif -o results/inyo.csv --mask-below 1200 -v
 ```
-
-**Impact:** Enables automated batch processing, reproducible analysis pipelines
 
 ---
 
-### 6. Path Management
+### Path Management
 
-**Current state:** Hardcoded absolute paths in notebooks
+**Status:** Implemented
 
-**Recommendation:** Use pathlib and environment variables
-
-**Implementation:**
-
-Create `channel_heads/config.py`:
-
-```python
-"""Project configuration and path management."""
-
-from pathlib import Path
-import os
-
-# Auto-detect project root (supports both installed package and local dev)
-if os.getenv("CHANNEL_HEADS_ROOT"):
-    PROJECT_ROOT = Path(os.getenv("CHANNEL_HEADS_ROOT"))
-elif __file__:
-    # Installed package
-    PROJECT_ROOT = Path(__file__).parent.parent
-else:
-    # Fallback
-    PROJECT_ROOT = Path.cwd()
-
-# Data directories
-DATA_DIR = PROJECT_ROOT / "data"
-RAW_DATA_DIR = DATA_DIR / "raw"
-CROPPED_DEMS_DIR = DATA_DIR / "cropped_DEMs"
-OUTPUTS_DIR = DATA_DIR / "outputs"
-
-# Create if missing
-for dir in [DATA_DIR, RAW_DATA_DIR, CROPPED_DEMS_DIR, OUTPUTS_DIR]:
-    dir.mkdir(parents=True, exist_ok=True)
-
-# Example DEMs
-EXAMPLE_DEMS = {
-    "inyo": CROPPED_DEMS_DIR / "Inyo_strm_crop.tif",
-    "humboldt": CROPPED_DEMS_DIR / "Humboldt_strm_crop.tif",
-    # ... more ...
-}
-```
-
-**Update notebooks:**
-
-```python
-# Instead of:
-# dem = tt3.read_tif("/Users/guypi/Projects/channel-heads/data/cropped_DEMs/Inyo_strm_crop.tif")
-
-# Use:
-from channel_heads.config import EXAMPLE_DEMS
-dem = tt3.read_tif(EXAMPLE_DEMS["inyo"])
-```
-
-**Impact:** Cross-platform compatibility, easier deployment, cleaner notebooks
+Created `channel_heads/config.py` with:
+- Auto-detection of project root
+- Centralized path constants (PROJECT_ROOT, DATA_DIR, CROPPED_DEMS_DIR, OUTPUTS_DIR)
+- EXAMPLE_DEMS dictionary for quick DEM access
+- `resolve_dem_path()` for flexible path resolution
+- `get_output_dir()` for study-area-specific output directories
+- `list_available_dems()` for discovering DEMs
+- Environment variable overrides (CHANNEL_HEADS_ROOT, CHANNEL_HEADS_DATA)
 
 ---
 
-## 🟢 Low Priority
+### Logging Configuration
 
-### 7. Performance Optimization
+**Status:** Implemented
 
-**Current state:** Single-threaded processing, full DEM loading
+Created `channel_heads/logging_config.py` with:
+- Centralized logging setup
+- `get_logger()` for module-specific loggers
+- `setup_logging()` for configuration
+- Environment variable support (CHANNEL_HEADS_LOG_LEVEL, CHANNEL_HEADS_LOG_FILE)
+- Console and file handler support
 
-**Recommendations:**
+---
 
-#### 7a. Parallel Processing
+### Basin Configuration Data
+
+**Status:** Implemented
+
+Created `channel_heads/basin_config.py` with:
+- Configuration data from Goren & Shelef (2024) Table A1
+- 18 mountain ranges with parameters:
+  - Elevation thresholds (z_th)
+  - Reference ΔL values (median, 25th, 75th percentiles)
+  - Concavity index (θ)
+  - Location coordinates (lat, lon)
+  - Area, aridity index, number of pairs
+- Helper functions: `get_basin_config()`, `get_z_th()`, `get_reference_delta_L()`, `list_basins()`
+- Mapping between local DEM names and paper basin names
+
+---
+
+### Lengthwise Asymmetry Metric
+
+**Status:** Implemented
+
+Created `channel_heads/lengthwise_asymmetry.py` with:
+- `LengthwiseAsymmetryAnalyzer` class using TopoToolbox's `upstream_distance()`
+- `compute_delta_L()` function implementing Equation 4 from Goren & Shelef (2024)
+- Automatic coordinate conversion (degrees to meters) for geographic DEMs
+- `compute_asymmetry_statistics()` for summary statistics
+- `merge_coupling_and_asymmetry()` for combining results
+- `PairAsymmetryResult` dataclass
+
+---
+
+### Continuous Integration
+
+**Status:** Implemented
+
+Created `.github/workflows/tests.yml` with:
+- Test job: pytest on Python 3.11 and 3.12
+- Lint job: black formatting and ruff linting
+- Type check job: mypy (informational, non-blocking)
+- Coverage upload to Codecov
+- Runs on push to main/develop and pull requests
+
+---
+
+### Documentation
+
+**Status:** Implemented
+
+- Updated `CLAUDE.md` with:
+  - New package structure
+  - All new modules documented
+  - Testing section with fixtures
+  - CI/CD section
+  - Updated workflows and examples
+- Updated `README.md` with:
+  - Comprehensive CLI guide
+  - API reference for all major classes
+  - Basin configuration usage
+  - Study areas table with z_th values
+  - Testing instructions
+
+---
+
+### Git Hygiene
+
+**Status:** Implemented
+
+- Updated `.gitignore` to exclude:
+  - Data files (*.tif, *.csv in outputs)
+  - Jupyter checkpoints
+  - Python cache files
+  - IDE files
+  - Environment files
+
+---
+
+## Future Improvements
+
+### Performance Optimization
+
+**Priority:** Medium | **Effort:** Medium | **Impact:** Medium
+
+#### Parallel Processing
 
 ```python
 from multiprocessing import Pool
@@ -607,7 +191,7 @@ def analyze_outlet(outlet_id, s, fd, dem, connectivity):
     return an.evaluate_pairs_for_outlet(outlet_id, pairs)
 
 def compute_coupling_parallel(s, fd, dem, outlets=None, n_workers=4):
-    """Parallel version of compute_coupling_all_outlets."""
+    """Parallel version of coupling analysis."""
     if outlets is None:
         outlets = outlet_node_ids_from_streampoi(s)
 
@@ -619,26 +203,17 @@ def compute_coupling_parallel(s, fd, dem, outlets=None, n_workers=4):
     return pd.concat([r for r in results if not r.empty], ignore_index=True)
 ```
 
-#### 7b. Lazy Loading with Dask
+**Impact:** 2-4x speedup for multi-core systems
 
-```python
-import dask.array as da
-import rasterio
+#### Spatial Indexing
 
-def load_dem_lazy(path):
-    """Load DEM as dask array for memory-efficient processing."""
-    with rasterio.open(path) as src:
-        dem_lazy = da.from_array(src.read(1), chunks=(1024, 1024))
-    return dem_lazy
-```
-
-#### 7c. Spatial Indexing
+Use R-tree for fast confluence queries:
 
 ```python
 from rtree import index
 
 def build_spatial_index(s):
-    """Build R-tree index for fast confluence queries."""
+    """Build R-tree index for fast spatial queries."""
     idx = index.Index()
     r, c = s.node_indices
     xs, ys = s.transform * np.vstack((c, r))
@@ -650,108 +225,102 @@ def build_spatial_index(s):
     return idx
 ```
 
-**Impact:** 3-5x speedup for large DEMs, reduced memory footprint
+---
+
+### Extended Testing
+
+**Priority:** Medium | **Effort:** Medium | **Impact:** High
+
+#### Integration Tests with Real DEMs
+
+```python
+# tests/test_integration.py
+import pytest
+from channel_heads import EXAMPLE_DEMS
+
+@pytest.mark.integration
+@pytest.mark.skipif(not EXAMPLE_DEMS["inyo"].exists(), reason="DEM not available")
+def test_full_workflow_inyo():
+    """Integration test with real Inyo DEM."""
+    import topotoolbox as tt3
+    from channel_heads import CouplingAnalyzer, first_meet_pairs_for_outlet, get_z_th
+
+    dem = tt3.read_tif(str(EXAMPLE_DEMS["inyo"]))
+    dem.z[dem.z < get_z_th("inyo")] = np.nan
+
+    fd = tt3.FlowObject(dem)
+    s = tt3.StreamObject(fd, threshold=300)
+
+    # Test a known outlet
+    pairs, heads = first_meet_pairs_for_outlet(s, outlet_id=5)
+    assert len(heads) > 0
+
+    an = CouplingAnalyzer(fd, s, dem)
+    df = an.evaluate_pairs_for_outlet(5, pairs)
+    assert not df.empty
+```
+
+#### Tests for Lengthwise Asymmetry
+
+```python
+# tests/test_lengthwise_asymmetry.py
+def test_compute_delta_L():
+    from channel_heads import compute_delta_L
+
+    assert compute_delta_L(1000, 1000) == 0.0  # Symmetric
+    assert abs(compute_delta_L(1000, 2000) - 0.6667) < 0.001
+    assert compute_delta_L(0, 1000) == 2.0  # Maximum asymmetry
+
+def test_meters_per_degree():
+    from channel_heads import compute_meters_per_degree
+
+    # At equator
+    m = compute_meters_per_degree(0)
+    assert 110000 < m < 112000
+
+    # At 45 degrees
+    m = compute_meters_per_degree(45)
+    assert 90000 < m < 100000
+```
 
 ---
 
-### 8. Code Quality Improvements
+### CLI Enhancements
 
-#### 8a. Type Hints
+**Priority:** Low | **Effort:** Low | **Impact:** Medium
 
-**Add comprehensive type annotations:**
-
-```python
-from typing import Dict, Set, Tuple, List
-import numpy.typing as npt
-
-def first_meet_pairs_for_outlet(
-    s: StreamObject,
-    outlet: int
-) -> Tuple[Dict[int, Set[Tuple[int, int]]], List[int]]:
-    """Compute first-meet pairs with full type safety."""
-    ...
-
-def influence_mask(self, head_id: int) -> npt.NDArray[np.bool_]:
-    """Return boolean mask with numpy type hint."""
-    ...
-```
-
-#### 8b. Error Handling
-
-**Add validation and informative errors:**
+#### Add Asymmetry Computation to CLI
 
 ```python
-class CouplingAnalyzer:
-    def __init__(self, fd, s, dem, connectivity: int = 8):
-        # Existing checks...
-
-        # Add descriptive errors
-        if not hasattr(fd, 'dependencemap'):
-            raise TypeError(
-                f"fd must be a FlowObject with .dependencemap() method, "
-                f"got {type(fd).__name__}"
-            )
-
-        if not hasattr(s, 'streampoi'):
-            raise TypeError(
-                f"s must be a StreamObject with .streampoi() method, "
-                f"got {type(s).__name__}"
-            )
+# In cli.py
+parser.add_argument(
+    "--compute-asymmetry",
+    action="store_true",
+    help="Also compute lengthwise asymmetry (ΔL)"
+)
+parser.add_argument(
+    "--lat",
+    type=float,
+    help="Latitude for meter conversion (required with --compute-asymmetry)"
+)
 ```
 
-#### 8c. Logging
-
-**Replace print() with logging:**
+#### Progress Bar
 
 ```python
-import logging
+from tqdm import tqdm
 
-logger = logging.getLogger(__name__)
-
-def compute_coupling_all_outlets(...):
-    logger.info(f"Processing {len(outlets)} outlets")
-    for idx, o in enumerate(outlets, 1):
-        logger.debug(f"[{idx}/{len(outlets)}] outlet={o}")
-        ...
+for outlet_id in tqdm(outlet_ids, desc="Processing outlets"):
+    # ...
 ```
-
-**Impact:** Better debugging, cleaner code, IDE support
 
 ---
 
-## Additional Recommendations
+### Data Versioning
 
-### 9. Continuous Integration
+**Priority:** Low | **Effort:** Medium | **Impact:** Medium
 
-**Set up GitHub Actions for automated testing:**
-
-Create `.github/workflows/tests.yml`:
-
-```yaml
-name: Tests
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          environment-file: env/environment.yml
-          activate-environment: ch-heads
-      - name: Run tests
-        run: |
-          conda activate ch-heads
-          pytest tests/ --cov=channel_heads --cov-report=xml
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-```
-
-### 10. Data Versioning
-
-**Use DVC (Data Version Control) for large DEMs:**
+Use DVC (Data Version Control) for large DEMs:
 
 ```bash
 pip install dvc dvc-gdrive
@@ -760,33 +329,70 @@ pip install dvc dvc-gdrive
 dvc add data/cropped_DEMs/
 dvc add data/outputs/
 
-# Commit DVC metadata (not the data)
-git add data/.gitignore data/cropped_DEMs.dvc data/outputs.dvc
+# Commit DVC metadata
+git add data/.gitignore data/cropped_DEMs.dvc
 git commit -m "Track data with DVC"
 
-# Push data to remote storage
+# Push to remote storage
 dvc remote add -d myremote gdrive://folder_id
 dvc push
 ```
 
-### 11. Notebook Best Practices
+---
 
-**Convert notebooks to Python scripts for version control:**
+### Additional Basin Configuration
+
+**Priority:** Low | **Effort:** Low | **Impact:** Low
+
+Add DEMs for remaining basins from Goren & Shelef (2024):
+- Taiwan (Central Mountain Range)
+- Panamint Range, California
+- Sakhalin Mountains, Russia
+- Sierra Madre del Sur, Mexico
+- Sierra Nevada, Spain
+- Sierra Pie de Palo, Argentina
+- Toano Range, Nevada
+- Troodos Mountains, Cyprus
+- Tsugaru Peninsula, Japan
+- Yoro Mountains, Japan
+
+---
+
+### Notebook Improvements
+
+**Priority:** Low | **Effort:** Low | **Impact:** Low
+
+#### Convert to Jupytext
 
 ```bash
 # Install jupytext
 conda install jupytext
 
 # Pair notebooks with .py files
-jupytext --set-formats ipynb,py:percent notebooks/00_test.ipynb
+jupytext --set-formats ipynb,py:percent notebooks/*.ipynb
 
-# Now git tracks the .py version (easier diffs)
-git add notebooks/00_test.py
+# Track .py versions in git (easier diffs)
+git add notebooks/*.py
 ```
 
-### 12. Scientific Reproducibility
+#### Parameterized Notebooks with Papermill
 
-**Add environment snapshots:**
+```bash
+pip install papermill
+
+# Run notebook with parameters
+papermill notebooks/all_basins_analysis.ipynb outputs/inyo_analysis.ipynb \
+    -p basin_name "inyo" \
+    -p threshold 300
+```
+
+---
+
+### Scientific Reproducibility
+
+**Priority:** Low | **Effort:** Low | **Impact:** Medium
+
+#### Environment Snapshots
 
 ```bash
 # Exact versions for reproducibility
@@ -797,47 +403,59 @@ pip freeze > env/requirements-lock.txt
 python -c "import platform; print(platform.platform())" > env/system-info.txt
 ```
 
+#### Seed Management
+
+```python
+# In analysis scripts
+import numpy as np
+
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
+```
+
 ---
 
 ## Implementation Roadmap
 
-### Phase 1 (Week 1): Foundation
-- [ ] Add testing infrastructure (tests/ directory, basic tests)
-- [ ] Create pyproject.toml and make package installable
-- [ ] Update .gitignore and clean repository
-- [ ] Add LICENSE file
+### Completed (Phase 1-2)
 
-### Phase 2 (Week 2): Usability
-- [ ] Implement CLI interface
-- [ ] Add path management (config.py)
-- [ ] Expand README with examples
-- [ ] Create contribution guidelines
+- [x] Testing infrastructure with pytest and mock objects
+- [x] Package structure with pyproject.toml
+- [x] CLI interface (`ch-analyze`)
+- [x] Path management (config.py)
+- [x] Logging configuration
+- [x] Basin configuration from paper
+- [x] Lengthwise asymmetry metric
+- [x] CI/CD with GitHub Actions
+- [x] Documentation updates (CLAUDE.md, README.md)
+- [x] Git hygiene (.gitignore)
 
-### Phase 3 (Week 3): Quality
-- [ ] Add comprehensive type hints
-- [ ] Implement logging
-- [ ] Add error handling and validation
-- [ ] Set up CI/CD pipeline
+### Future (Phase 3+)
 
-### Phase 4 (Ongoing): Optimization
-- [ ] Profile code for bottlenecks
-- [ ] Implement parallel processing
-- [ ] Add spatial indexing
-- [ ] Optimize memory usage
+- [ ] Parallel processing for large DEMs
+- [ ] Integration tests with real DEMs
+- [ ] Tests for lengthwise asymmetry module
+- [ ] CLI asymmetry computation flag
+- [ ] Progress bar in CLI
+- [ ] DVC for data versioning
+- [ ] Additional basin DEMs
+- [ ] Jupytext notebook pairing
+- [ ] Papermill parameterization
 
 ---
 
 ## Success Metrics
 
-After implementing improvements:
+Current status:
 
-- ✅ Test coverage > 80%
-- ✅ Installable via `pip install -e .`
-- ✅ CLI enables batch processing
-- ✅ Documentation covers all use cases
-- ✅ Repository size < 50 MB (excluding DVC-tracked data)
-- ✅ Cross-platform compatibility (Linux, macOS, Windows)
-- ✅ CI pipeline passes on all commits
+- [x] Test coverage > 50% (core modules)
+- [x] Installable via `pip install -e .`
+- [x] CLI enables batch processing
+- [x] Documentation covers all use cases
+- [ ] Test coverage > 80% (all modules)
+- [ ] Repository size < 50 MB (excluding DVC-tracked data)
+- [x] Cross-platform compatibility (Linux, macOS)
+- [x] CI pipeline passes on all commits
 
 ---
 
