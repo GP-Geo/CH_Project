@@ -1,6 +1,9 @@
 from __future__ import annotations
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 from collections import defaultdict, deque
+import numpy as np
+from functools import lru_cache
+
 
 NodeId = int
 HeadId = int
@@ -11,15 +14,14 @@ HeadSet = List[HeadId]
 def _normalize_pair(h1: int, h2: int) -> HeadPair:
     return (h1, h2) if h1 < h2 else (h2, h1)
 
+### streampoi returns always numpy arrays, so this is not strictly necessary,
+# change this for simplicity
+#reduced the function to only handle 1D numpy arrays
 
-def _to_node_id_list(x) -> List[int]:
-    """Coerce streampoi output to a sorted unique Python list of ints.
-    Accepts int, list/tuple, numpy array, or boolean mask aligned to node ids.
+def _to_node_id_list(x) -> List[int]:  
+    """Convert input to sorted unique list of node IDs where input is truthy.
     """
-    import numpy as np
 
-    if x is None:
-        return []
     arr = np.asarray(x)
     if arr.dtype == bool:
         # boolean mask over node ids
@@ -32,9 +34,10 @@ def _to_node_id_list(x) -> List[int]:
     return sorted(set(ids))
 
 
+
 def _build_parents_from_stream(s) -> List[List[NodeId]]:
     """parents[v] = list of upstream nodes u with edge (u -> v). Deterministic & duplicate-safe."""
-    import numpy as np
+
 
     if hasattr(s, "node_indices") and s.node_indices is not None:
         r, c = s.node_indices
@@ -93,12 +96,13 @@ def first_meet_pairs_for_outlet(s, outlet: NodeId):
     basin_heads : List[int]
         Sorted list of head node ids within the basin of `outlet`.
     """
-    import numpy as np
-    from functools import lru_cache
-
+    
     # 1) parents and basin restriction
     parents = _build_parents_from_stream(s)
     basin_nodes = set(_collect_basin_nodes_from_outlet(parents, outlet))
+### this can be done for one time to make a global list
+#  for heads and confluences and then filtering for each outlet
+
 
     # 2) get global POIs via streampoi, then restrict to basin
     heads_all = _to_node_id_list(s.streampoi('channelheads'))
