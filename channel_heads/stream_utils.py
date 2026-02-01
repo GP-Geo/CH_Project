@@ -35,5 +35,5 @@ def outlet_node_ids_from_streampoi(s: Any) -> npt.NDArray[np.intp]:
     >>> outlets = outlet_node_ids_from_streampoi(s)
     >>> print(f"Found {len(outlets)} outlets")
     """
-    outlet_mask = s.streampoi('outlets')
+    outlet_mask = s.streampoi("outlets")
     return np.flatnonzero(outlet_mask)

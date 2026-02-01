@@ -120,9 +120,11 @@ def _bbox_from_points(
     px, py = dx * pad_frac, dy * pad_frac
     return xmin - px, xmax + px, ymin - py, ymax + py
 
+
 # ---------------------------------------------------------------------
 # 1. Single coupled pair
 # ---------------------------------------------------------------------
+
 
 def plot_coupled_pair(
     fd: Any,
@@ -195,27 +197,40 @@ def plot_coupled_pair(
     _plot_segments(ax, s.xy(), color="black", alpha=0.5)
 
     # overlays — use full DEM extent since dep_i/dep_j are full-size masks
-    ax.imshow(dep_i.z, cmap="Blues",  alpha=alpha, extent=dem.extent, origin="upper")
-    ax.imshow(dep_j.z, cmap="Reds",   alpha=alpha, extent=dem.extent, origin="upper")
+    ax.imshow(dep_i.z, cmap="Blues", alpha=alpha, extent=dem.extent, origin="upper")
+    ax.imshow(dep_j.z, cmap="Reds", alpha=alpha, extent=dem.extent, origin="upper")
     if np.any(overlap):
         ax.imshow(overlap, cmap="Purples", alpha=0.5, extent=dem.extent, origin="upper")
 
     xs_all, ys_all = s.transform * np.vstack((c, r))
     ax.scatter(xs_all[head_i], ys_all[head_i], s=60, c="blue", edgecolor="k", zorder=5)
-    ax.scatter(xs_all[head_j], ys_all[head_j], s=60, c="red",  edgecolor="k", zorder=5)
-    ax.scatter(xs_all[confluence_id], ys_all[confluence_id], marker="*", s=140,
-               edgecolor="k", facecolor="gold", zorder=6)
+    ax.scatter(xs_all[head_j], ys_all[head_j], s=60, c="red", edgecolor="k", zorder=5)
+    ax.scatter(
+        xs_all[confluence_id],
+        ys_all[confluence_id],
+        marker="*",
+        s=140,
+        edgecolor="k",
+        facecolor="gold",
+        zorder=6,
+    )
 
     if view_mode in ("crop", "zoom"):
-        ax.set_xlim(L, R); ax.set_ylim(B, T)
+        ax.set_xlim(L, R)
+        ax.set_ylim(B, T)
 
     ax.set_aspect("equal", "box")
-    ax.set_title(f"Heads {head_i}, {head_j} | Confluence {confluence_id} — {view_mode}, focus={focus}")
+    ax.set_title(
+        f"Heads {head_i}, {head_j} | Confluence {confluence_id} — {view_mode}, focus={focus}"
+    )
     plt.tight_layout()
     return fig, ax
+
+
 # ---------------------------------------------------------------------
 # 2. Outlet view (crop / zoom / overview)
 # ---------------------------------------------------------------------
+
 
 def plot_outlet_view(
     s: Any,
@@ -251,7 +266,8 @@ def plot_outlet_view(
         s_up = by_outlet[outlet_id]["s_up"]
     else:
         om = s.streampoi("outlets")
-        m = np.zeros_like(om, bool); m[outlet_id] = True
+        m = np.zeros_like(om, bool)
+        m[outlet_id] = True
         s_up = s.upstreamto(m)
 
     dem_used, (L, R, B, T) = _maybe_crop_dem(dem, s_up, view_mode, pad_frac)
@@ -270,15 +286,18 @@ def plot_outlet_view(
     ax.scatter(xs[conf], ys[conf], s=28, c="red", zorder=4)
     ax.scatter(xs[heads], ys[heads], s=24, c="limegreen", zorder=4)
 
-    ax.set_xlim(L, R); ax.set_ylim(B, T)
+    ax.set_xlim(L, R)
+    ax.set_ylim(B, T)
     ax.set_aspect("equal", "box")
     ax.set_title(f"Outlet {outlet_id} ({view_mode})")
     plt.tight_layout()
     return fig, ax
 
+
 # ---------------------------------------------------------------------
 # 3. All coupled pairs overview (gold confluences)
 # ---------------------------------------------------------------------
+
 
 def plot_all_coupled_pairs_for_outlet(
     fd: Any,
@@ -330,7 +349,8 @@ def plot_all_coupled_pairs_for_outlet(
         df_o = df_o.head(max_pairs)
 
     om = s.streampoi("outlets")
-    m = np.zeros_like(om, bool); m[outlet_id] = True
+    m = np.zeros_like(om, bool)
+    m[outlet_id] = True
     s_up = s.upstreamto(m)
     dem_used, (L, R, B, T) = _maybe_crop_dem(dem, s_up, view_mode, pad_frac)
 
@@ -348,26 +368,37 @@ def plot_all_coupled_pairs_for_outlet(
         color = cmap(idx)
         G1, G2 = an.influence_grid(h1), an.influence_grid(h2)
         mask = np.asarray(G1.z | G2.z, bool)
-        ax.imshow(np.ma.masked_where(~mask, mask),
-                  cmap=plt.cm.colors.ListedColormap([color]),
-                  alpha=alpha, extent=dem.extent)
+        ax.imshow(
+            np.ma.masked_where(~mask, mask),
+            cmap=plt.cm.colors.ListedColormap([color]),
+            alpha=alpha,
+            extent=dem.extent,
+        )
         ax.scatter(xs[h1], ys[h1], c=[color], s=45, edgecolor="k", zorder=5)
         ax.scatter(xs[h2], ys[h2], c=[color], s=45, edgecolor="k", zorder=5)
-        ax.scatter(xs[conf], ys[conf], marker="*", s=120, edgecolor="k",
-                   facecolor="gold", zorder=6)
+        ax.scatter(xs[conf], ys[conf], marker="*", s=120, edgecolor="k", facecolor="gold", zorder=6)
         patches.append(mpatches.Patch(color=color, label=f"Pair {idx+1} ({h1},{h2})"))
 
     out_mask = s_up.streampoi("outlets")
     xs_up, ys_up = _xy_all_nodes(s_up)
-    ax.scatter(xs_up[out_mask], ys_up[out_mask], marker="*", s=200,
-               edgecolor="k", facecolor="gold", zorder=6)
+    ax.scatter(
+        xs_up[out_mask],
+        ys_up[out_mask],
+        marker="*",
+        s=200,
+        edgecolor="k",
+        facecolor="gold",
+        zorder=6,
+    )
 
-    ax.set_xlim(L, R); ax.set_ylim(B, T)
+    ax.set_xlim(L, R)
+    ax.set_ylim(B, T)
     ax.set_aspect("equal", "box")
     ax.legend(handles=patches, frameon=True, fontsize=8, loc="upper right")
     ax.set_title(f"Outlet {outlet_id} — {len(df_o)} coupled pairs ({view_mode})")
     plt.tight_layout()
     return fig, ax
+
 
 def plot_all_coupled_pairs_for_outlet_3d(
     fd: Any,
@@ -437,7 +468,8 @@ def plot_all_coupled_pairs_for_outlet_3d(
 
     # Upstream subnetwork for the chosen outlet
     om = s.streampoi("outlets")
-    m = np.zeros_like(om, bool); m[outlet_id] = True
+    m = np.zeros_like(om, bool)
+    m[outlet_id] = True
     s_up = s.upstreamto(m)
 
     # Crop DEM if requested
@@ -451,10 +483,12 @@ def plot_all_coupled_pairs_for_outlet_3d(
     X, Y = dem_used.coordinates
     Z = dem_used.z * z_exaggeration
     if dem_stride and dem_stride > 1:
-        ax.plot_surface(X[::dem_stride, ::dem_stride],
-                        Y[::dem_stride, ::dem_stride],
-                        Z[::dem_stride, ::dem_stride],
-                        **surface_kwargs)
+        ax.plot_surface(
+            X[::dem_stride, ::dem_stride],
+            Y[::dem_stride, ::dem_stride],
+            Z[::dem_stride, ::dem_stride],
+            **surface_kwargs,
+        )
     else:
         dem_used.plot_surface(ax=ax, **surface_kwargs)  # uses self.z internally (no exaggeration)
         if z_exaggeration != 1.0:
@@ -470,10 +504,12 @@ def plot_all_coupled_pairs_for_outlet_3d(
 
     if hasattr(s_up, "source") and hasattr(s_up, "target"):
         for a, b in zip(s_up.source, s_up.target):
-            ax.plot([xs_up[a], xs_up[b]],
-                    [ys_up[a], ys_up[b]],
-                    [z_nodes_up[a], z_nodes_up[b]],
-                    **stream_kwargs)
+            ax.plot(
+                [xs_up[a], xs_up[b]],
+                [ys_up[a], ys_up[b]],
+                [z_nodes_up[a], z_nodes_up[b]],
+                **stream_kwargs,
+            )
 
     # --- Coupled heads, influence masks, and confluences ---
     cmap = plt.colormaps["tab20"].resampled(len(df_o))
@@ -505,19 +541,35 @@ def plot_all_coupled_pairs_for_outlet_3d(
         ax.plot_surface(X, Y, Zm_local, color=color, alpha=alpha, linewidth=0)
 
         # Heads & confluence markers
-        ax.scatter(xs_up[h1], ys_up[h1], z_nodes_up[h1],
-                   color=color, s=70, edgecolor="k", depthshade=True)
-        ax.scatter(xs_up[h2], ys_up[h2], z_nodes_up[h2],
-                   color=color, s=70, edgecolor="k", depthshade=True)
-        ax.scatter(xs_up[conf], ys_up[conf], z_nodes_up[conf],
-                   marker="*", s=180, edgecolor="k", facecolor="gold")
+        ax.scatter(
+            xs_up[h1], ys_up[h1], z_nodes_up[h1], color=color, s=70, edgecolor="k", depthshade=True
+        )
+        ax.scatter(
+            xs_up[h2], ys_up[h2], z_nodes_up[h2], color=color, s=70, edgecolor="k", depthshade=True
+        )
+        ax.scatter(
+            xs_up[conf],
+            ys_up[conf],
+            z_nodes_up[conf],
+            marker="*",
+            s=180,
+            edgecolor="k",
+            facecolor="gold",
+        )
 
         patches.append(mpatches.Patch(color=color, label=f"Pair {idx+1} ({h1},{h2})"))
 
     # --- Upstream outlet marker ---
     out_mask_up = s_up.streampoi("outlets")
-    ax.scatter(xs_up[out_mask_up], ys_up[out_mask_up], z_nodes_up[out_mask_up],
-               marker="*", s=260, edgecolor="k", facecolor="gold")
+    ax.scatter(
+        xs_up[out_mask_up],
+        ys_up[out_mask_up],
+        z_nodes_up[out_mask_up],
+        marker="*",
+        s=260,
+        edgecolor="k",
+        facecolor="gold",
+    )
 
     # Same spatial framing you used in 2D
     ax.set_xlim(L, R)

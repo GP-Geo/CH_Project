@@ -3,9 +3,9 @@
 import pytest
 import numpy as np
 
-
 # Note: Testing outlet_node_ids_from_streampoi() requires a mock StreamObject
 # with .streampoi() method. Here's a placeholder for future implementation:
+
 
 class TestOutletNodeIds:
     """Test outlet node ID extraction."""

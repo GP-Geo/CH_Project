@@ -218,7 +218,7 @@ class TestFirstMeetPairsForOutlet:
         pairs, _ = first_meet_pairs_for_outlet(net["s"], outlet_id)
 
         for conf_id, pair_set in pairs.items():
-            for (h1, h2) in pair_set:
+            for h1, h2 in pair_set:
                 assert h1 < h2, f"Pair ({h1}, {h2}) at conf {conf_id} not normalized"
 
 

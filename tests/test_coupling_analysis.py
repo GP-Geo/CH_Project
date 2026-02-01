@@ -11,11 +11,7 @@ class TestPairTouchResult:
     def test_creation(self):
         """Test creating a PairTouchResult."""
         result = PairTouchResult(
-            touching=True,
-            overlap_px=5,
-            contact_px=10,
-            size1_px=100,
-            size2_px=120
+            touching=True, overlap_px=5, contact_px=10, size1_px=100, size2_px=120
         )
         assert result.touching is True
         assert result.overlap_px == 5
@@ -26,11 +22,7 @@ class TestPairTouchResult:
     def test_no_touching(self):
         """Test non-touching pair result."""
         result = PairTouchResult(
-            touching=False,
-            overlap_px=0,
-            contact_px=0,
-            size1_px=100,
-            size2_px=120
+            touching=False, overlap_px=0, contact_px=0, size1_px=100, size2_px=120
         )
         assert result.touching is False
         assert result.overlap_px == 0
@@ -201,8 +193,15 @@ class TestCouplingAnalyzerEvaluatePairs:
         df = analyzer.evaluate_pairs_for_outlet(6, pairs_at_confluence)
 
         expected_cols = [
-            "outlet", "confluence", "head_1", "head_2",
-            "touching", "overlap_px", "contact_px", "size1_px", "size2_px"
+            "outlet",
+            "confluence",
+            "head_1",
+            "head_2",
+            "touching",
+            "overlap_px",
+            "contact_px",
+            "size1_px",
+            "size2_px",
         ]
         assert list(df.columns) == expected_cols
 
@@ -225,8 +224,8 @@ class TestCouplingAnalyzerEvaluatePairs:
 
         # Pairs at each confluence
         pairs_at_confluence = {
-            4: {(0, 1)},      # first confluence
-            5: {(2, 3)},      # second confluence
+            4: {(0, 1)},  # first confluence
+            5: {(2, 3)},  # second confluence
             6: {(0, 2), (0, 3), (1, 2), (1, 3)},  # main confluence
         }
 

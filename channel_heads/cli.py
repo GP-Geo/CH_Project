@@ -30,49 +30,37 @@ Examples:
 
   # Analyze specific outlets only
   ch-analyze dem.tif -o results.csv --outlets 5,12,18
-        """
+        """,
     )
 
+    parser.add_argument("dem", type=Path, help="Path to DEM file (GeoTIFF)")
     parser.add_argument(
-        "dem",
-        type=Path,
-        help="Path to DEM file (GeoTIFF)"
+        "-o", "--output", type=Path, required=True, help="Output CSV path for coupling results"
     )
     parser.add_argument(
-        "-o", "--output",
-        type=Path,
-        required=True,
-        help="Output CSV path for coupling results"
-    )
-    parser.add_argument(
-        "--threshold",
-        type=int,
-        default=300,
-        help="Stream network area threshold (default: 300)"
+        "--threshold", type=int, default=300, help="Stream network area threshold (default: 300)"
     )
     parser.add_argument(
         "--connectivity",
         type=int,
         choices=[4, 8],
         default=8,
-        help="Connectivity for coupling detection: 4 or 8 (default: 8)"
+        help="Connectivity for coupling detection: 4 or 8 (default: 8)",
     )
     parser.add_argument(
         "--mask-below",
         type=float,
         metavar="ELEVATION",
-        help="Mask DEM elevations below this threshold (optional)"
+        help="Mask DEM elevations below this threshold (optional)",
     )
     parser.add_argument(
         "--outlets",
         type=str,
         metavar="IDS",
-        help="Comma-separated outlet IDs to analyze (default: all outlets)"
+        help="Comma-separated outlet IDs to analyze (default: all outlets)",
     )
     parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Print detailed progress information"
+        "-v", "--verbose", action="store_true", help="Print detailed progress information"
     )
 
     args = parser.parse_args()
@@ -94,7 +82,7 @@ Examples:
         # Apply elevation mask if requested
         if args.mask_below is not None:
             logger.info("Masking elevations below %s m", args.mask_below)
-            dem.z[dem.z < args.mask_below] = float('nan')
+            dem.z[dem.z < args.mask_below] = float("nan")
 
         # Derive flow and stream networks
         logger.info("Deriving flow direction...")
@@ -125,7 +113,7 @@ Examples:
             if not df.empty:
                 all_results.append(df)
                 n_pairs = len(df)
-                n_touching = df['touching'].sum()
+                n_touching = df["touching"].sum()
                 logger.debug("  Outlet %d: %d pairs (%d touching)", outlet_id, n_pairs, n_touching)
             else:
                 logger.debug("  Outlet %d: no pairs", outlet_id)
@@ -145,15 +133,19 @@ Examples:
 
             # Print summary
             total_pairs = len(df_all)
-            touching_pairs = df_all['touching'].sum()
-            touching_pct = df_all['touching'].mean() * 100
+            touching_pairs = df_all["touching"].sum()
+            touching_pct = df_all["touching"].mean() * 100
 
             logger.info("Results saved to %s", args.output)
             logger.info("  Total pairs: %d", total_pairs)
             logger.info("  Touching pairs: %d (%.1f%%)", touching_pairs, touching_pct)
-            logger.info("  Non-touching pairs: %d (%.1f%%)", total_pairs - touching_pairs, 100 - touching_pct)
+            logger.info(
+                "  Non-touching pairs: %d (%.1f%%)",
+                total_pairs - touching_pairs,
+                100 - touching_pct,
+            )
 
-            logger.debug("Columns: %s", ', '.join(df_all.columns))
+            logger.debug("Columns: %s", ", ".join(df_all.columns))
         else:
             logger.warning("No pairs found in any outlet")
             return 2

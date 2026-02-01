@@ -9,7 +9,6 @@ import numpy as np
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Optional, Any
 
-
 # ============================================================================
 # Mock GridObject
 # ============================================================================
@@ -289,12 +288,12 @@ def simple_y_network():
 
     # Define flow direction (flows downhill toward outlet)
     flow_direction = {
-        (0, 2): (1, 3),   # head 0 -> intermediate
-        (1, 3): (2, 4),   # intermediate -> confluence
-        (0, 7): (1, 6),   # head 1 -> intermediate
-        (1, 6): (2, 4),   # intermediate -> confluence
-        (2, 4): (3, 4),   # confluence -> downstream
-        (3, 4): (4, 4),   # downstream -> outlet
+        (0, 2): (1, 3),  # head 0 -> intermediate
+        (1, 3): (2, 4),  # intermediate -> confluence
+        (0, 7): (1, 6),  # head 1 -> intermediate
+        (1, 6): (2, 4),  # intermediate -> confluence
+        (2, 4): (3, 4),  # confluence -> downstream
+        (3, 4): (4, 4),  # downstream -> outlet
         # outlet (4,4) has no downstream - it's a sink
     }
 
@@ -405,14 +404,14 @@ def complex_network():
 
     # Stream nodes
     node_positions = [
-        (0, 1),   # 0: head 0
-        (0, 3),   # 1: head 1
-        (0, 8),   # 2: head 2
+        (0, 1),  # 0: head 0
+        (0, 3),  # 1: head 1
+        (0, 8),  # 2: head 2
         (0, 10),  # 3: head 3
-        (2, 2),   # 4: confluence left
-        (2, 9),   # 5: confluence right
-        (6, 5),   # 6: main confluence
-        (8, 5),   # 7: outlet
+        (2, 2),  # 4: confluence left
+        (2, 9),  # 5: confluence right
+        (6, 5),  # 6: main confluence
+        (8, 5),  # 7: outlet
     ]
 
     edges = [
@@ -472,14 +471,17 @@ def touching_basins_network():
     grid_shape = (6, 6)
 
     # Create DEM
-    z = np.array([
-        [140, 150, 130, 130, 145, 135],  # heads at (0,1) and (0,4)
-        [130, 140, 120, 120, 135, 125],  # basin cells, touch at col 2-3
-        [100, 110, 100, 110, 105, 100],  # confluence at (2,2)
-        [95,  100, 95,  100, 95,  95],
-        [90,  95,  90,  95,  90,  90],   # outlet at (4,2)
-        [85,  90,  85,  90,  85,  85],
-    ], dtype=float)
+    z = np.array(
+        [
+            [140, 150, 130, 130, 145, 135],  # heads at (0,1) and (0,4)
+            [130, 140, 120, 120, 135, 125],  # basin cells, touch at col 2-3
+            [100, 110, 100, 110, 105, 100],  # confluence at (2,2)
+            [95, 100, 95, 100, 95, 95],
+            [90, 95, 90, 95, 90, 90],  # outlet at (4,2)
+            [85, 90, 85, 90, 85, 85],
+        ],
+        dtype=float,
+    )
 
     dem = MockGridObject(z)
 
@@ -488,19 +490,17 @@ def touching_basins_network():
     # Basin B (head 1 at (0,4)): (0,4), (0,5), (1,3), (1,4), (1,5) all drain to (0,4)
     flow_direction = {
         # Left basin (head 0 at (0,1))
-        (0, 0): (0, 1),   # drains to head
-        (1, 0): (0, 1),   # drains to head
-        (1, 1): (0, 1),   # drains to head
-        (1, 2): (0, 1),   # drains to head - this cell will touch basin B
-        (0, 1): (2, 2),   # head drains to confluence
-
+        (0, 0): (0, 1),  # drains to head
+        (1, 0): (0, 1),  # drains to head
+        (1, 1): (0, 1),  # drains to head
+        (1, 2): (0, 1),  # drains to head - this cell will touch basin B
+        (0, 1): (2, 2),  # head drains to confluence
         # Right basin (head 1 at (0,4))
-        (0, 5): (0, 4),   # drains to head
-        (1, 3): (0, 4),   # drains to head - this cell is adjacent to (1,2)
-        (1, 4): (0, 4),   # drains to head
-        (1, 5): (0, 4),   # drains to head
-        (0, 4): (2, 2),   # head drains to confluence
-
+        (0, 5): (0, 4),  # drains to head
+        (1, 3): (0, 4),  # drains to head - this cell is adjacent to (1,2)
+        (1, 4): (0, 4),  # drains to head
+        (1, 5): (0, 4),  # drains to head
+        (0, 4): (2, 2),  # head drains to confluence
         # Shared downstream path
         (2, 2): (3, 2),
         (3, 2): (4, 2),

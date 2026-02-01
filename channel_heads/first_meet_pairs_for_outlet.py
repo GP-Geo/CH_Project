@@ -27,13 +27,14 @@ ParentsList = List[List[NodeId]]
 def _normalize_pair(h1: int, h2: int) -> HeadPair:
     return (h1, h2) if h1 < h2 else (h2, h1)
 
+
 ### streampoi returns always numpy arrays, so this is not strictly necessary,
 # change this for simplicity
-#reduced the function to only handle 1D numpy arrays
+# reduced the function to only handle 1D numpy arrays
 
-def _to_node_id_list(x) -> List[int]:  
-    """Convert input to sorted unique list of node IDs where input is truthy.
-    """
+
+def _to_node_id_list(x) -> List[int]:
+    """Convert input to sorted unique list of node IDs where input is truthy."""
 
     arr = np.asarray(x)
     if arr.dtype == bool:
@@ -47,10 +48,8 @@ def _to_node_id_list(x) -> List[int]:
     return sorted(set(ids))
 
 
-
 def _build_parents_from_stream(s: Any) -> ParentsList:
     """parents[v] = list of upstream nodes u with edge (u -> v). Deterministic & duplicate-safe."""
-
 
     if hasattr(s, "node_indices") and s.node_indices is not None:
         r, c = s.node_indices
@@ -65,7 +64,8 @@ def _build_parents_from_stream(s: Any) -> ParentsList:
 
     parents_sets: List[Set[int]] = [set() for _ in range(n)]
     for i in range(src.size):
-        u = int(src[i]); v = int(tgt[i])
+        u = int(src[i])
+        v = int(tgt[i])
         if u == v:
             continue
         if not (0 <= u < n) or not (0 <= v < n):
@@ -143,14 +143,14 @@ def first_meet_pairs_for_outlet(
     >>> for confluence, head_pairs in pairs.items():
     ...     print(f"Confluence {confluence}: {len(head_pairs)} pairs")
     """
-    
+
     # 1) Build parent adjacency and restrict to basin
     parents = _build_parents_from_stream(s)
     basin_nodes = set(_collect_basin_nodes_from_outlet(parents, outlet))
 
     # 2) Get global POIs via streampoi, then restrict to basin
-    heads_all = _to_node_id_list(s.streampoi('channelheads'))
-    confs_all = _to_node_id_list(s.streampoi('confluences'))
+    heads_all = _to_node_id_list(s.streampoi("channelheads"))
+    confs_all = _to_node_id_list(s.streampoi("confluences"))
 
     heads = sorted(h for h in heads_all if h in basin_nodes)
     confluences = set(c for c in confs_all if c in basin_nodes)

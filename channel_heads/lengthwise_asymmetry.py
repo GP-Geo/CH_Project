@@ -257,21 +257,21 @@ class LengthwiseAsymmetryAnalyzer:
         if lat is not None:
             # Get cell size from StreamObject (this is what upstream_distance uses)
             # The StreamObject.distance() method uses self.cellsize
-            cellsize = getattr(s, 'cellsize', None)
+            cellsize = getattr(s, "cellsize", None)
 
             # Fallback: try to get from DEM if not on StreamObject
             if cellsize is None and dem is not None:
-                cellsize = getattr(dem, 'cellsize', None)
+                cellsize = getattr(dem, "cellsize", None)
 
                 if cellsize is None:
-                    res = getattr(dem, 'res', None)
+                    res = getattr(dem, "res", None)
                     if res is not None:
                         cellsize = abs(res[0]) if isinstance(res, (tuple, list)) else abs(res)
 
                 if cellsize is None:
-                    transform = getattr(dem, 'transform', None)
+                    transform = getattr(dem, "transform", None)
                     if transform is not None:
-                        if hasattr(transform, 'a'):
+                        if hasattr(transform, "a"):
                             cellsize = abs(transform.a)
                         elif isinstance(transform, (tuple, list)) and len(transform) >= 1:
                             cellsize = abs(transform[0])
@@ -422,24 +422,35 @@ class LengthwiseAsymmetryAnalyzer:
                         L_1_out, L_2_out = result.L_1, result.L_2
                     else:
                         L_1_out, L_2_out = result.L_2, result.L_1
-                    rows.append({
-                        "outlet": out,
-                        "confluence": int(conf),
-                        "head_1": head_min,
-                        "head_2": head_max,
-                        "L_1": L_1_out,
-                        "L_2": L_2_out,
-                        "delta_L": result.delta_L,
-                        "distance_unit": result.distance_unit,
-                    })
+                    rows.append(
+                        {
+                            "outlet": out,
+                            "confluence": int(conf),
+                            "head_1": head_min,
+                            "head_2": head_max,
+                            "L_1": L_1_out,
+                            "L_2": L_2_out,
+                            "delta_L": result.delta_L,
+                            "distance_unit": result.distance_unit,
+                        }
+                    )
                 except ValueError:
                     # Skip pairs where computation fails
                     continue
 
-        df = pd.DataFrame(rows, columns=[
-            "outlet", "confluence", "head_1", "head_2",
-            "L_1", "L_2", "delta_L", "distance_unit"
-        ])
+        df = pd.DataFrame(
+            rows,
+            columns=[
+                "outlet",
+                "confluence",
+                "head_1",
+                "head_2",
+                "L_1",
+                "L_2",
+                "delta_L",
+                "distance_unit",
+            ],
+        )
 
         if not df.empty:
             df.sort_values(["confluence", "head_1", "head_2"], inplace=True, ignore_index=True)

@@ -125,7 +125,9 @@ class CouplingAnalyzer:
         self.fd = fd
         self.s = s
         # StreamObject.node_indices can be attribute (tuple)) or method; handle both.
-        self._node_indices = s.node_indices() if callable(getattr(s, "node_indices", None)) else s.node_indices
+        self._node_indices = (
+            s.node_indices() if callable(getattr(s, "node_indices", None)) else s.node_indices
+        )
         if not isinstance(self._node_indices, tuple) or len(self._node_indices) != 2:
             raise TypeError("StreamObject.node_indices must be a (rows, cols) tuple")
         self._r_nodes, self._c_nodes = self._node_indices
@@ -249,22 +251,24 @@ class CouplingAnalyzer:
         contact_px = 0
         # vertical neighbors
         contact_px += int((A[1:, :] & B[:-1, :]).sum())
-        contact_px += int((A[:-1, :] & B[1:,  :]).sum())
+        contact_px += int((A[:-1, :] & B[1:, :]).sum())
         # horizontal neighbors
         contact_px += int((A[:, 1:] & B[:, :-1]).sum())
         contact_px += int((A[:, :-1] & B[:, 1:]).sum())
 
         if self.connectivity == 8:
             # diagonals
-            contact_px += int((A[1:, 1:]  & B[:-1, :-1]).sum())
-            contact_px += int((A[1:, :-1] & B[:-1,  1:]).sum())
-            contact_px += int((A[:-1, 1:] & B[1:,  :-1]).sum())
-            contact_px += int((A[:-1, :-1]& B[1:,   1:]).sum())
+            contact_px += int((A[1:, 1:] & B[:-1, :-1]).sum())
+            contact_px += int((A[1:, :-1] & B[:-1, 1:]).sum())
+            contact_px += int((A[:-1, 1:] & B[1:, :-1]).sum())
+            contact_px += int((A[:-1, :-1] & B[1:, 1:]).sum())
 
-        touching = (contact_px > 0)
+        touching = contact_px > 0
         return PairTouchResult(touching, overlap_px, contact_px, int(A.sum()), int(B.sum()))
 
-    def evaluate_pairs_for_outlet(self, outlet: int, pairs_at_confluence: Dict[int, Set[HeadPair]]) -> pd.DataFrame:
+    def evaluate_pairs_for_outlet(
+        self, outlet: int, pairs_at_confluence: Dict[int, Set[HeadPair]]
+    ) -> pd.DataFrame:
         """
         Build a tidy DataFrame with one row per pair in the given outlet's confluences.
         Columns:
@@ -275,23 +279,36 @@ class CouplingAnalyzer:
         for conf, pairs in pairs_at_confluence.items():
             if not pairs:
                 continue
-            for (h1, h2) in pairs:
+            for h1, h2 in pairs:
                 res = self.pair_touching(h1, h2)
-                rows.append({
-                    "outlet": out,
-                    "confluence": int(conf),
-                    "head_1": int(min(h1, h2)),
-                    "head_2": int(max(h1, h2)),
-                    "touching": bool(res.touching),
-                    "overlap_px": int(res.overlap_px),
-                    "contact_px": int(res.contact_px),
-                    "size1_px": int(res.size1_px),
-                    "size2_px": int(res.size2_px),
-                })
-        df = pd.DataFrame(rows, columns=[
-            "outlet","confluence","head_1","head_2","touching","overlap_px","contact_px","size1_px","size2_px"
-        ])
+                rows.append(
+                    {
+                        "outlet": out,
+                        "confluence": int(conf),
+                        "head_1": int(min(h1, h2)),
+                        "head_2": int(max(h1, h2)),
+                        "touching": bool(res.touching),
+                        "overlap_px": int(res.overlap_px),
+                        "contact_px": int(res.contact_px),
+                        "size1_px": int(res.size1_px),
+                        "size2_px": int(res.size2_px),
+                    }
+                )
+        df = pd.DataFrame(
+            rows,
+            columns=[
+                "outlet",
+                "confluence",
+                "head_1",
+                "head_2",
+                "touching",
+                "overlap_px",
+                "contact_px",
+                "size1_px",
+                "size2_px",
+            ],
+        )
         # Optional: stable ordering for readability
         if not df.empty:
-            df.sort_values(["confluence","head_1","head_2"], inplace=True, ignore_index=True)
+            df.sort_values(["confluence", "head_1", "head_2"], inplace=True, ignore_index=True)
         return df

@@ -29,7 +29,6 @@ import pandas as pd
 from typing import Dict, Optional, Any
 from pathlib import Path
 
-
 # Basin configuration data from Table A1 of Goren & Shelef (2024)
 # Columns:
 #   - name: Basin name (lowercase for easy lookup)
@@ -541,9 +540,7 @@ def get_basin_config(basin_name: str) -> Dict[str, Any]:
 
     if name not in BASIN_CONFIG.index:
         available = ", ".join(sorted(BASIN_CONFIG.index.tolist()))
-        raise KeyError(
-            f"Basin '{basin_name}' not found. Available basins: {available}"
-        )
+        raise KeyError(f"Basin '{basin_name}' not found. Available basins: {available}")
 
     return BASIN_CONFIG.loc[name].to_dict()
 
