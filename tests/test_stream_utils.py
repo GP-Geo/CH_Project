@@ -1,6 +1,5 @@
 """Tests for stream_utils module."""
 
-
 # Note: Testing outlet_node_ids_from_streampoi() requires a mock StreamObject
 # with .streampoi() method. Here's a placeholder for future implementation:
 
