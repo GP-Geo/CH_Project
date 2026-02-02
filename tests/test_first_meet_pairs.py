@@ -1,14 +1,15 @@
 """Tests for first_meet_pairs_for_outlet module."""
 
+import numpy as np
 import pytest
+
 from channel_heads.first_meet_pairs_for_outlet import (
-    _normalize_pair,
-    _to_node_id_list,
     _build_parents_from_stream,
     _collect_basin_nodes_from_outlet,
+    _normalize_pair,
+    _to_node_id_list,
     first_meet_pairs_for_outlet,
 )
-import numpy as np
 
 
 class TestNormalizePair:

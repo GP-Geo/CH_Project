@@ -20,11 +20,11 @@ Usage
 """
 
 from __future__ import annotations
+
 import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Package-level logger name
 PACKAGE_NAME = "channel_heads"
@@ -40,16 +40,16 @@ def get_log_level() -> int:
     return getattr(logging, level_name, logging.INFO)
 
 
-def get_log_file() -> Optional[Path]:
+def get_log_file() -> Path | None:
     """Get log file path from environment if set."""
     log_file = os.getenv("CHANNEL_HEADS_LOG_FILE")
     return Path(log_file) if log_file else None
 
 
 def setup_logging(
-    level: Optional[int] = None,
-    log_file: Optional[Path] = None,
-    format_string: Optional[str] = None,
+    level: int | None = None,
+    log_file: Path | None = None,
+    format_string: str | None = None,
     console: bool = True,
 ) -> logging.Logger:
     """Configure the package-level logger.

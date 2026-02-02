@@ -39,41 +39,40 @@ __version__ = "0.1.0"
 __author__ = "Guy Pinkas"
 __license__ = "MIT"
 
-from .coupling_analysis import CouplingAnalyzer, PairTouchResult
-from .first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
-from .stream_utils import outlet_node_ids_from_streampoi
-from .config import (
-    PROJECT_ROOT,
-    DATA_DIR,
-    CROPPED_DEMS_DIR,
-    OUTPUTS_DIR,
-    EXAMPLE_DEMS,
-    get_output_dir,
-    list_available_dems,
-    resolve_dem_path,
-)
-from .logging_config import get_logger, setup_logging
-
-# Lengthwise asymmetry (Goren & Shelef 2024)
-from .lengthwise_asymmetry import (
-    LengthwiseAsymmetryAnalyzer,
-    PairAsymmetryResult,
-    compute_delta_L,
-    compute_asymmetry_statistics,
-    merge_coupling_and_asymmetry,
-    compute_meters_per_degree,
-    compute_pixel_size_meters,
-)
-
 # Basin configuration data from Goren & Shelef (2024)
 from .basin_config import (
     BASIN_CONFIG,
     LOCAL_TO_PAPER_BASIN,
     get_basin_config,
+    get_reference_delta_L,
     get_z_th,
     list_basins,
-    get_reference_delta_L,
 )
+from .config import (
+    CROPPED_DEMS_DIR,
+    DATA_DIR,
+    EXAMPLE_DEMS,
+    OUTPUTS_DIR,
+    PROJECT_ROOT,
+    get_output_dir,
+    list_available_dems,
+    resolve_dem_path,
+)
+from .coupling_analysis import CouplingAnalyzer, PairTouchResult
+from .first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
+
+# Lengthwise asymmetry (Goren & Shelef 2024)
+from .lengthwise_asymmetry import (
+    LengthwiseAsymmetryAnalyzer,
+    PairAsymmetryResult,
+    compute_asymmetry_statistics,
+    compute_delta_L,
+    compute_meters_per_degree,
+    compute_pixel_size_meters,
+    merge_coupling_and_asymmetry,
+)
+from .logging_config import get_logger, setup_logging
+from .stream_utils import outlet_node_ids_from_streampoi
 
 __all__ = [
     # Core analysis

@@ -17,9 +17,8 @@ Environment Variables:
     CHANNEL_HEADS_DATA: Override the data directory location.
 """
 
-from pathlib import Path
 import os
-from typing import Dict, Optional
+from pathlib import Path
 
 
 def _find_project_root() -> Path:
@@ -86,7 +85,7 @@ NOTEBOOKS_DIR: Path = PROJECT_ROOT / "notebooks"
 
 
 # Example DEMs with friendly names
-EXAMPLE_DEMS: Dict[str, Path] = {
+EXAMPLE_DEMS: dict[str, Path] = {
     "inyo": CROPPED_DEMS_DIR / "Inyo_strm_crop.tif",
     "humboldt": CROPPED_DEMS_DIR / "Humboldt_strm_crop.tif",
     "calnalpine": CROPPED_DEMS_DIR / "CalnAlpine_strm_crop.tif",
@@ -124,7 +123,7 @@ def get_output_dir(study_area: str, create: bool = True) -> Path:
     return output_dir
 
 
-def list_available_dems() -> Dict[str, Path]:
+def list_available_dems() -> dict[str, Path]:
     """List all available DEM files.
 
     Scans the cropped DEMs directory for .tif files.
@@ -164,7 +163,7 @@ def ensure_directories() -> None:
         directory.mkdir(parents=True, exist_ok=True)
 
 
-def resolve_dem_path(dem_ref: str) -> Optional[Path]:
+def resolve_dem_path(dem_ref: str) -> Path | None:
     """Resolve a DEM reference to an absolute path.
 
     Accepts multiple input formats:

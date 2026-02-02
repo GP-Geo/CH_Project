@@ -9,30 +9,31 @@ All main plotting functions accept:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Literal
 
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
+from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 from matplotlib.figure import Figure
-from matplotlib.axes import Axes
 
 if TYPE_CHECKING:
     import pandas as pd
+
     from .coupling_analysis import CouplingAnalyzer
 
 # Type aliases
 ViewMode = Literal["crop", "zoom", "overview"]
-BBox = Tuple[float, float, float, float]  # (left, right, bottom, top)
+BBox = tuple[float, float, float, float]  # (left, right, bottom, top)
 
 # ---------------------------------------------------------------------
 # Internal utilities
 # ---------------------------------------------------------------------
 
 
-def _get_rc(stream_obj: Any) -> Tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+def _get_rc(stream_obj: Any) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     """Extract row and column arrays from StreamObject.node_indices."""
     ni = stream_obj.node_indices
     if callable(ni):
@@ -42,14 +43,14 @@ def _get_rc(stream_obj: Any) -> Tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]
     return np.asarray(r), np.asarray(c)
 
 
-def _xy_all_nodes(stream_obj: Any) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+def _xy_all_nodes(stream_obj: Any) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """Convert all stream nodes to world coordinates (x, y)."""
     r, c = _get_rc(stream_obj)
     xs, ys = stream_obj.transform * np.vstack((c, r))
     return np.asarray(xs), np.asarray(ys)
 
 
-def _plot_segments(ax: Axes, segments: List[Any], **kwargs: Any) -> LineCollection:
+def _plot_segments(ax: Axes, segments: list[Any], **kwargs: Any) -> LineCollection:
     """Plot stream segments as a LineCollection."""
     lines = [np.asarray(seg) for seg in segments if len(seg) > 1]
     lc = LineCollection(lines, **({"color": "steelblue", "linewidth": 0.9} | kwargs))
@@ -73,7 +74,7 @@ def _clamp_bbox(L: float, R: float, B: float, T: float, dem: Any) -> BBox:
 
 def _maybe_crop_dem(
     dem: Any, s_up: Any, view_mode: ViewMode = "crop", pad_frac: float = 0.05
-) -> Tuple[Any, BBox]:
+) -> tuple[Any, BBox]:
     """Optionally crop DEM to stream extent with padding."""
     xmin, xmax, ymin, ymax = _stream_bbox(s_up)
     dx, dy = xmax - xmin, ymax - ymin
@@ -137,7 +138,7 @@ def plot_coupled_pair(
     pad_frac: float = 0.05,
     alpha: float = 0.35,
     focus: Literal["points", "masks"] = "points",
-) -> Tuple[Figure, Axes]:
+) -> tuple[Figure, Axes]:
     """Plot two coupled channel heads with their confluence.
 
     Parameters
@@ -235,11 +236,11 @@ def plot_coupled_pair(
 def plot_outlet_view(
     s: Any,
     outlet_id: int,
-    dem: Optional[Any] = None,
-    by_outlet: Optional[Dict[int, Any]] = None,
+    dem: Any | None = None,
+    by_outlet: dict[int, Any] | None = None,
     view_mode: ViewMode = "crop",
     pad_frac: float = 0.05,
-) -> Tuple[Figure, Axes]:
+) -> tuple[Figure, Axes]:
     """Plot outlet subnetwork with stream network and key features.
 
     Parameters
@@ -303,14 +304,14 @@ def plot_all_coupled_pairs_for_outlet(
     fd: Any,
     s: Any,
     dem: Any,
-    an: "CouplingAnalyzer",
-    df_touching: "pd.DataFrame",
+    an: CouplingAnalyzer,
+    df_touching: pd.DataFrame,
     outlet_id: int,
     view_mode: ViewMode = "crop",
     pad_frac: float = 0.05,
     alpha: float = 0.25,
-    max_pairs: Optional[int] = None,
-) -> Tuple[Optional[Figure], Optional[Axes]]:
+    max_pairs: int | None = None,
+) -> tuple[Figure | None, Axes | None]:
     """Plot all touching channel head pairs for an outlet.
 
     Parameters
@@ -404,18 +405,18 @@ def plot_all_coupled_pairs_for_outlet_3d(
     fd: Any,
     s: Any,
     dem: Any,
-    an: "CouplingAnalyzer",
-    df_touching: "pd.DataFrame",
+    an: CouplingAnalyzer,
+    df_touching: pd.DataFrame,
     outlet_id: int,
     view_mode: ViewMode = "crop",
     pad_frac: float = 0.05,
     alpha: float = 0.25,
-    max_pairs: Optional[int] = None,
+    max_pairs: int | None = None,
     dem_stride: int = 2,
-    surface_kwargs: Optional[Dict[str, Any]] = None,
-    stream_kwargs: Optional[Dict[str, Any]] = None,
+    surface_kwargs: dict[str, Any] | None = None,
+    stream_kwargs: dict[str, Any] | None = None,
     z_exaggeration: float = 1.0,
-) -> Tuple[Optional[Figure], Optional[Axes]]:
+) -> tuple[Figure | None, Axes | None]:
     """Plot all touching channel head pairs for an outlet in 3D.
 
     Parameters
@@ -526,8 +527,6 @@ def plot_all_coupled_pairs_for_outlet_3d(
         # Align mask to the (possibly) cropped DEM grid:
         # dem_used.z has same shape as X,Y here; mask must match that shape.
         # If influence_grid already matches the DEM grid, just mask outside crop:
-        # Build a masked Z surface where only influence==True is plotted
-        Z_mask = np.where(mask, dem.z, np.nan)  # base on full dem
         # Crop Z_mask to current view using dem_used's window indices:
         # dem_used carries a view of dem; safest is to rebuild via dem_used.z and mask reindexed.
         # If G1/G2 are same shape as dem_used.z, this is enough:

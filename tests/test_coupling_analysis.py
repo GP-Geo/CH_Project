@@ -1,8 +1,9 @@
 """Tests for coupling_analysis module."""
 
-import pytest
 import numpy as np
-from channel_heads.coupling_analysis import PairTouchResult, CouplingAnalyzer
+import pytest
+
+from channel_heads.coupling_analysis import CouplingAnalyzer, PairTouchResult
 
 
 class TestPairTouchResult:
@@ -116,7 +117,7 @@ class TestCouplingAnalyzerInfluenceMask:
 
         # Head 0 is at position (0, 2)
         mask = analyzer.influence_mask(0)
-        assert mask[0, 2] == True
+        assert mask[0, 2]
 
     def test_different_heads_have_different_masks(self, simple_y_network):
         """Test that different heads have different masks."""
@@ -163,7 +164,7 @@ class TestCouplingAnalyzerPairTouching:
         result = analyzer.pair_touching(0, 1)
         # In the touching_basins_network, heads 0 and 1 have adjacent basins
         # that should touch (either overlap or contact)
-        assert result.touching == True or result.overlap_px > 0 or result.contact_px > 0
+        assert result.touching or result.overlap_px > 0 or result.contact_px > 0
 
 
 class TestCouplingAnalyzerEvaluatePairs:

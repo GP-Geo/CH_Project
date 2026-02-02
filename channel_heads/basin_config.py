@@ -25,9 +25,9 @@ Usage:
 
 from __future__ import annotations
 
+from typing import Any
+
 import pandas as pd
-from typing import Dict, Optional, Any
-from pathlib import Path
 
 # Basin configuration data from Table A1 of Goren & Shelef (2024)
 # Columns:
@@ -482,7 +482,7 @@ Columns:
 
 
 # Mapping from local DEM names to paper basin names (for convenience)
-LOCAL_TO_PAPER_BASIN: Dict[str, str] = {
+LOCAL_TO_PAPER_BASIN: dict[str, str] = {
     # Original 7 basins
     "inyo": "inyo",
     "humboldt": "humboldt",
@@ -507,7 +507,7 @@ LOCAL_TO_PAPER_BASIN: Dict[str, str] = {
 """Mapping from local DEM file names to paper basin names."""
 
 
-def get_basin_config(basin_name: str) -> Dict[str, Any]:
+def get_basin_config(basin_name: str) -> dict[str, Any]:
     """Get configuration for a specific basin.
 
     Parameters
@@ -585,7 +585,7 @@ def list_basins() -> pd.DataFrame:
     return BASIN_CONFIG[["full_name", "z_th", "z_max", "theta", "delta_L", "aridity_index"]].copy()
 
 
-def get_reference_delta_L(basin_name: str) -> Dict[str, float]:
+def get_reference_delta_L(basin_name: str) -> dict[str, float]:
     """Get reference lengthwise asymmetry values from the paper.
 
     Parameters

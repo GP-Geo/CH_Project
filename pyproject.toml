@@ -99,6 +99,8 @@ extend-exclude = '''
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -109,9 +111,11 @@ select = [
 ]
 ignore = [
     "E501",  # line too long (handled by black)
+    "N802",  # function name should be lowercase (allow delta_L naming from paper)
     "N803",  # argument name should be lowercase (allow mathematical notation)
     "N806",  # variable in function should be lowercase (allow mathematical notation)
+    "N815",  # mixedCase variable in class scope (allow delta_L naming from paper)
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Allow unused imports in __init__.py

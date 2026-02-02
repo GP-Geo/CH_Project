@@ -43,18 +43,19 @@ Usage:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
+
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
 if TYPE_CHECKING:
-    from topotoolbox import StreamObject, GridObject
+    pass
 
 # Type aliases
 NodeId = int
-HeadPair = Tuple[int, int]
+HeadPair = tuple[int, int]
 
 # Constants for coordinate conversion
 METERS_PER_DEGREE_LAT = 110540.0  # meters per degree of latitude (approximately constant)
@@ -239,8 +240,8 @@ class LengthwiseAsymmetryAnalyzer:
     def __init__(
         self,
         s: Any,  # StreamObject
-        dem: Optional[Any] = None,  # GridObject
-        lat: Optional[float] = None,  # Latitude in degrees
+        dem: Any | None = None,  # GridObject
+        lat: float | None = None,  # Latitude in degrees
     ) -> None:
         self.s = s
         self.dem = dem
@@ -252,7 +253,7 @@ class LengthwiseAsymmetryAnalyzer:
 
         # Compute meters per unit conversion factor
         self._meters_per_unit: float = 1.0  # Default: assume already in meters
-        self._detected_cellsize: Optional[float] = None
+        self._detected_cellsize: float | None = None
 
         if lat is not None:
             # Get cell size from StreamObject (this is what upstream_distance uses)
@@ -294,7 +295,7 @@ class LengthwiseAsymmetryAnalyzer:
         return self._meters_per_unit
 
     @property
-    def detected_cellsize(self) -> Optional[float]:
+    def detected_cellsize(self) -> float | None:
         """Detected cell size from DEM (for debugging)."""
         return self._detected_cellsize
 
@@ -378,7 +379,7 @@ class LengthwiseAsymmetryAnalyzer:
     def evaluate_pairs_for_outlet(
         self,
         outlet: int,
-        pairs_at_confluence: Dict[int, Set[HeadPair]],
+        pairs_at_confluence: dict[int, set[HeadPair]],
         use_meters: bool = True,
     ) -> pd.DataFrame:
         """Compute lengthwise asymmetry for all pairs in an outlet's basin.
@@ -462,7 +463,7 @@ class LengthwiseAsymmetryAnalyzer:
         pass  # upstream_distance is computed once in __init__
 
 
-def compute_asymmetry_statistics(delta_L_values: npt.ArrayLike) -> Dict[str, float]:
+def compute_asymmetry_statistics(delta_L_values: npt.ArrayLike) -> dict[str, float]:
     """Compute summary statistics for lengthwise asymmetry values.
 
     Parameters

@@ -25,19 +25,21 @@ Main API
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Dict, List, Set, Tuple
+
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
+
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
 if TYPE_CHECKING:
-    from topotoolbox import FlowObject, GridObject, StreamObject
+    pass
 
 # Type aliases for clarity
 NodeId = int
 HeadId = int
-HeadPair = Tuple[HeadId, HeadId]
+HeadPair = tuple[HeadId, HeadId]
 BoolMask = npt.NDArray[np.bool_]
 
 
@@ -106,7 +108,7 @@ class CouplingAnalyzer:
     s: Any  # StreamObject
     dem: Any  # GridObject
     connectivity: int
-    _mask_cache: Dict[int, BoolMask]
+    _mask_cache: dict[int, BoolMask]
 
     def __init__(
         self,
@@ -138,7 +140,7 @@ class CouplingAnalyzer:
         self.connectivity = connectivity
 
         # Simple cache: head_id -> np.ndarray[bool] mask (same shape as dem.z)
-        self._mask_cache: Dict[int, np.ndarray] = {}
+        self._mask_cache: dict[int, np.ndarray] = {}
 
     def clear_cache(self) -> int:
         """Clear the mask cache to free memory.
@@ -170,7 +172,7 @@ class CouplingAnalyzer:
 
     # ---------- low-level helpers ----------
 
-    def _rc_for_head(self, h: int) -> Tuple[int, int]:
+    def _rc_for_head(self, h: int) -> tuple[int, int]:
         """Resolve a head identifier to (row, col) in the DEM/Flow grid.
 
         First tries interpreting `h` as a stream node ID (index into node_indices).
@@ -267,7 +269,7 @@ class CouplingAnalyzer:
         return PairTouchResult(touching, overlap_px, contact_px, int(A.sum()), int(B.sum()))
 
     def evaluate_pairs_for_outlet(
-        self, outlet: int, pairs_at_confluence: Dict[int, Set[HeadPair]]
+        self, outlet: int, pairs_at_confluence: dict[int, set[HeadPair]]
     ) -> pd.DataFrame:
         """
         Build a tidy DataFrame with one row per pair in the given outlet's confluences.

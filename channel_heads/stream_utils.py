@@ -4,13 +4,14 @@ This module provides helper functions for working with TopoToolbox StreamObjects
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
 
 if TYPE_CHECKING:
-    from topotoolbox import StreamObject
+    pass
 
 
 def outlet_node_ids_from_streampoi(s: Any) -> npt.NDArray[np.intp]:

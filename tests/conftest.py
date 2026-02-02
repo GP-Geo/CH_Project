@@ -4,10 +4,9 @@ This module provides mock objects for TopoToolbox StreamObject, FlowObject,
 and GridObject to enable integration testing without requiring actual DEMs.
 """
 
-import pytest
+
 import numpy as np
-from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, Optional, Any
+import pytest
 
 # ============================================================================
 # Mock GridObject
@@ -68,19 +67,19 @@ class MockFlowObject:
 
     def __init__(
         self,
-        shape: Tuple[int, int],
-        flow_direction: Dict[Tuple[int, int], Tuple[int, int]],
+        shape: tuple[int, int],
+        flow_direction: dict[tuple[int, int], tuple[int, int]],
     ):
         self.shape = shape
         self._flow_direction = flow_direction
         # Build reverse mapping for upstream traversal
-        self._upstream: Dict[Tuple[int, int], List[Tuple[int, int]]] = {}
+        self._upstream: dict[tuple[int, int], list[tuple[int, int]]] = {}
         for src, dst in flow_direction.items():
             if dst not in self._upstream:
                 self._upstream[dst] = []
             self._upstream[dst].append(src)
 
-    def unravel_index(self, linear_idx: int) -> Tuple[int, int]:
+    def unravel_index(self, linear_idx: int) -> tuple[int, int]:
         """Convert linear index to (row, col)."""
         idx = int(linear_idx)
         r = idx // self.shape[1]
@@ -169,12 +168,12 @@ class MockStreamObject:
 
     def __init__(
         self,
-        node_positions: List[Tuple[int, int]],
-        edges: List[Tuple[int, int]],
-        channelheads: List[int],
-        outlets: List[int],
-        confluences: List[int],
-        grid_shape: Tuple[int, int],
+        node_positions: list[tuple[int, int]],
+        edges: list[tuple[int, int]],
+        channelheads: list[int],
+        outlets: list[int],
+        confluences: list[int],
+        grid_shape: tuple[int, int],
     ):
         self._node_positions = node_positions
         self._edges = edges
@@ -227,7 +226,7 @@ class MockStreamObject:
             raise ValueError(f"Unknown POI key: {key}")
         return mask
 
-    def xy(self) -> Tuple[np.ndarray, np.ndarray]:
+    def xy(self) -> tuple[np.ndarray, np.ndarray]:
         """Return x, y coordinates of stream segments for plotting."""
         rows, cols = self.node_indices
         # Simple transform: x = col, y = grid_height - row

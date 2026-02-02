@@ -2,15 +2,16 @@
 
 import argparse
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
+
 import pandas as pd
 import topotoolbox as tt3
 
 from .coupling_analysis import CouplingAnalyzer
 from .first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
+from .logging_config import get_logger, setup_logging
 from .stream_utils import outlet_node_ids_from_streampoi
-from .logging_config import setup_logging, get_logger
 
 logger = get_logger(__name__)
 
