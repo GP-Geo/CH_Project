@@ -108,7 +108,7 @@ The `ch-analyze` CLI enables batch processing of DEMs.
 
 ```bash
 # Analyze a single DEM
-ch-analyze data/cropped_DEMs/Inyo_strm_crop.tif -o results/inyo_coupling.csv
+ch-analyze data/processed/Inyo_strm_crop.tif -o data/results/inyo_coupling.csv
 
 # With verbose output
 ch-analyze dem.tif -o results.csv --verbose
@@ -141,19 +141,19 @@ ch-analyze dem.tif -o results.csv \
 
 ```bash
 # Process all DEMs in a directory
-for dem in data/cropped_DEMs/*.tif; do
+for dem in data/processed/*.tif; do
     name=$(basename "$dem" _strm_crop.tif)
-    ch-analyze "$dem" -o "results/${name}_coupling.csv" -v
+    ch-analyze "$dem" -o "data/results/${name}_coupling.csv" -v
 done
 
 # Process with basin-specific elevation thresholds
-ch-analyze data/cropped_DEMs/Inyo_strm_crop.tif \
-    -o results/inyo.csv \
+ch-analyze data/processed/Inyo_strm_crop.tif \
+    -o data/results/inyo.csv \
     --mask-below 1200 \
     --threshold 300
 
-ch-analyze data/cropped_DEMs/Humboldt_strm_crop.tif \
-    -o results/humboldt.csv \
+ch-analyze data/processed/Humboldt_strm_crop.tif \
+    -o data/results/humboldt.csv \
     --mask-below 1450 \
     --threshold 300
 ```
@@ -310,30 +310,51 @@ channel-heads/
 ├── tests/                  # Test suite
 │   ├── conftest.py         # Pytest fixtures
 │   ├── test_coupling_analysis.py
-│   └── test_first_meet_pairs.py
-├── notebooks/              # Interactive Jupyter notebooks
-├── data/                   # DEMs and outputs
-│   ├── cropped_DEMs/       # Study area DEMs
-│   └── outputs/            # Analysis results
+│   ├── test_coupling_parallel.py
+│   ├── test_first_meet_pairs.py
+│   └── test_stream_utils.py
+├── data/                   # All data files
+│   ├── raw/                # Source SRTM data
+│   ├── processed/          # Cropped study area DEMs (18 basins)
+│   ├── results/            # Analysis results (CSV files)
+│   └── exports/            # Exported figures and PDFs
+├── notebooks/              # Jupyter notebooks
+│   ├── 01_test.ipynb       # Initial testing
+│   ├── 02_basins_test.ipynb    # Basin-specific tests
+│   ├── 03_all_basins_analysis.ipynb  # Main analysis
+│   ├── 04_all_basins_analysis_full.ipynb  # Extended analysis
+│   └── experiments/        # Threshold sensitivity experiments
 ├── .github/workflows/      # CI/CD pipelines
 ├── env/                    # Conda environment specification
-├── CLAUDE.md               # Developer guide
-└── improvement.md          # Enhancement roadmap
+├── pyproject.toml          # Package configuration
+└── README.md               # This file
 ```
 
 ## Study Areas
 
-Included DEMs cover diverse geomorphic settings:
+All 18 mountain ranges from Goren & Shelef (2024) are included:
 
-| Region | Location | z_th (m) | Notes |
-|--------|----------|----------|-------|
-| Inyo Mountains | California, USA | 1200 | Semi-arid, high relief |
-| Humboldt Range | Nevada, USA | 1450 | Basin and Range |
-| Clan Alpine | Nevada, USA | 1700 | Basin and Range |
-| Daqing Shan | China | 1200 | Loess plateau margin |
-| Luliang Mountains | China | 1100 | Continental climate |
-| Kammanassie | South Africa | 630 | Cape Fold Belt |
-| Finisterre Range | Papua New Guinea | 400 | Tropical, high uplift |
+| Region | Location | z_th (m) | Climate |
+|--------|----------|----------|---------|
+| Taiwan Central Range | Taiwan | 80 | Humid tropical |
+| Clan Alpine Mountains | Nevada, USA | 1700 | Arid |
+| Daqing Shan | China | 1200 | Semi-arid |
+| Finisterre Range | Papua New Guinea | 400 | Humid tropical |
+| Humboldt Range | Nevada, USA | 1450 | Arid |
+| Inyo Mountains | California, USA | 1200 | Arid |
+| Kammanassie Mountains | South Africa | 630 | Semi-arid |
+| Luliang Mountains | China | 1100 | Semi-arid |
+| Panamint Range | California, USA | 800 | Hyper-arid |
+| Sakhalin Mountains | Russia | 60 | Humid |
+| Sierra del Valle Fértil | Argentina | 1050 | Arid |
+| Sierra Madre del Sur | Mexico | 380 | Semi-humid |
+| Sierra Nevada | Spain | 1200 | Semi-arid |
+| Toano Range | Nevada, USA | 1710 | Arid |
+| Troodos Mountains | Cyprus | 200 | Semi-arid |
+| Tsugaru Peninsula | Japan | 30 | Humid |
+| Yoro Mountains | Japan | 130 | Humid |
+
+See `basin_config.py` for complete parameters including θ, ΔL, and aridity index values.
 
 ## Testing
 

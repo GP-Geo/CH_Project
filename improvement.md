@@ -225,6 +225,45 @@ def build_spatial_index(s):
     return idx
 ```
 
+#### Bounding Box Cropping for `pair_touching()`
+
+**Priority:** Medium | **Effort:** Low | **Impact:** High for large DEMs
+
+**Problem:** In `CouplingAnalyzer.pair_touching()`, boolean operations (overlap, contact detection) run on full DEM-sized masks even though basin pairs typically occupy <1% of the grid. On large DEMs (>1M pixels), this wastes ~45% of total runtime.
+
+**Profiling Results (2026-02-02):**
+
+| DEM Size | `pair_touching()` speedup | Overall speedup |
+|----------|---------------------------|-----------------|
+| 2.8M px (Finisterre) | 259x | 1.74x |
+| 9.9M px (Taiwan) | 966x | 1.81x |
+
+**Proposed Solution:** Crop masks to bounding box before boolean operations:
+
+```python
+# In coupling_analysis.py, modify pair_touching():
+def pair_touching(self, h1: int, h2: int) -> PairTouchResult:
+    A = self.influence_mask(h1)
+    B = self.influence_mask(h2)
+
+    # Crop to bounding box of union
+    combined = A | B
+    rows, cols = np.where(combined)
+    if len(rows) == 0:
+        return PairTouchResult(False, 0, 0, 0, 0)
+
+    r_min, r_max = rows.min(), rows.max() + 1
+    c_min, c_max = cols.min(), cols.max() + 1
+    A = A[r_min:r_max, c_min:c_max]
+    B = B[r_min:r_max, c_min:c_max]
+
+    # ... rest of boolean operations on smaller arrays
+```
+
+**Limitation (Amdahl's Law):** This only optimizes `pair_touching()` (~45% of runtime). The `dependencemap()` call (~55%) remains unchanged. For further gains, would need to crop the FlowObject itself before computing dependency maps - requires TopoToolbox support investigation.
+
+**Files to modify:** `channel_heads/coupling_analysis.py` → `CouplingAnalyzer.pair_touching()` method
+
 ---
 
 ### Extended Testing
@@ -432,6 +471,7 @@ np.random.seed(RANDOM_SEED)
 
 ### Future (Phase 3+)
 
+- [ ] Bounding box cropping for `pair_touching()` (1.7-1.8x speedup on large DEMs)
 - [ ] Parallel processing for large DEMs
 - [ ] Integration tests with real DEMs
 - [ ] Tests for lengthwise asymmetry module

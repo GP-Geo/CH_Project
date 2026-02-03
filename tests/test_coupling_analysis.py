@@ -203,6 +203,7 @@ class TestCouplingAnalyzerEvaluatePairs:
             "contact_px",
             "size1_px",
             "size2_px",
+            "skipped_prefilter",
         ]
         assert list(df.columns) == expected_cols
 

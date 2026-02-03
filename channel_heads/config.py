@@ -4,13 +4,13 @@ This module provides centralized path management for the channel-heads project,
 supporting both development (local) and installed package usage.
 
 Usage:
-    from channel_heads.config import CROPPED_DEMS_DIR, EXAMPLE_DEMS
+    from channel_heads.config import PROCESSED_DIR, EXAMPLE_DEMS
 
     # Use predefined paths
     dem_path = EXAMPLE_DEMS["inyo"]
 
     # Or build paths from directories
-    dem_path = CROPPED_DEMS_DIR / "MyCustomDEM.tif"
+    dem_path = PROCESSED_DIR / "MyCustomDEM.tif"
 
 Environment Variables:
     CHANNEL_HEADS_ROOT: Override the auto-detected project root directory.
@@ -71,39 +71,73 @@ PROJECT_ROOT: Path = _find_project_root()
 DATA_DIR: Path = _get_data_dir()
 """Main data directory."""
 
-RAW_DATA_DIR: Path = DATA_DIR / "raw"
+RAW_DIR: Path = DATA_DIR / "raw"
 """Raw input data directory (SRTM downloads, etc.)."""
 
-CROPPED_DEMS_DIR: Path = DATA_DIR / "cropped_DEMs"
-"""Directory containing cropped study area DEMs."""
+PROCESSED_DIR: Path = DATA_DIR / "processed"
+"""Directory containing processed/cropped study area DEMs."""
 
-OUTPUTS_DIR: Path = DATA_DIR / "outputs"
-"""Directory for analysis outputs (CSVs, figures)."""
+RESULTS_DIR: Path = DATA_DIR / "results"
+"""Directory for analysis results (CSVs)."""
+
+EXPORTS_DIR: Path = DATA_DIR / "exports"
+"""Directory for exported figures and PDFs."""
 
 NOTEBOOKS_DIR: Path = PROJECT_ROOT / "notebooks"
 """Jupyter notebooks directory."""
 
+# Backward compatibility aliases
+RAW_DATA_DIR: Path = RAW_DIR
+CROPPED_DEMS_DIR: Path = PROCESSED_DIR
+OUTPUTS_DIR: Path = RESULTS_DIR
+
 
 # Example DEMs with friendly names
+# Maps lowercase basin names to their DEM file paths
 EXAMPLE_DEMS: dict[str, Path] = {
-    "inyo": CROPPED_DEMS_DIR / "Inyo_strm_crop.tif",
-    "humboldt": CROPPED_DEMS_DIR / "Humboldt_strm_crop.tif",
-    "calnalpine": CROPPED_DEMS_DIR / "CalnAlpine_strm_crop.tif",
-    "daqing": CROPPED_DEMS_DIR / "Daqing_strm_crop.tif",
-    "luliang": CROPPED_DEMS_DIR / "Luliang_strm_crop.tif",
-    "kammanassie": CROPPED_DEMS_DIR / "Kammanasie_strm_crop.tif",
-    "finisterre": CROPPED_DEMS_DIR / "Finisterre_strm_crop.tif",
+    # Original 7 basins
+    "inyo": PROCESSED_DIR / "Inyo_strm_crop.tif",
+    "humboldt": PROCESSED_DIR / "Humboldt_strm_crop.tif",
+    "calnalpine": PROCESSED_DIR / "CalnAlpine_strm_crop.tif",
+    "daqing": PROCESSED_DIR / "Daqing_strm_crop.tif",
+    "luliang": PROCESSED_DIR / "Luliang_strm_crop.tif",
+    "kammanasie": PROCESSED_DIR / "Kammanasie_strm_crop.tif",
+    "finisterre": PROCESSED_DIR / "Finisterre_strm_crop.tif",
+    # Additional basins from Goren & Shelef (2024)
+    "taiwan": PROCESSED_DIR / "Taiwan_strm_crop.tif",
+    "panamint": PROCESSED_DIR / "Panamint_strm_crop.tif",
+    "sakhalin": PROCESSED_DIR / "Sakhalin_strm_crop.tif",
+    "vallefertil": PROCESSED_DIR / "SierradelValleFertil_strm_crop.tif",
+    "sierramadre": PROCESSED_DIR / "SierraMadre_strm_crop.tif",
+    "sierranevadaspain": PROCESSED_DIR / "SierraNevadaSpain_strm_crop.tif",
+    "toano": PROCESSED_DIR / "Toano_strm_crop.tif",
+    "troodos": PROCESSED_DIR / "Troodos_strm_crop.tif",
+    "tsugaru": PROCESSED_DIR / "Tsugaru_strm_crop.tif",
+    "yoro": PROCESSED_DIR / "Yoro_strm_crop.tif",
 }
-"""Dictionary mapping friendly names to DEM file paths."""
+"""Dictionary mapping friendly basin names to DEM file paths."""
 
 
-def get_output_dir(study_area: str, create: bool = True) -> Path:
-    """Get output directory for a specific study area.
+def get_output_dir(
+    study_area: str,
+    experiment: str | None = None,
+    threshold: int | None = None,
+    create: bool = True,
+) -> Path:
+    """Get output directory for a specific study area and experiment.
 
     Parameters
     ----------
     study_area : str
         Name of the study area (e.g., "inyo", "humboldt").
+    experiment : str, optional
+        Experiment name or identifier. If provided, creates a subdirectory
+        for this experiment (e.g., "results/inyo/exp_v2/").
+    threshold : int, optional
+        Stream threshold value. If provided (and experiment is None),
+        creates a subdirectory named "th{threshold}" (e.g., "results/inyo/th300/").
+        If both experiment and threshold are provided, threshold is appended
+        to the experiment name.
     create : bool
         If True, create the directory if it doesn't exist.
 
@@ -112,12 +146,61 @@ def get_output_dir(study_area: str, create: bool = True) -> Path:
     Path
         Path to the study area's output directory.
 
+    Examples
+    --------
+    >>> get_output_dir("inyo")
+    PosixPath('.../data/results/inyo')
+
+    >>> get_output_dir("inyo", threshold=300)
+    PosixPath('.../data/results/inyo/th300')
+
+    >>> get_output_dir("inyo", experiment="v2_calibration")
+    PosixPath('.../data/results/inyo/v2_calibration')
+
+    >>> get_output_dir("inyo", experiment="v2", threshold=500)
+    PosixPath('.../data/results/inyo/v2_th500')
+    """
+    output_dir = RESULTS_DIR / study_area
+
+    # Build subdirectory name from experiment and/or threshold
+    if experiment and threshold:
+        output_dir = output_dir / f"{experiment}_th{threshold}"
+    elif experiment:
+        output_dir = output_dir / experiment
+    elif threshold:
+        output_dir = output_dir / f"th{threshold}"
+
+    if create:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
+def get_experiment_output_dir(
+    experiment_name: str,
+    create: bool = True,
+) -> Path:
+    """Get a top-level experiment output directory.
+
+    Use this for experiments that span multiple basins with the same parameters.
+
+    Parameters
+    ----------
+    experiment_name : str
+        Name of the experiment (e.g., "th500_all_basins", "2026-02-02_calibration").
+    create : bool
+        If True, create the directory if it doesn't exist.
+
+    Returns
+    -------
+    Path
+        Path to the experiment output directory.
+
     Example
     -------
-    >>> output_dir = get_output_dir("inyo")
-    >>> results_path = output_dir / "coupling_results.csv"
+    >>> output_dir = get_experiment_output_dir("th500_all_basins")
+    PosixPath('.../data/results/experiments/th500_all_basins')
     """
-    output_dir = OUTPUTS_DIR / study_area
+    output_dir = RESULTS_DIR / "experiments" / experiment_name
     if create:
         output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
@@ -126,7 +209,7 @@ def get_output_dir(study_area: str, create: bool = True) -> Path:
 def list_available_dems() -> dict[str, Path]:
     """List all available DEM files.
 
-    Scans the cropped DEMs directory for .tif files.
+    Scans the processed DEMs directory for .tif files.
 
     Returns
     -------
@@ -140,8 +223,8 @@ def list_available_dems() -> dict[str, Path]:
     ...     print(f"{name}: {path}")
     """
     dems = {}
-    if CROPPED_DEMS_DIR.exists():
-        for tif_path in CROPPED_DEMS_DIR.glob("*.tif"):
+    if PROCESSED_DIR.exists():
+        for tif_path in PROCESSED_DIR.glob("*.tif"):
             # Remove _strm_crop suffix if present
             name = tif_path.stem
             if name.endswith("_strm_crop"):
@@ -156,10 +239,11 @@ def ensure_directories() -> None:
     Creates:
         - data/
         - data/raw/
-        - data/cropped_DEMs/
-        - data/outputs/
+        - data/processed/
+        - data/results/
+        - data/exports/
     """
-    for directory in [DATA_DIR, RAW_DATA_DIR, CROPPED_DEMS_DIR, OUTPUTS_DIR]:
+    for directory in [DATA_DIR, RAW_DIR, PROCESSED_DIR, RESULTS_DIR, EXPORTS_DIR]:
         directory.mkdir(parents=True, exist_ok=True)
 
 
@@ -167,8 +251,8 @@ def resolve_dem_path(dem_ref: str) -> Path | None:
     """Resolve a DEM reference to an absolute path.
 
     Accepts multiple input formats:
-    - Friendly name: "inyo" -> data/cropped_DEMs/Inyo_strm_crop.tif
-    - Relative path: "data/cropped_DEMs/custom.tif"
+    - Friendly name: "inyo" -> data/processed/Inyo_strm_crop.tif
+    - Relative path: "data/processed/custom.tif"
     - Absolute path: "/full/path/to/dem.tif"
 
     Parameters
@@ -184,7 +268,7 @@ def resolve_dem_path(dem_ref: str) -> Path | None:
     Example
     -------
     >>> path = resolve_dem_path("inyo")
-    >>> path = resolve_dem_path("data/cropped_DEMs/MyDEM.tif")
+    >>> path = resolve_dem_path("data/processed/MyDEM.tif")
     """
     # Check if it's a friendly name
     if dem_ref.lower() in EXAMPLE_DEMS:
@@ -202,8 +286,8 @@ def resolve_dem_path(dem_ref: str) -> Path | None:
     if project_path.exists():
         return project_path
 
-    # Relative to cropped DEMs directory
-    dem_path = CROPPED_DEMS_DIR / path.name
+    # Relative to processed DEMs directory
+    dem_path = PROCESSED_DIR / path.name
     if dem_path.exists():
         return dem_path
 

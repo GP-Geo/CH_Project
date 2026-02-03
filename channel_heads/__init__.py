@@ -54,6 +54,7 @@ from .config import (
     EXAMPLE_DEMS,
     OUTPUTS_DIR,
     PROJECT_ROOT,
+    get_experiment_output_dir,
     get_output_dir,
     list_available_dems,
     resolve_dem_path,
@@ -102,6 +103,7 @@ __all__ = [
     "OUTPUTS_DIR",
     "EXAMPLE_DEMS",
     "get_output_dir",
+    "get_experiment_output_dir",
     "list_available_dems",
     "resolve_dem_path",
     # Logging

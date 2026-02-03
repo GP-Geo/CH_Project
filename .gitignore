@@ -33,6 +33,9 @@ htmlcov/
 .tox/
 .hypothesis/
 
+# Linting
+.ruff_cache/
+
 # Jupyter
 .ipynb_checkpoints/
 */.ipynb_checkpoints/*
@@ -55,10 +58,12 @@ venv.bak/
 
 # Data files (large, regeneratable)
 data/raw/*.tif
-data/cropped_DEMs/*.tif
-data/outputs/**/*.csv
-data/outputs/**/*.png
-data/outputs/**/*.gpkg
+data/processed/*.tif
+data/results/**/*.csv
+data/results/**/*.png
+data/results/**/*.gpkg
+data/exports/**/*.pdf
+data/exports/**/*.png
 *.aux.xml
 
 # QGIS project files (user-specific)
@@ -70,7 +75,6 @@ data/outputs/**/*.gpkg
 
 # Temporary/local directories
 GuyPinkasLiran/
-outputs/
 
 # OS generated files
 Thumbs.db
