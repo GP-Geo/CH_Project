@@ -53,9 +53,7 @@ NUM_CLASSES = 5
 # =============================================================================
 
 
-def _bresenham_line(
-    r0: int, c0: int, r1: int, c1: int
-) -> list[tuple[int, int]]:
+def _bresenham_line(r0: int, c0: int, r1: int, c1: int) -> list[tuple[int, int]]:
     """Bresenham's line algorithm for 8-connected pixel paths.
 
     Returns all pixel coordinates (r, c) on the line from (r0, c0) to (r1, c1),
@@ -391,22 +389,41 @@ def rasterize_outlet_pair(
 
     # Draw all basin edges as OTHER_STREAMS (value 3) with connected lines
     _draw_edges_on_raster(
-        raster, parents, basin_node_set, node_to_idx,
-        rot_r, rot_c, r_min, c_min, OTHER_STREAMS,
+        raster,
+        parents,
+        basin_node_set,
+        node_to_idx,
+        rot_r,
+        rot_c,
+        r_min,
+        c_min,
+        OTHER_STREAMS,
     )
 
     # Overwrite branch A with connected path lines (value 1).
     # Protect: don't let A's interpolation overwrite B pixels (and vice versa).
     _draw_path_on_raster(
-        raster, path_a, node_to_idx,
-        rot_r, rot_c, r_min, c_min, BRANCH_A,
+        raster,
+        path_a,
+        node_to_idx,
+        rot_r,
+        rot_c,
+        r_min,
+        c_min,
+        BRANCH_A,
         protect=(BRANCH_B,),
     )
 
     # Overwrite branch B with connected path lines (value 2)
     _draw_path_on_raster(
-        raster, path_b, node_to_idx,
-        rot_r, rot_c, r_min, c_min, BRANCH_B,
+        raster,
+        path_b,
+        node_to_idx,
+        rot_r,
+        rot_c,
+        r_min,
+        c_min,
+        BRANCH_B,
         protect=(BRANCH_A,),
     )
 

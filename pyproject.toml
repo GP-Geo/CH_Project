@@ -29,6 +29,7 @@ dependencies = [
     "pandas>=2.0",
     "matplotlib>=3.8",
     "topotoolbox>=0.0.6",
+    "scikit-image>=0.24",
 ]
 
 [project.optional-dependencies]
@@ -47,7 +48,6 @@ geo = [
 ]
 
 viz = [
-    "scikit-image>=0.24",
     "folium>=0.20",
 ]
 

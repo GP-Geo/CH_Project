@@ -567,10 +567,12 @@ def _sample_path_coords(
     seg_len = hi - lo
     frac = np.where(seg_len > EPSILON, (targets - lo) / seg_len, 0.0)
 
-    coords = np.column_stack([
-        xs[idxs] + frac * (xs[idxs + 1] - xs[idxs]),
-        ys[idxs] + frac * (ys[idxs + 1] - ys[idxs]),
-    ])
+    coords = np.column_stack(
+        [
+            xs[idxs] + frac * (xs[idxs + 1] - xs[idxs]),
+            ys[idxs] + frac * (ys[idxs + 1] - ys[idxs]),
+        ]
+    )
 
     return coords
 
@@ -913,7 +915,11 @@ class LengthwiseAsymmetryAnalyzer:
             logger.warning(
                 "Negative path length for pair (%d, %d) at confluence %d "
                 "(L_1=%.4g, L_2=%.4g). Head may be downstream of confluence. Clamping to 0.",
-                h1, h2, conf, L_1_raw, L_2_raw,
+                h1,
+                h2,
+                conf,
+                L_1_raw,
+                L_2_raw,
             )
         L_1_raw = max(0.0, L_1_raw)
         L_2_raw = max(0.0, L_2_raw)
@@ -1800,8 +1806,10 @@ def filter_hard_negatives(
         def _does_not_cross(h1: int, h2: int) -> bool:
             try:
                 return not _line_crosses_stream(
-                    int(r_nodes[h1]), int(c_nodes[h1]),
-                    int(r_nodes[h2]), int(c_nodes[h2]),
+                    int(r_nodes[h1]),
+                    int(c_nodes[h1]),
+                    int(r_nodes[h2]),
+                    int(c_nodes[h2]),
                     stream_mask,
                 )
             except (IndexError, KeyError):
