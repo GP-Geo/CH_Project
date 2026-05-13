@@ -20,7 +20,7 @@ Main API
 - CouplingAnalyzer(fd, s, dem, connectivity=8, threshold=300, prefilter_multiplier=2.0)
     .influence_grid(head_id) -> GridObject
     .influence_mask(head_id) -> np.ndarray[bool]
-    .pair_touching(h1, h2)   -> dict (touching, overlap_px, contact_px, size1_px, size2_px)
+    .pair_touching(h1, h2)   -> PairTouchResult (touching, contact_px, size1_px, size2_px)
     .evaluate_pairs_for_outlet(outlet, pairs_at_confluence) -> pandas.DataFrame
     .evaluate_pairs_for_outlet_parallel(outlet, pairs_at_confluence, n_workers=4) -> pandas.DataFrame
 """
@@ -31,14 +31,12 @@ import math
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-
-if TYPE_CHECKING:
-    pass
+from skimage.draw import line as skimage_line
 
 # Type aliases for clarity
 NodeId = int
@@ -54,11 +52,9 @@ class PairTouchResult:
     Attributes
     ----------
     touching : bool
-        Whether the two basins are touching (contact or overlap).
-    overlap_px : int
-        Number of pixels where the two basins directly overlap.
+        Whether the two basins are touching (adjacent pixels in contact).
     contact_px : int
-        Number of 4- or 8-connected contact pixels (excludes direct overlap).
+        Number of 4- or 8-connected contact pixels between basins.
     size1_px : int
         Total pixels in the first basin.
     size2_px : int
@@ -66,7 +62,6 @@ class PairTouchResult:
     """
 
     touching: bool
-    overlap_px: int
     contact_px: int
     size1_px: int
     size2_px: int
@@ -169,6 +164,11 @@ class CouplingAnalyzer:
         # Pre-compute distance threshold for faster checks
         self._prefilter_distance = prefilter_multiplier * math.sqrt(threshold)
 
+        # Build stream mask for fast crossing detection
+        # True at every pixel that belongs to the stream network
+        self._stream_mask: BoolMask = np.zeros(dem.z.shape, dtype=bool)
+        self._stream_mask[self._r_nodes, self._c_nodes] = True
+
         # Thread-safe cache: head_id -> np.ndarray[bool] mask (same shape as dem.z)
         self._mask_cache: dict[int, np.ndarray] = {}
         self._cache_lock = threading.Lock()
@@ -268,9 +268,47 @@ class CouplingAnalyzer:
         r2, c2 = self._rc_for_head(int(h2))
 
         # Euclidean distance between heads
-        distance = math.sqrt((r1 - r2) ** 2 + (c1 - c2) ** 2)
+        distance = math.hypot(r1 - r2, c1 - c2)
 
         return distance <= self._prefilter_distance
+
+    def _crosses_stream(self, h1: int, h2: int) -> bool:
+        """Return True if the straight-line path between two heads crosses a stream pixel.
+
+        Uses Bresenham's line algorithm to enumerate pixels between the two
+        channel head positions. Interior pixels only — the endpoint pixels
+        (the heads themselves) are excluded from the check.
+
+        A pair whose head-to-head vector crosses a stream pixel is trivially
+        non-touching: a visible channel runs between them, so the pair carries
+        no information for the classifier.
+
+        Parameters
+        ----------
+        h1 : int
+            Node ID of the first channel head.
+        h2 : int
+            Node ID of the second channel head.
+
+        Returns
+        -------
+        bool
+            True if the interior of the rasterized line passes through at
+            least one stream pixel.
+        """
+        r1, c1 = self._rc_for_head(h1)
+        r2, c2 = self._rc_for_head(h2)
+        rr, cc = skimage_line(r1, c1, r2, c2)
+        valid = (
+            (rr >= 0)
+            & (rr < self._stream_mask.shape[0])
+            & (cc >= 0)
+            & (cc < self._stream_mask.shape[1])
+        )
+        rr, cc = rr[valid], cc[valid]
+        if len(rr) <= 2:
+            return False
+        return bool(self._stream_mask[rr[1:-1], cc[1:-1]].any())
 
     # ---------- public API ----------
 
@@ -314,19 +352,25 @@ class CouplingAnalyzer:
 
     def pair_touching(self, h1: int, h2: int) -> PairTouchResult:
         """
-        Check if the dependence masks of two heads touch (4/8-connected) or overlap.
+        Check if the dependence masks of two heads touch (4/8-connected).
         No wrap-around; avoids np.roll.
+
+        Parameters
+        ----------
+        h1 : int
+            Node ID of first channel head.
+        h2 : int
+            Node ID of second channel head.
+
+        Returns
+        -------
+        PairTouchResult
+            Result containing touching status, contact pixel count, and basin sizes.
         """
         A = self.influence_mask(int(h1))
         B = self.influence_mask(int(h2))
 
-        # Direct overlap (strongest)
-        overlap = A & B
-        overlap_px = int(overlap.sum())
-        if overlap_px > 0:
-            return PairTouchResult(True, overlap_px, 0, int(A.sum()), int(B.sum()))
-
-        # 4-connected contact (exclude overlap by construction)
+        # Count contact pixels (4-connected neighbors)
         contact_px = 0
         # vertical neighbors
         contact_px += int((A[1:, :] & B[:-1, :]).sum())
@@ -343,13 +387,14 @@ class CouplingAnalyzer:
             contact_px += int((A[:-1, :-1] & B[1:, 1:]).sum())
 
         touching = contact_px > 0
-        return PairTouchResult(touching, overlap_px, contact_px, int(A.sum()), int(B.sum()))
+        return PairTouchResult(touching, contact_px, int(A.sum()), int(B.sum()))
 
     def evaluate_pairs_for_outlet(
         self,
         outlet: int,
         pairs_at_confluence: dict[int, set[HeadPair]],
         use_prefilter: bool = True,
+        use_stream_filter: bool = True,
     ) -> pd.DataFrame:
         """
         Build a tidy DataFrame with one row per pair in the given outlet's confluences.
@@ -362,14 +407,19 @@ class CouplingAnalyzer:
             Mapping from confluence ID to set of (head1, head2) pairs.
         use_prefilter : bool, optional
             If True (default), skip pairs where heads are too far apart to touch.
-            Skipped pairs have touching=False, overlap_px=0, contact_px=0,
+            Skipped pairs have touching=False, contact_px=0,
             size1_px=None, size2_px=None, and skipped_prefilter=True.
+        use_stream_filter : bool, optional
+            If True (default), drop pairs whose straight-line head-to-head vector
+            crosses a stream pixel (Bresenham's algorithm). These are trivially
+            non-touching and are excluded entirely from the output — no row is
+            added. This is a cheaper gate than computing full basin masks.
 
         Returns
         -------
         pd.DataFrame
             DataFrame with columns: outlet, confluence, head_1, head_2, touching,
-            overlap_px, contact_px, size1_px, size2_px, skipped_prefilter
+            contact_px, size1_px, size2_px, skipped_prefilter
         """
         rows = []
         out = int(outlet)
@@ -378,6 +428,11 @@ class CouplingAnalyzer:
                 continue
             for h1, h2 in pairs:
                 h1_norm, h2_norm = int(min(h1, h2)), int(max(h1, h2))
+
+                # Stream-crossing gate: drop trivially non-touching pairs entirely.
+                # A visible stream between the two heads means they cannot be coupled.
+                if use_stream_filter and self._crosses_stream(h1, h2):
+                    continue
 
                 # Check if pre-filtering should skip this pair
                 if use_prefilter and not self._heads_can_touch(h1, h2):
@@ -388,7 +443,6 @@ class CouplingAnalyzer:
                             "head_1": h1_norm,
                             "head_2": h2_norm,
                             "touching": False,
-                            "overlap_px": 0,
                             "contact_px": 0,
                             "size1_px": None,
                             "size2_px": None,
@@ -404,7 +458,6 @@ class CouplingAnalyzer:
                             "head_1": h1_norm,
                             "head_2": h2_norm,
                             "touching": bool(res.touching),
-                            "overlap_px": int(res.overlap_px),
                             "contact_px": int(res.contact_px),
                             "size1_px": int(res.size1_px),
                             "size2_px": int(res.size2_px),
@@ -419,7 +472,6 @@ class CouplingAnalyzer:
                 "head_1",
                 "head_2",
                 "touching",
-                "overlap_px",
                 "contact_px",
                 "size1_px",
                 "size2_px",
@@ -437,6 +489,7 @@ class CouplingAnalyzer:
         pairs_at_confluence: dict[int, set[HeadPair]],
         n_workers: int = 4,
         use_prefilter: bool = True,
+        use_stream_filter: bool = True,
     ) -> pd.DataFrame:
         """
         Thread-safe parallel evaluation of pairs for a given outlet.
@@ -454,12 +507,15 @@ class CouplingAnalyzer:
             Number of worker threads (default: 4).
         use_prefilter : bool, optional
             If True (default), skip pairs where heads are too far apart to touch.
+        use_stream_filter : bool, optional
+            If True (default), drop pairs whose straight-line head-to-head vector
+            crosses a stream pixel. These pairs are excluded entirely from output.
 
         Returns
         -------
         pd.DataFrame
             DataFrame with columns: outlet, confluence, head_1, head_2, touching,
-            overlap_px, contact_px, size1_px, size2_px, skipped_prefilter
+            contact_px, size1_px, size2_px, skipped_prefilter
         """
         out = int(outlet)
 
@@ -479,7 +535,6 @@ class CouplingAnalyzer:
                     "head_1",
                     "head_2",
                     "touching",
-                    "overlap_px",
                     "contact_px",
                     "size1_px",
                     "size2_px",
@@ -489,10 +544,17 @@ class CouplingAnalyzer:
 
         def process_pair(
             item: tuple[int, int, int],
-        ) -> dict[str, int | bool | None]:
-            """Process a single pair (thread-safe)."""
+        ) -> dict[str, int | bool | None] | None:
+            """Process a single pair (thread-safe).
+
+            Returns None if the pair is stream-filtered (caller skips it).
+            """
             conf, h1, h2 = item
             h1_norm, h2_norm = min(h1, h2), max(h1, h2)
+
+            # Stream-crossing gate: drop trivially non-touching pairs entirely
+            if use_stream_filter and self._crosses_stream(h1, h2):
+                return None
 
             # Check pre-filter
             if use_prefilter and not self._heads_can_touch(h1, h2):
@@ -502,7 +564,6 @@ class CouplingAnalyzer:
                     "head_1": h1_norm,
                     "head_2": h2_norm,
                     "touching": False,
-                    "overlap_px": 0,
                     "contact_px": 0,
                     "size1_px": None,
                     "size2_px": None,
@@ -517,19 +578,20 @@ class CouplingAnalyzer:
                 "head_1": h1_norm,
                 "head_2": h2_norm,
                 "touching": bool(res.touching),
-                "overlap_px": int(res.overlap_px),
                 "contact_px": int(res.contact_px),
                 "size1_px": int(res.size1_px),
                 "size2_px": int(res.size2_px),
                 "skipped_prefilter": False,
             }
 
-        # Process pairs in parallel
+        # Process pairs in parallel; None results are stream-filtered (drop them)
         rows: list[dict[str, int | bool | None]] = []
         with ThreadPoolExecutor(max_workers=n_workers) as executor:
             futures = {executor.submit(process_pair, item): item for item in work_items}
             for future in as_completed(futures):
-                rows.append(future.result())
+                result = future.result()
+                if result is not None:
+                    rows.append(result)
 
         df = pd.DataFrame(
             rows,
@@ -539,7 +601,6 @@ class CouplingAnalyzer:
                 "head_1",
                 "head_2",
                 "touching",
-                "overlap_px",
                 "contact_px",
                 "size1_px",
                 "size2_px",

@@ -6,13 +6,10 @@ that first meet at each confluence in a stream network.
 
 from __future__ import annotations
 
-from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from collections import defaultdict, deque
+from typing import Any
 
 import numpy as np
-
-if TYPE_CHECKING:
-    pass
 
 # Type aliases for clarity
 NodeId = int
@@ -26,11 +23,6 @@ ParentsList = list[list[NodeId]]
 
 def _normalize_pair(h1: int, h2: int) -> HeadPair:
     return (h1, h2) if h1 < h2 else (h2, h1)
-
-
-### streampoi returns always numpy arrays, so this is not strictly necessary,
-# change this for simplicity
-# reduced the function to only handle 1D numpy arrays
 
 
 def _to_node_id_list(x) -> list[int]:
@@ -52,7 +44,8 @@ def _build_parents_from_stream(s: Any) -> ParentsList:
     """parents[v] = list of upstream nodes u with edge (u -> v). Deterministic & duplicate-safe."""
 
     if hasattr(s, "node_indices") and s.node_indices is not None:
-        r, c = s.node_indices
+        node_indices = s.node_indices() if callable(s.node_indices) else s.node_indices
+        r, _ = node_indices
         n = int(len(r))
     else:
         n = int(max(int(np.max(s.source)), int(np.max(s.target))) + 1)
@@ -63,9 +56,8 @@ def _build_parents_from_stream(s: Any) -> ParentsList:
         raise ValueError("s.source and s.target must have identical shape")
 
     parents_sets: list[set[int]] = [set() for _ in range(n)]
-    for i in range(src.size):
-        u = int(src[i])
-        v = int(tgt[i])
+    for i, (u_raw, v_raw) in enumerate(zip(src, tgt)):
+        u, v = int(u_raw), int(v_raw)
         if u == v:
             continue
         if not (0 <= u < n) or not (0 <= v < n):
@@ -166,11 +158,11 @@ def _topological_sort_basin(
                 in_degree[v] += 1
 
     # Start with nodes that have no parents in basin (channel heads and edge nodes)
-    queue = [v for v in basin_nodes if in_degree[v] == 0]
+    queue: deque[int] = deque(v for v in basin_nodes if in_degree[v] == 0)
     sorted_nodes: list[int] = []
 
     while queue:
-        v = queue.pop(0)
+        v = queue.popleft()
         sorted_nodes.append(v)
         # For each child (downstream node), decrement in-degree
         for c in children[v]:
@@ -226,8 +218,8 @@ def first_meet_pairs_for_outlet(
     heads_all = _to_node_id_list(s.streampoi("channelheads"))
     confs_all = _to_node_id_list(s.streampoi("confluences"))
 
-    heads_set = set(h for h in heads_all if h in basin_nodes)
-    confluences = set(c for c in confs_all if c in basin_nodes)
+    heads_set = set(heads_all) & basin_nodes
+    confluences = set(confs_all) & basin_nodes
 
     # 3) Build children adjacency and topological order
     children = _build_children_from_parents(parents, basin_nodes)

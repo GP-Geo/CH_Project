@@ -4,13 +4,13 @@ This module provides centralized path management for the channel-heads project,
 supporting both development (local) and installed package usage.
 
 Usage:
-    from channel_heads.config import PROCESSED_DIR, EXAMPLE_DEMS
+    from channel_heads.config import CROPPED_DEMS_DIR, EXAMPLE_DEMS
 
     # Use predefined paths
     dem_path = EXAMPLE_DEMS["inyo"]
 
     # Or build paths from directories
-    dem_path = PROCESSED_DIR / "MyCustomDEM.tif"
+    dem_path = CROPPED_DEMS_DIR / "MyCustomDEM.tif"
 
 Environment Variables:
     CHANNEL_HEADS_ROOT: Override the auto-detected project root directory.
@@ -25,7 +25,7 @@ def _find_project_root() -> Path:
     """Find the project root directory.
 
     Searches upward from this file for a directory containing pyproject.toml
-    or CLAUDE.md, which indicates the project root.
+    or a .git directory, which indicates the project root.
 
     Returns:
         Path to project root directory.
@@ -37,8 +37,8 @@ def _find_project_root() -> Path:
     # Start from this file's location
     current = Path(__file__).resolve().parent
 
-    # Search upward for project markers
-    markers = ["pyproject.toml", "CLAUDE.md", ".git"]
+    # Search upward for standard project markers
+    markers = ["pyproject.toml", ".git"]
 
     for _ in range(5):  # Limit search depth
         for marker in markers:
@@ -74,7 +74,7 @@ DATA_DIR: Path = _get_data_dir()
 RAW_DIR: Path = DATA_DIR / "raw"
 """Raw input data directory (SRTM downloads, etc.)."""
 
-PROCESSED_DIR: Path = DATA_DIR / "processed"
+CROPPED_DEMS_DIR: Path = DATA_DIR / "cropped_DEMs"
 """Directory containing processed/cropped study area DEMs."""
 
 RESULTS_DIR: Path = DATA_DIR / "results"
@@ -88,7 +88,7 @@ NOTEBOOKS_DIR: Path = PROJECT_ROOT / "notebooks"
 
 # Backward compatibility aliases
 RAW_DATA_DIR: Path = RAW_DIR
-CROPPED_DEMS_DIR: Path = PROCESSED_DIR
+PROCESSED_DIR: Path = CROPPED_DEMS_DIR
 OUTPUTS_DIR: Path = RESULTS_DIR
 
 
@@ -96,24 +96,24 @@ OUTPUTS_DIR: Path = RESULTS_DIR
 # Maps lowercase basin names to their DEM file paths
 EXAMPLE_DEMS: dict[str, Path] = {
     # Original 7 basins
-    "inyo": PROCESSED_DIR / "Inyo_strm_crop.tif",
-    "humboldt": PROCESSED_DIR / "Humboldt_strm_crop.tif",
-    "calnalpine": PROCESSED_DIR / "CalnAlpine_strm_crop.tif",
-    "daqing": PROCESSED_DIR / "Daqing_strm_crop.tif",
-    "luliang": PROCESSED_DIR / "Luliang_strm_crop.tif",
-    "kammanasie": PROCESSED_DIR / "Kammanasie_strm_crop.tif",
-    "finisterre": PROCESSED_DIR / "Finisterre_strm_crop.tif",
+    "inyo": CROPPED_DEMS_DIR / "Inyo_strm_crop.tif",
+    "humboldt": CROPPED_DEMS_DIR / "Humboldt_strm_crop.tif",
+    "calnalpine": CROPPED_DEMS_DIR / "CalnAlpine_strm_crop.tif",
+    "daqing": CROPPED_DEMS_DIR / "Daqing_strm_crop.tif",
+    "luliang": CROPPED_DEMS_DIR / "Luliang_strm_crop.tif",
+    "kammanasie": CROPPED_DEMS_DIR / "Kammanasie_strm_crop.tif",
+    "finisterre": CROPPED_DEMS_DIR / "Finisterre_strm_crop.tif",
     # Additional basins from Goren & Shelef (2024)
-    "taiwan": PROCESSED_DIR / "Taiwan_strm_crop.tif",
-    "panamint": PROCESSED_DIR / "Panamint_strm_crop.tif",
-    "sakhalin": PROCESSED_DIR / "Sakhalin_strm_crop.tif",
-    "vallefertil": PROCESSED_DIR / "SierradelValleFertil_strm_crop.tif",
-    "sierramadre": PROCESSED_DIR / "SierraMadre_strm_crop.tif",
-    "sierranevadaspain": PROCESSED_DIR / "SierraNevadaSpain_strm_crop.tif",
-    "toano": PROCESSED_DIR / "Toano_strm_crop.tif",
-    "troodos": PROCESSED_DIR / "Troodos_strm_crop.tif",
-    "tsugaru": PROCESSED_DIR / "Tsugaru_strm_crop.tif",
-    "yoro": PROCESSED_DIR / "Yoro_strm_crop.tif",
+    "taiwan": CROPPED_DEMS_DIR / "Taiwan_strm_crop.tif",
+    "panamint": CROPPED_DEMS_DIR / "Panamint_strm_crop.tif",
+    "sakhalin": CROPPED_DEMS_DIR / "Sakhalin_strm_crop.tif",
+    "vallefertil": CROPPED_DEMS_DIR / "SierradelValleFertil_strm_crop.tif",
+    "sierramadre": CROPPED_DEMS_DIR / "SierraMadre_strm_crop.tif",
+    "sierranevadaspain": CROPPED_DEMS_DIR / "SierraNevadaSpain_strm_crop.tif",
+    "toano": CROPPED_DEMS_DIR / "Toano_strm_crop.tif",
+    "troodos": CROPPED_DEMS_DIR / "Troodos_strm_crop.tif",
+    "tsugaru": CROPPED_DEMS_DIR / "Tsugaru_strm_crop.tif",
+    "yoro": CROPPED_DEMS_DIR / "Yoro_strm_crop.tif",
 }
 """Dictionary mapping friendly basin names to DEM file paths."""
 
@@ -223,8 +223,8 @@ def list_available_dems() -> dict[str, Path]:
     ...     print(f"{name}: {path}")
     """
     dems = {}
-    if PROCESSED_DIR.exists():
-        for tif_path in PROCESSED_DIR.glob("*.tif"):
+    if CROPPED_DEMS_DIR.exists():
+        for tif_path in CROPPED_DEMS_DIR.glob("*.tif"):
             # Remove _strm_crop suffix if present
             name = tif_path.stem
             if name.endswith("_strm_crop"):
@@ -239,11 +239,11 @@ def ensure_directories() -> None:
     Creates:
         - data/
         - data/raw/
-        - data/processed/
+        - data/cropped_DEMs/
         - data/results/
         - data/exports/
     """
-    for directory in [DATA_DIR, RAW_DIR, PROCESSED_DIR, RESULTS_DIR, EXPORTS_DIR]:
+    for directory in [DATA_DIR, RAW_DIR, CROPPED_DEMS_DIR, RESULTS_DIR, EXPORTS_DIR]:
         directory.mkdir(parents=True, exist_ok=True)
 
 
@@ -251,8 +251,8 @@ def resolve_dem_path(dem_ref: str) -> Path | None:
     """Resolve a DEM reference to an absolute path.
 
     Accepts multiple input formats:
-    - Friendly name: "inyo" -> data/processed/Inyo_strm_crop.tif
-    - Relative path: "data/processed/custom.tif"
+    - Friendly name: "inyo" -> data/cropped_DEMs/Inyo_strm_crop.tif
+    - Relative path: "data/cropped_DEMs/custom.tif"
     - Absolute path: "/full/path/to/dem.tif"
 
     Parameters
@@ -268,7 +268,7 @@ def resolve_dem_path(dem_ref: str) -> Path | None:
     Example
     -------
     >>> path = resolve_dem_path("inyo")
-    >>> path = resolve_dem_path("data/processed/MyDEM.tif")
+    >>> path = resolve_dem_path("data/cropped_DEMs/MyDEM.tif")
     """
     # Check if it's a friendly name
     if dem_ref.lower() in EXAMPLE_DEMS:
@@ -286,8 +286,8 @@ def resolve_dem_path(dem_ref: str) -> Path | None:
     if project_path.exists():
         return project_path
 
-    # Relative to processed DEMs directory
-    dem_path = PROCESSED_DIR / path.name
+    # Relative to cropped DEMs directory
+    dem_path = CROPPED_DEMS_DIR / path.name
     if dem_path.exists():
         return dem_path
 

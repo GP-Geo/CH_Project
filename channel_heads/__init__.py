@@ -9,6 +9,8 @@ Main components:
 - CouplingAnalyzer: Detects spatial coupling between channel head drainage basins
 - first_meet_pairs_for_outlet: Identifies channel head pairs for a given outlet
 - LengthwiseAsymmetryAnalyzer: Computes lengthwise asymmetry (ΔL) metric
+- GeometricFeaturesAnalyzer: Computes geometric features (confluence angle, etc.)
+- generate_labeled_dataset: Creates labeled datasets for classification
 - Basin configuration data from Goren & Shelef (2024)
 - Visualization utilities for 2D and 3D plotting
 
@@ -62,18 +64,46 @@ from .config import (
 from .coupling_analysis import CouplingAnalyzer, PairTouchResult
 from .first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
 
-# Lengthwise asymmetry (Goren & Shelef 2024)
-from .lengthwise_asymmetry import (
+# Geometric analysis (asymmetry, geometric features, CSV enrichment)
+from .geometric_analysis import (
+    GEOM_FEATURE_COLS,
+    GeometricFeaturesAnalyzer,
     LengthwiseAsymmetryAnalyzer,
     PairAsymmetryResult,
+    PairGeometricResult,
+    add_geometric_features_to_csv,
     compute_asymmetry_statistics,
     compute_delta_L,
     compute_meters_per_degree,
     compute_pixel_size_meters,
+    filter_hard_negatives,
+    generate_labeled_dataset,
     merge_coupling_and_asymmetry,
+    merge_geometric_features,
 )
 from .logging_config import get_logger, setup_logging
+
+# Rasterizer (no PyTorch dependency)
+from .rasterizer import (
+    BACKGROUND,
+    BRANCH_A,
+    BRANCH_B,
+    CONFLUENCE_MARKER,
+    NUM_CLASSES,
+    OTHER_STREAMS,
+    precompute_raster_dataset,
+    rasterize_outlet_pair,
+)
 from .stream_utils import outlet_node_ids_from_streampoi
+
+# CNN modules (optional, require PyTorch)
+try:
+    from .cnn_features import CNN_FEATURE_COLS, extract_embeddings, merge_cnn_features
+    from .cnn_model import OutletCNN, OutletPairDataset, encode_raster_onehot
+
+    _HAS_TORCH = True
+except ImportError:
+    _HAS_TORCH = False
 
 __all__ = [
     # Core analysis
@@ -89,6 +119,15 @@ __all__ = [
     "merge_coupling_and_asymmetry",
     "compute_meters_per_degree",
     "compute_pixel_size_meters",
+    # Geometric features
+    "GeometricFeaturesAnalyzer",
+    "PairGeometricResult",
+    "generate_labeled_dataset",
+    "filter_hard_negatives",
+    "merge_geometric_features",
+    # CSV enrichment
+    "add_geometric_features_to_csv",
+    "GEOM_FEATURE_COLS",
     # Basin configuration
     "BASIN_CONFIG",
     "LOCAL_TO_PAPER_BASIN",
@@ -106,6 +145,22 @@ __all__ = [
     "get_experiment_output_dir",
     "list_available_dems",
     "resolve_dem_path",
+    # Rasterizer
+    "rasterize_outlet_pair",
+    "precompute_raster_dataset",
+    "BACKGROUND",
+    "BRANCH_A",
+    "BRANCH_B",
+    "OTHER_STREAMS",
+    "CONFLUENCE_MARKER",
+    "NUM_CLASSES",
+    # CNN (optional, require PyTorch)
+    "OutletCNN",
+    "OutletPairDataset",
+    "encode_raster_onehot",
+    "extract_embeddings",
+    "merge_cnn_features",
+    "CNN_FEATURE_COLS",
     # Logging
     "get_logger",
     "setup_logging",

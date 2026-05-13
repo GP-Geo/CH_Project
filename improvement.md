@@ -2,7 +2,7 @@
 
 This document tracks improvements to the channel-heads project. It serves as both a changelog for completed work and a roadmap for future enhancements.
 
-**Last updated:** 2026-02-01
+**Last updated:** 2026-03-02
 
 ---
 
@@ -117,7 +117,7 @@ Created `channel_heads/basin_config.py` with:
 
 **Status:** Implemented
 
-Created `channel_heads/lengthwise_asymmetry.py` with:
+Created lengthwise asymmetry analysis (now in `channel_heads/geometric_analysis.py`) with:
 - `LengthwiseAsymmetryAnalyzer` class using TopoToolbox's `upstream_distance()`
 - `compute_delta_L()` function implementing Equation 4 from Goren & Shelef (2024)
 - Automatic coordinate conversion (degrees to meters) for geographic DEMs
@@ -169,6 +169,92 @@ Created `.github/workflows/tests.yml` with:
   - Python cache files
   - IDE files
   - Environment files
+
+---
+
+### Geometric Features (Features 2–5)
+
+**Status:** Implemented (2026-03-01)
+
+Created geometric features analysis (now in `channel_heads/geometric_analysis.py`) with:
+- `GeometricFeaturesAnalyzer` class computing five geometric properties per pair:
+  - **Feature 2:** Confluence angle (degrees between upstream branches)
+  - **Feature 3:** Orientation similarity (azimuth difference of initial downstream directions)
+  - **Feature 4:** Head-head Euclidean distance (raw and normalized by flow path length)
+  - **Feature 5:** Tortuosity difference (sinuosity ratio between branches)
+  - **Feature 6:** Strahler order difference
+- `PairGeometricResult` dataclass with 12 attributes including QC flags
+- Helper functions: `generate_labeled_dataset()`, `filter_hard_negatives()`, `merge_geometric_features()`
+- CSV enrichment: `add_geometric_features_to_csv()`, `default_stream_loader()`
+- 60+ unit tests in `tests/test_geometric_analysis.py`
+- Handles missing streams gracefully, adds QC flags for incomplete computations
+
+---
+
+### ML Pipeline: Dataset Generation & Classification
+
+**Status:** Implemented (2026-03-01)
+
+End-to-end supervised learning pipeline for predicting basin touching:
+- **`notebooks/ml/00_full_pipeline.ipynb`** — Runs coupling + asymmetry + geometric features for all 17 basins, produces per-basin `full_features.csv`
+- **`notebooks/ml/01_prepare_dataset.ipynb`** — Enriches per-basin results, combines into `data/results/master_dataset_v2.csv` (10,868 labeled rows, 17 basins)
+- **`notebooks/ml/02_train_classifier.ipynb`** — Trains and evaluates XGBoost binary classifier:
+  - 10 features; top predictor: `strahler_order_diff` (importance 0.278)
+  - CV AUC: 0.884 ± 0.064 (17-fold, leave-one-basin-out)
+  - Test AUC: 0.920, Test accuracy: 0.852 (held-out basin: Taiwan)
+  - Saved to `models/xgb_touching_classifier.json`
+
+---
+
+### Parallel Processing in CouplingAnalyzer
+
+**Status:** Implemented (2026-03-01)
+
+Added `evaluate_pairs_for_outlet_parallel()` to `CouplingAnalyzer`:
+- Uses `concurrent.futures.ThreadPoolExecutor` for intra-outlet parallelism
+- Thread-safe mask cache using double-checked locking with `threading.Lock`
+- Spatial pre-filtering via `_heads_can_touch()` to skip distant pairs before computing full dependency maps
+- Tests in `tests/test_coupling_parallel.py`
+
+---
+
+### Code Quality & Correctness Pass
+
+**Status:** Implemented (2026-03-02)
+
+Correctness fixes:
+- `_build_parents_from_stream` now handles callable `node_indices` (guards against TopoToolbox versions where it's a method, not a property)
+- `GeometricFeaturesAnalyzer._can_reach` converted from recursive DFS to iterative (avoids Python's 1000-frame recursion limit on large drainage networks)
+
+Performance fixes:
+- `_topological_sort_basin` uses `collections.deque` with `popleft()` instead of `list.pop(0)` (O(1) vs O(n) per step)
+- Heads/confluences filtered with set intersection (`set(x) & basin_nodes`) instead of generator comprehension
+- `_build_children_from_parents` in `geometric_analysis.py` uses `defaultdict(list)` instead of pre-allocating all `n_nodes` entries
+- `math.hypot(dx, dy)` replaces `math.sqrt(dx**2 + dy**2)` in three places
+- `compute_meters_per_degree` uses `math.radians/cos/sqrt` instead of numpy (avoids scalar array overhead)
+- `max(0.0, ...)` replaces 4-line if/else clamping in `compute_pair_asymmetry`
+
+Cleanup:
+- Removed dead `merge_keys` variable in `geometric_analysis.py`
+- Removed redundant `if qc_flags else ""` guards around `",".join(qc_flags)` (empty join already returns `""`)
+- Removed stale triple-hash comment block in `first_meet_pairs_for_outlet.py`
+
+Notebook:
+- `notebooks/ml/02_train_classifier.ipynb` — added **section 3.1 Feature Distributions by Class**: KDE plots for all `MODEL_FEATURES` (including derived features) split by class, with class medians and KS separability statistics
+
+---
+
+### Project Structure Cleanup
+
+**Status:** Implemented (2026-03-01)
+
+- Renamed `data/processed/` → `data/cropped_DEMs/` to align with all documentation
+- Restructured `notebooks/` into three focused subfolders:
+  - `notebooks/analysis/` — classic geomorphic analysis (01–04)
+  - `notebooks/ml/` — ML dataset and classifier (00–02)
+  - `notebooks/experiments/` — threshold sensitivity experiments (unchanged)
+- Updated `channel_heads/config.py`: `CROPPED_DEMS_DIR` is now the primary constant; `PROCESSED_DIR` retained as backward-compatibility alias
+- Fixed `.gitignore`: added `models/` directory, top-level `data/results/*.csv` pattern, updated DEM path to `data/cropped_DEMs/*.tif`
 
 ---
 
@@ -302,7 +388,7 @@ def test_full_workflow_inyo():
 #### Tests for Lengthwise Asymmetry
 
 ```python
-# tests/test_lengthwise_asymmetry.py
+# tests/test_geometric_analysis.py (asymmetry tests)
 def test_compute_delta_L():
     from channel_heads import compute_delta_L
 
@@ -469,16 +555,32 @@ np.random.seed(RANDOM_SEED)
 - [x] Documentation updates (CLAUDE.md, README.md)
 - [x] Git hygiene (.gitignore)
 
-### Future (Phase 3+)
+### Completed (Phase 3 — ML Sprint, 2026-03-01)
+
+- [x] Geometric features module (Features 2–5 + Strahler order diff)
+- [x] CSV enrichment tool (in `geometric_analysis.py`)
+- [x] ML dataset generation (17 basins, 10,868 labeled pairs)
+- [x] XGBoost classifier (test AUC: 0.920, test accuracy: 0.852)
+- [x] Parallel processing in `CouplingAnalyzer` (ThreadPoolExecutor + thread-safe cache)
+- [x] Project structure cleanup (notebook reorganization, data dir rename, .gitignore fixes)
+- [x] All 18 basin DEMs in `data/cropped_DEMs/`
+
+### Completed (Phase 4 — Code Quality, 2026-03-02)
+
+- [x] Correctness: callable `node_indices` guard in `_build_parents_from_stream`
+- [x] Correctness: iterative `_can_reach` (was recursive, risked stack overflow)
+- [x] Performance: `deque.popleft()` in topological sort, `math.hypot`, `defaultdict(list)`, scalar `math` vs numpy, `max()` clamp
+- [x] `02_train_classifier.ipynb` section 3.1: feature distributions by class (KDE + KS statistics)
+
+### Future (Phase 5+)
 
 - [ ] Bounding box cropping for `pair_touching()` (1.7-1.8x speedup on large DEMs)
-- [ ] Parallel processing for large DEMs
 - [ ] Integration tests with real DEMs
 - [ ] Tests for lengthwise asymmetry module
-- [ ] CLI asymmetry computation flag
+- [ ] Tests for CSV enrichment (`add_geometric_features_to_csv`) and `cli.py`
+- [ ] CLI asymmetry computation flag (`--compute-asymmetry`, `--lat`)
 - [ ] Progress bar in CLI
 - [ ] DVC for data versioning
-- [ ] Additional basin DEMs
 - [ ] Jupytext notebook pairing
 - [ ] Papermill parameterization
 
@@ -492,10 +594,11 @@ Current status:
 - [x] Installable via `pip install -e .`
 - [x] CLI enables batch processing
 - [x] Documentation covers all use cases
-- [ ] Test coverage > 80% (all modules)
-- [ ] Repository size < 50 MB (excluding DVC-tracked data)
+- [x] Repository size < 50 MB (data/, models/ excluded via .gitignore)
 - [x] Cross-platform compatibility (Linux, macOS)
 - [x] CI pipeline passes on all commits
+- [ ] Test coverage > 80% (all modules — gaps in asymmetry, cli, plotting)
+- [ ] DVC-tracked remote storage for DEMs and results
 
 ---
 

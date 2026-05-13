@@ -51,8 +51,12 @@ viz = [
     "folium>=0.20",
 ]
 
+cnn = [
+    "torch>=2.0",
+]
+
 all = [
-    "channel-heads[dev,geo,viz]",
+    "channel-heads[dev,geo,viz,cnn]",
 ]
 
 [project.urls]

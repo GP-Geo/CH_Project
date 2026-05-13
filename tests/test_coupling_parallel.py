@@ -1,10 +1,8 @@
 """Tests for parallel processing and spatial pre-filtering in coupling_analysis."""
 
 import threading
-import time
 from concurrent.futures import ThreadPoolExecutor
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -69,7 +67,6 @@ class TestPrefilterSkipping:
         row = df.iloc[0]
         assert row["skipped_prefilter"] == True  # noqa: E712
         assert row["touching"] == False  # noqa: E712
-        assert row["overlap_px"] == 0
         assert row["contact_px"] == 0
         assert pd.isna(row["size1_px"])
         assert pd.isna(row["size2_px"])
@@ -446,7 +443,6 @@ class TestOutputColumns:
             "head_1",
             "head_2",
             "touching",
-            "overlap_px",
             "contact_px",
             "size1_px",
             "size2_px",
@@ -468,7 +464,6 @@ class TestOutputColumns:
             "head_1",
             "head_2",
             "touching",
-            "overlap_px",
             "contact_px",
             "size1_px",
             "size2_px",

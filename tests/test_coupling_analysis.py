@@ -11,22 +11,16 @@ class TestPairTouchResult:
 
     def test_creation(self):
         """Test creating a PairTouchResult."""
-        result = PairTouchResult(
-            touching=True, overlap_px=5, contact_px=10, size1_px=100, size2_px=120
-        )
+        result = PairTouchResult(touching=True, contact_px=10, size1_px=100, size2_px=120)
         assert result.touching is True
-        assert result.overlap_px == 5
         assert result.contact_px == 10
         assert result.size1_px == 100
         assert result.size2_px == 120
 
     def test_no_touching(self):
         """Test non-touching pair result."""
-        result = PairTouchResult(
-            touching=False, overlap_px=0, contact_px=0, size1_px=100, size2_px=120
-        )
+        result = PairTouchResult(touching=False, contact_px=0, size1_px=100, size2_px=120)
         assert result.touching is False
-        assert result.overlap_px == 0
         assert result.contact_px == 0
 
 
@@ -142,7 +136,6 @@ class TestCouplingAnalyzerPairTouching:
         result = analyzer.pair_touching(0, 1)
         assert isinstance(result, PairTouchResult)
         assert isinstance(result.touching, bool)
-        assert isinstance(result.overlap_px, int)
         assert isinstance(result.contact_px, int)
         assert isinstance(result.size1_px, int)
         assert isinstance(result.size2_px, int)
@@ -163,8 +156,8 @@ class TestCouplingAnalyzerPairTouching:
 
         result = analyzer.pair_touching(0, 1)
         # In the touching_basins_network, heads 0 and 1 have adjacent basins
-        # that should touch (either overlap or contact)
-        assert result.touching or result.overlap_px > 0 or result.contact_px > 0
+        # that should touch (contact pixels > 0)
+        assert result.touching or result.contact_px > 0
 
 
 class TestCouplingAnalyzerEvaluatePairs:
@@ -199,7 +192,6 @@ class TestCouplingAnalyzerEvaluatePairs:
             "head_1",
             "head_2",
             "touching",
-            "overlap_px",
             "contact_px",
             "size1_px",
             "size2_px",
@@ -220,7 +212,7 @@ class TestCouplingAnalyzerEvaluatePairs:
         assert len(df) == 0
 
     def test_evaluate_pairs_multiple_confluences(self, complex_network):
-        """Test with multiple confluences."""
+        """Test with multiple confluences (stream filter disabled to count all pairs)."""
         net = complex_network
         analyzer = CouplingAnalyzer(net["fd"], net["s"], net["dem"])
 
@@ -231,9 +223,9 @@ class TestCouplingAnalyzerEvaluatePairs:
             6: {(0, 2), (0, 3), (1, 2), (1, 3)},  # main confluence
         }
 
-        df = analyzer.evaluate_pairs_for_outlet(7, pairs_at_confluence)
+        df = analyzer.evaluate_pairs_for_outlet(7, pairs_at_confluence, use_stream_filter=False)
 
-        # Should have 2 + 4 = 6 pairs
+        # Should have 1 + 1 + 4 = 6 pairs (no stream filter applied)
         assert len(df) == 6
 
         # All outlets should be 7
@@ -241,3 +233,96 @@ class TestCouplingAnalyzerEvaluatePairs:
 
         # Heads should be normalized (head_1 < head_2)
         assert (df["head_1"] < df["head_2"]).all()
+
+
+class TestStreamFilter:
+    """Tests for the stream-crossing gate in evaluate_pairs_for_outlet."""
+
+    def test_crosses_stream_no_interior(self, simple_y_network):
+        """Adjacent heads with no interior stream pixels return False."""
+        net = simple_y_network
+        analyzer = CouplingAnalyzer(net["fd"], net["s"], net["dem"])
+        # Heads 0 and 1 at (0,2) and (0,7); interior (0,3)-(0,6) are not stream nodes
+        assert analyzer._crosses_stream(0, 1) is False
+
+    def test_crosses_stream_touching_basins(self, touching_basins_network):
+        """Heads with no stream in between return False (basins can touch)."""
+        net = touching_basins_network
+        analyzer = CouplingAnalyzer(net["fd"], net["s"], net["dem"])
+        # Heads 0 and 1 at (0,1) and (0,4); interior (0,2),(0,3) are not stream nodes
+        assert analyzer._crosses_stream(0, 1) is False
+
+    def test_stream_filter_drops_crossing_pairs(self, complex_network):
+        """Pairs whose head-to-head vector crosses a stream node are dropped."""
+        net = complex_network
+        analyzer = CouplingAnalyzer(net["fd"], net["s"], net["dem"])
+
+        # complex_network heads: 0=(0,1), 1=(0,3), 2=(0,8), 3=(0,10)
+        # Cross-side pairs (0,2), (0,3), (1,3) pass through other head positions
+        # (which are stream nodes), so they cross the stream.
+        # Pairs (0,1) and (2,3) do not cross any stream interior pixel.
+        pairs_at_confluence = {
+            4: {(0, 1)},
+            5: {(2, 3)},
+            6: {(0, 2), (0, 3), (1, 2), (1, 3)},
+        }
+
+        df = analyzer.evaluate_pairs_for_outlet(7, pairs_at_confluence, use_stream_filter=True)
+
+        # (0,2): line (0,1)→(0,8) interior hits (0,3) which is stream → dropped
+        # (0,3): line (0,1)→(0,10) interior hits (0,3) and (0,8) → dropped
+        # (1,3): line (0,3)→(0,10) interior hits (0,8) → dropped
+        # (0,1): interior (0,2) not stream → kept
+        # (2,3): interior (0,9) not stream → kept
+        # (1,2): interior (0,4)–(0,7) none are stream → kept
+        assert len(df) == 3
+        remaining = set(zip(df["head_1"], df["head_2"]))
+        assert remaining == {(0, 1), (2, 3), (1, 2)}
+
+    def test_stream_filter_disabled(self, complex_network):
+        """With use_stream_filter=False all pairs are kept (old behavior)."""
+        net = complex_network
+        analyzer = CouplingAnalyzer(net["fd"], net["s"], net["dem"])
+
+        pairs_at_confluence = {
+            4: {(0, 1)},
+            5: {(2, 3)},
+            6: {(0, 2), (0, 3), (1, 2), (1, 3)},
+        }
+
+        df = analyzer.evaluate_pairs_for_outlet(7, pairs_at_confluence, use_stream_filter=False)
+        assert len(df) == 6
+
+    def test_stream_filter_keeps_touching_pair(self, touching_basins_network):
+        """Stream filter does not drop genuinely coupled pairs."""
+        net = touching_basins_network
+        analyzer = CouplingAnalyzer(net["fd"], net["s"], net["dem"])
+
+        pairs_at_confluence = {2: {(0, 1)}}
+        df = analyzer.evaluate_pairs_for_outlet(4, pairs_at_confluence, use_stream_filter=True)
+
+        # Pair should survive the filter
+        assert len(df) == 1
+
+    def test_parallel_stream_filter_matches_sequential(self, complex_network):
+        """Parallel stream filter produces same result as sequential."""
+        import pandas as pd
+
+        net = complex_network
+        pairs_at_confluence = {
+            4: {(0, 1)},
+            5: {(2, 3)},
+            6: {(0, 2), (0, 3), (1, 2), (1, 3)},
+        }
+
+        analyzer = CouplingAnalyzer(net["fd"], net["s"], net["dem"])
+        df_seq = analyzer.evaluate_pairs_for_outlet(7, pairs_at_confluence, use_stream_filter=True)
+
+        analyzer.clear_cache()
+        df_par = analyzer.evaluate_pairs_for_outlet_parallel(
+            7, pairs_at_confluence, n_workers=4, use_stream_filter=True
+        )
+
+        df_seq_s = df_seq.sort_values(["head_1", "head_2"]).reset_index(drop=True)
+        df_par_s = df_par.sort_values(["head_1", "head_2"]).reset_index(drop=True)
+        pd.testing.assert_frame_equal(df_seq_s, df_par_s)

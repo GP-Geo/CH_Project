@@ -14,36 +14,59 @@ This project analyzes **channel head coupling** in drainage networks derived fro
 
 ```
 channel-heads/
-├── channel_heads/                # Python package
-│   ├── __init__.py               # Package exports and metadata
-│   ├── coupling_analysis.py      # Basin coupling detection
+├── channel_heads/                    # Python package
+│   ├── __init__.py                   # Package exports and metadata
+│   ├── coupling_analysis.py          # Basin coupling detection (parallel-safe)
 │   ├── first_meet_pairs_for_outlet.py  # Head pairing algorithm
-│   ├── lengthwise_asymmetry.py   # ΔL metric (Goren & Shelef 2024)
-│   ├── stream_utils.py           # Stream network utilities
-│   ├── plotting_utils.py         # Visualization functions
-│   ├── cli.py                    # Command-line interface
-│   ├── config.py                 # Path management
-│   ├── basin_config.py           # Basin parameters from paper
-│   └── logging_config.py         # Logging setup
-├── tests/                        # Test suite
-│   ├── conftest.py               # Pytest fixtures (mock objects)
+│   ├── geometric_analysis.py         # All geometric analysis (asymmetry, features, CSV enrichment)
+│   ├── stream_utils.py               # Stream network utilities
+│   ├── plotting_utils.py             # Visualization functions
+│   ├── cli.py                        # Command-line interface
+│   ├── config.py                     # Path management
+│   ├── basin_config.py               # Basin parameters from paper
+│   └── logging_config.py             # Logging setup
+├── tests/                            # Test suite
+│   ├── conftest.py                   # Pytest fixtures (mock objects)
 │   ├── test_coupling_analysis.py
-│   └── test_first_meet_pairs.py
-├── notebooks/                    # Interactive analysis notebooks
-│   ├── basins_test.ipynb         # Basin-specific tests
-│   ├── all_basins_analysis.ipynb # Multi-basin analysis
-│   └── all_basins_analysis_full.ipynb
-├── data/                         # Input DEMs and outputs
-│   ├── cropped_DEMs/             # Processed DEM tiles
-│   ├── outputs/                  # Analysis results (CSVs)
-│   └── raw/                      # Original SRTM data
-├── .github/workflows/            # CI/CD pipelines
-│   └── tests.yml                 # GitHub Actions tests
-├── env/                          # Conda environment spec
-│   └── environment.yml
-├── pyproject.toml                # Package configuration
-├── README.md                     # User documentation
-└── improvement.md                # Enhancement roadmap
+│   ├── test_coupling_parallel.py     # Parallel processing tests
+│   ├── test_first_meet_pairs.py
+│   ├── test_geometric_analysis.py    # 60+ tests for geometric analysis
+│   └── test_stream_utils.py
+├── notebooks/
+│   ├── analysis/                     # Classic geomorphic analysis
+│   │   ├── 01_single_basin_test.ipynb
+│   │   ├── 02_multi_basin.ipynb
+│   │   ├── 03_all_basins.ipynb
+│   │   └── 04_all_basins_full.ipynb
+│   ├── ml/                           # ML dataset & classifier
+│   │   ├── 00_full_pipeline.ipynb    # End-to-end: all basins → full_features.csv
+│   │   ├── 01_prepare_dataset.ipynb  # Build master_dataset_v2.csv
+│   │   └── 02_train_classifier.ipynb # Train & evaluate XGBoost
+│   └── experiments/                  # Threshold sensitivity experiments
+│       ├── experiment_template.ipynb
+│       ├── experiment_250th.ipynb
+│       ├── experiment_350th.ipynb
+│       └── experiment_500th.ipynb
+├── data/
+│   ├── cropped_DEMs/                 # 18 study area DEMs (gitignored)
+│   ├── results/                      # Analysis outputs (gitignored)
+│   │   ├── {basin}/                  # Per-basin CSVs
+│   │   │   ├── coupling_asymmetry_results.csv
+│   │   │   ├── enriched_with_geom.csv
+│   │   │   └── full_features.csv
+│   │   ├── master_dataset_v2.csv     # 10,868 labeled pairs, 17 basins
+│   │   └── experiments/              # Threshold sensitivity results
+│   └── raw/                          # Original SRTM downloads
+├── models/                           # Trained ML models (gitignored)
+│   ├── xgb_touching_classifier.json  # XGBoost classifier
+│   └── feature_columns.txt           # Feature names for inference
+├── .github/workflows/
+│   └── tests.yml                     # CI: pytest, black, ruff, mypy
+├── env/
+│   └── environment.yml               # Conda environment spec
+├── pyproject.toml                    # Package configuration
+├── README.md                         # User documentation
+└── improvement.md                    # Enhancement roadmap
 ```
 
 ## Environment Setup
@@ -85,6 +108,9 @@ channel-heads/
 - **rasterio** (1.3+) - Raster I/O
 - **geopandas** (1.0+) - Spatial data handling
 - **scikit-image** (0.24+) - Image processing
+- **xgboost** (3.2+) - ML classifier for basin touching prediction
+- **scikit-learn** (1.7+) - Cross-validation and evaluation metrics
+- **seaborn** (0.13+) - Statistical visualizations in notebooks
 - **pytest** (8.0+) - Testing framework
 
 ## Usage
@@ -176,7 +202,8 @@ print(combined_df)
 ```bash
 conda activate ch-heads
 jupyter lab
-# Open notebooks/all_basins_analysis.ipynb
+# Classic analysis: notebooks/analysis/03_all_basins.ipynb
+# ML pipeline:      notebooks/ml/02_train_classifier.ipynb
 ```
 
 ## Module Reference
@@ -191,15 +218,20 @@ CouplingAnalyzer(fd, s, dem, connectivity=8)
 
 **Methods:**
 - `influence_grid(head_id)` - Returns GridObject mask for a channel head's basin
-- `influence_mask(head_id)` - Returns numpy boolean mask (cached)
-- `pair_touching(h1, h2)` - Tests if two basins touch (returns PairTouchResult)
-- `evaluate_pairs_for_outlet(outlet, pairs_at_confluence)` - Returns DataFrame with coupling metrics
-- `clear_cache()` - Clears the mask cache (call between outlets)
+- `influence_mask(head_id)` - Returns numpy boolean mask (cached, thread-safe)
+- `pair_touching(h1, h2)` - Tests if two basins touch (returns PairTouchResult); skips distant pairs via spatial pre-filter
+- `evaluate_pairs_for_outlet(outlet, pairs_at_confluence, use_prefilter=True, use_stream_filter=True)` - Returns DataFrame with coupling metrics. Stream-crossing pairs are **dropped entirely** (not saved as non-touching).
+- `evaluate_pairs_for_outlet_parallel(outlet, pairs_at_confluence, n_workers=4, use_prefilter=True, use_stream_filter=True)` - Thread-parallel version using `ThreadPoolExecutor`
+- `clear_cache()` - Clears the mask cache; returns number of masks cleared (call between outlets)
 - `cache_size` - Property returning current cache size
+
+**Stream-crossing gate (`use_stream_filter=True`):** At init, a binary stream mask is built from `s.node_indices` (shape = DEM shape). Before computing basin masks for any pair, the straight-line vector between the two heads is rasterized with Bresenham's algorithm; if any interior pixel is a stream node the pair is **silently dropped** — no row is emitted. A stream between two heads makes them trivially non-touching, so the pair carries no information for the classifier and is not worth computing.
+
+**Thread safety:** The mask cache uses double-checked locking (`threading.Lock`) so `evaluate_pairs_for_outlet_parallel()` is safe to call from multiple threads.
 
 **Output DataFrame columns:**
 - `outlet`, `confluence`, `head_1`, `head_2`
-- `touching` (bool), `overlap_px`, `contact_px`, `size1_px`, `size2_px`
+- `touching` (bool), `contact_px`, `size1_px`, `size2_px`
 
 ### `first_meet_pairs_for_outlet.py`
 
@@ -211,11 +243,16 @@ Computes which channel heads first meet at each confluence for a given outlet's 
 - `pairs_at_confluence`: Dict[int, Set[Tuple[int, int]]] - {confluence_id: set of (head1, head2) pairs}
 - `basin_heads`: List[int] - All channel head node IDs in the basin
 
-**Algorithm:** Uses memoized upstream traversal to track head sets at each node, emitting pairs when branches merge at confluences.
+**Algorithm:** Iterative Kahn's topological sort (via `collections.deque`) to propagate head-sets from leaves to outlet, emitting pairs when branches merge at confluences. Handles callable `node_indices` from TopoToolbox 0.0.7+.
 
-### `lengthwise_asymmetry.py`
+### `geometric_analysis.py`
 
-**LengthwiseAsymmetryAnalyzer** - Computes ΔL metric from Goren & Shelef (2024)
+Consolidated module for all geometric analysis of channel head pairs. Contains
+lengthwise asymmetry, geometric features, labeling utilities, and CSV enrichment.
+
+#### LengthwiseAsymmetryAnalyzer
+
+Computes ΔL metric from Goren & Shelef (2024):
 
 ```python
 LengthwiseAsymmetryAnalyzer(s, dem, lat=36.71)
@@ -322,6 +359,52 @@ setup_logging(level=logging.DEBUG, console=True)
 - `plot_all_coupled_pairs_for_outlet(fd, s, dem, an, df_touching, outlet_id, ...)` - 2D multi-pair view
 - `plot_all_coupled_pairs_for_outlet_3d(...)` - 3D perspective with DEM surface
 
+#### GeometricFeaturesAnalyzer
+
+Computes geometric features for paired channel heads:
+
+```python
+GeometricFeaturesAnalyzer(s, dem)
+```
+
+| Feature | Name | Description |
+|---------|------|-------------|
+| 2 | Orientation similarity | Difference in initial downstream azimuths (°) |
+| 3 | Head-head distance | Euclidean distance (m), raw and normalized by flow path length |
+| 4 | Apex angle | Angle (°) at the confluence formed by straight lines to each head |
+| 5 | Strahler order difference | Difference in Strahler stream orders between branches |
+
+**Methods:**
+- `compute_pair_geometry(head_1, head_2, confluence)` - Returns PairGeometricResult
+- `evaluate_pairs_for_outlet(outlet, pairs_at_confluence)` - Returns DataFrame
+
+**Labeling & merge functions:**
+- `generate_labeled_dataset(coupling_df, asymmetry_df, geometric_df)` - Combines all features into a labeled dataset (y=1 touching, y=0 non-touching)
+- `filter_hard_negatives(labeled_df, max_L_ratio=3.0, max_dist_ratio=5.0, group_col=None, s=None)` - Filters out trivially non-touching pairs to reduce class imbalance. When `group_col` is set (e.g., `"basin"`), thresholds are computed per group instead of globally. When `s` (StreamObject) is provided, negatives whose straight-line head-to-head vector crosses a stream pixel (via Bresenham's algorithm) are also removed as trivially non-touching — applied as AND with the L_ratio/dist_ratio filter. `s=None` preserves existing behavior.
+- `merge_geometric_features(base_df, geometric_df)` - Merges geometric features into an existing results DataFrame
+
+**PairGeometricResult fields:** `orientation_diff_deg`, `headhead_dist_m`, `headhead_dist_norm`, `apex_angle_deg`, `strahler_order_diff`, plus QC flags for path tracing failures. Branch-parent search uses iterative DFS (`_can_reach`) to avoid Python recursion limits on large networks.
+
+#### CSV Enrichment
+
+Adds geometric features to existing results CSVs without re-running the full pipeline:
+
+```python
+from channel_heads import add_geometric_features_to_csv
+
+enriched_df = add_geometric_features_to_csv(
+    input_csv="data/results/inyo/coupling_asymmetry_results.csv",
+    output_csv="data/results/inyo/enriched_with_geom.csv",
+    stream_loader=default_stream_loader,
+    threshold=300,
+    verbose=True,
+)
+```
+
+**Functions:**
+- `add_geometric_features_to_csv(input_csv, output_csv, stream_loader, threshold, verbose)` - Main enrichment function; reads existing CSV, computes geometry per basin, writes output
+- `default_stream_loader(basin, lat, z_th, threshold)` - Loads stream network from `data/cropped_DEMs/` for a named basin; returns `(StreamObject, GridObject)` or `None` if DEM not found
+
 ### `stream_utils.py`
 
 **outlet_node_ids_from_streampoi(s)** - Extract outlet node IDs from StreamObject
@@ -359,6 +442,13 @@ The test suite uses mock objects defined in `tests/conftest.py`:
 - `complex_network` - Multiple confluences (4 heads, 3 confluences)
 - `touching_basins_network` - Network with touching drainage basins
 
+**Test files:**
+- `test_coupling_analysis.py` — CouplingAnalyzer, PairTouchResult, cache
+- `test_coupling_parallel.py` — parallel evaluation, thread safety
+- `test_first_meet_pairs.py` — head pairing algorithm
+- `test_geometric_analysis.py` — geometry helpers, GeometricFeaturesAnalyzer, labeling utilities
+- `test_stream_utils.py` — outlet extraction
+
 ### Adding Tests
 
 ```python
@@ -379,6 +469,61 @@ class TestNewFeature:
             new_function(None, None)
 ```
 
+## ML Pipeline
+
+The project includes an end-to-end supervised learning pipeline that classifies channel head pairs as **touching** (spatially coupled) or **non-touching**.
+
+### Pipeline Overview
+
+```
+DEM → coupling + asymmetry + geometric features → labeled dataset → XGBoost classifier
+```
+
+Three notebooks in `notebooks/ml/` implement each stage:
+
+| Notebook | Input | Output |
+|----------|-------|--------|
+| `00_full_pipeline.ipynb` | 17 basin DEMs | `data/results/{basin}/full_features.csv` per basin |
+| `01_prepare_dataset.ipynb` | Per-basin `full_features.csv` | `data/results/master_dataset_v2.csv` |
+| `02_train_classifier.ipynb` | `master_dataset_v2.csv` | `models/xgb_touching_classifier.json` |
+
+### Dataset
+
+- **File:** `data/results/master_dataset_v2.csv`
+- **Rows:** 10,868 labeled pairs (skipped/QC-failed pairs excluded)
+- **Basins:** 17 (all except piedepalo, which lacks a DEM)
+- **Class balance:** ~35% touching, ~65% non-touching
+- **Features (4):** `orientation_diff_deg`, `headhead_dist_norm`, `apex_angle_deg`, `strahler_order_diff`
+
+### Model
+
+- **Algorithm:** XGBoost binary classifier (`xgb.XGBClassifier`)
+- **Validation:** Leave-one-basin-out cross-validation (17 folds)
+- **CV AUC:** 0.884 ± 0.064
+- **Test AUC:** 0.920 (held-out basin: Taiwan)
+- **Test accuracy:** 0.852
+- **Top predictor:** `strahler_order_diff` (importance 0.278)
+- **Saved to:** `models/xgb_touching_classifier.json`
+
+### Running Inference
+
+```python
+import xgboost as xgb
+import pandas as pd
+from channel_heads.config import PROJECT_ROOT
+
+# Load model and feature list
+model = xgb.XGBClassifier()
+model.load_model(str(PROJECT_ROOT / "models/xgb_touching_classifier.json"))
+feature_cols = (PROJECT_ROOT / "models/feature_columns.txt").read_text().splitlines()
+
+# Predict on new data
+df = pd.read_csv("data/results/new_basin/full_features.csv")
+X = df[feature_cols].dropna()
+df.loc[X.index, "predicted_touching"] = model.predict(X)
+df.loc[X.index, "touching_prob"] = model.predict_proba(X)[:, 1]
+```
+
 ## Continuous Integration
 
 GitHub Actions runs on every push/PR to `main`:
@@ -392,15 +537,19 @@ See `.github/workflows/tests.yml` for configuration.
 ## Data
 
 ### Input Data
-- **DEMs**: GeoTIFF rasters in `data/cropped_DEMs/`
-- **Study areas**: Inyo, Humboldt, CalnAlpine, Daqing, Luliang, Kammanasie, Finisterre
+- **DEMs**: GeoTIFF rasters in `data/cropped_DEMs/` (gitignored, ~39 MB total)
+- **Study areas (18)**: Taiwan, Inyo, Humboldt, CalnAlpine, Daqing, Luliang, Kammanasie, Finisterre, Panamint, Sakhalin, SierraMadre, SierraNevadaSpain, SierradelValleFertil, Toano, Troodos, Tsugaru, Yoro
 - **Format**: SRTM-derived elevation models (meters)
 - **Resolution**: 1 arc-second (~30m)
 
 ### Output Data
-- **Location**: `data/outputs/<study_area>/`
-- **Format**: CSV files with coupling and asymmetry metrics
-- **Columns**: outlet, confluence, head_1, head_2, touching, overlap_px, contact_px, size1_px, size2_px, L_1, L_2, delta_L
+- **Location**: `data/results/<basin>/` (gitignored)
+- **Per-basin CSVs**:
+  - `coupling_asymmetry_results.csv` — coupling + ΔL metrics
+  - `enriched_with_geom.csv` — adds geometric features
+  - `full_features.csv` — all features, ready for ML
+- **Master dataset**: `data/results/master_dataset_v2.csv` — 10,868 labeled pairs, 17 basins
+- **Full feature columns**: outlet, confluence, head_1, head_2, touching, contact_px, size1_px, size2_px, L_1, L_2, delta_L, orientation_diff_deg, headhead_dist_m, headhead_dist_norm, apex_angle_deg, strahler_order_diff
 
 ## Best Practices
 
@@ -412,9 +561,10 @@ See `.github/workflows/tests.yml` for configuration.
 
 ### Performance Tips
 1. **Clear cache**: Call `analyzer.clear_cache()` between outlets
-2. **Limit DEM size**: Crop DEMs to study area before analysis
-3. **Adjust threshold**: Higher stream threshold → fewer heads → faster computation
-4. **Use connectivity=4**: Faster than connectivity=8 if diagonal contact isn't needed
+2. **Parallel evaluation**: Use `evaluate_pairs_for_outlet_parallel(outlet, pairs, n_workers=4)` for outlets with many pairs
+3. **Limit DEM size**: Crop DEMs to study area before analysis
+4. **Adjust threshold**: Higher stream threshold → fewer heads → faster computation
+5. **Use connectivity=4**: Faster than connectivity=8 if diagonal contact isn't needed
 
 ### Visualization Guidelines
 1. **Start with `view_mode="crop"`** for detailed pair analysis
@@ -524,6 +674,77 @@ gdf = gpd.GeoDataFrame(
     crs=dem.crs
 )
 gdf.to_file("outputs/coupling_results.gpkg", driver="GPKG")
+```
+
+### Compute Full Feature Set for a New Basin
+
+```python
+import numpy as np
+import topotoolbox as tt3
+from channel_heads import (
+    CouplingAnalyzer, LengthwiseAsymmetryAnalyzer, GeometricFeaturesAnalyzer,
+    first_meet_pairs_for_outlet, outlet_node_ids_from_streampoi,
+    merge_coupling_and_asymmetry, merge_geometric_features,
+    get_z_th, get_basin_config, EXAMPLE_DEMS, get_output_dir,
+)
+
+basin = "taiwan"
+config = get_basin_config(basin)
+dem = tt3.read_tif(str(EXAMPLE_DEMS[basin]))
+dem.z[dem.z < config["z_th"]] = np.nan
+
+fd = tt3.FlowObject(dem)
+s = tt3.StreamObject(fd, threshold=300)
+
+coupling_an = CouplingAnalyzer(fd, s, dem)
+asym_an = LengthwiseAsymmetryAnalyzer(s, dem, lat=config["lat"])
+geom_an = GeometricFeaturesAnalyzer(s, dem)
+
+all_results = []
+for outlet_id in outlet_node_ids_from_streampoi(s):
+    pairs, _ = first_meet_pairs_for_outlet(s, outlet_id)
+    coupling_df = coupling_an.evaluate_pairs_for_outlet(outlet_id, pairs)
+    asym_df = asym_an.evaluate_pairs_for_outlet(outlet_id, pairs)
+    geom_df = geom_an.evaluate_pairs_for_outlet(outlet_id, pairs)
+    combined = merge_coupling_and_asymmetry(coupling_df, asym_df)
+    combined = merge_geometric_features(combined, geom_df)
+    all_results.append(combined)
+    coupling_an.clear_cache()
+
+import pandas as pd
+df_all = pd.concat(all_results, ignore_index=True)
+df_all.to_csv(get_output_dir(basin) / "full_features.csv", index=False)
+```
+
+### Retrain the Classifier
+
+```python
+import pandas as pd
+import xgboost as xgb
+from sklearn.model_selection import cross_val_score, LeaveOneGroupOut
+from channel_heads.config import PROJECT_ROOT
+
+# Load master dataset
+df = pd.read_csv("data/results/master_dataset_v2.csv")
+feature_cols = [
+    "orientation_diff_deg", "headhead_dist_norm",
+    "apex_angle_deg", "strahler_order_diff",
+]
+X = df[feature_cols]
+y = df["touching"].astype(int)
+groups = df["basin"]  # leave-one-basin-out CV
+
+model = xgb.XGBClassifier(n_estimators=200, max_depth=4, learning_rate=0.1,
+                           use_label_encoder=False, eval_metric="logloss")
+
+logo = LeaveOneGroupOut()
+cv_auc = cross_val_score(model, X, y, groups=groups, cv=logo, scoring="roc_auc")
+print(f"CV AUC: {cv_auc.mean():.3f} ± {cv_auc.std():.3f}")
+
+# Fit on all data and save
+model.fit(X, y)
+model.save_model(str(PROJECT_ROOT / "models/xgb_touching_classifier.json"))
+(PROJECT_ROOT / "models/feature_columns.txt").write_text("\n".join(feature_cols))
 ```
 
 ## Troubleshooting
@@ -651,4 +872,4 @@ For issues or questions:
 - **Environment name**: ch-heads
 - **Python version**: 3.11+
 - **TopoToolbox version**: 0.0.6+
-- **Last updated**: 2026-02-01
+- **Last updated**: 2026-03-02

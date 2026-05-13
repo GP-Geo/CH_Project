@@ -317,5 +317,8 @@ dependencies:
   - zstd=1.5.7
   - pip:
     - topotoolbox==0.0.6
+    - seaborn==0.13.2
+    - xgboost==3.2.0
+    - torch>=2.0
 
 prefix: "/Users/guypi/miniforge3/envs/ch-heads"

@@ -125,13 +125,6 @@ class MockFlowObject:
                         if not result[upstream_cell]:
                             stack.append(upstream_cell)
 
-        # If no upstream cells found (seed is a channel head), just mark the seed
-        # Also, we need to find ALL cells that drain to the seed, not just direct upstream
-        # This requires checking all cells to see if they eventually drain to any seed
-        if not any(result.flat):
-            for seed in seeds:
-                result[seed] = True
-
         return MockGridObject(result, crs=seed_grid.crs)
 
 

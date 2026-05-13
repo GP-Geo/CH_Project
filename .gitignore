@@ -58,13 +58,21 @@ venv.bak/
 
 # Data files (large, regeneratable)
 data/raw/*.tif
-data/processed/*.tif
-data/results/**/*.csv
-data/results/**/*.png
-data/results/**/*.gpkg
+data/cropped_DEMs/*.tif
+data/results/
+data/outputs/
+data/Mars/
+data/final_valleys/
 data/exports/**/*.pdf
 data/exports/**/*.png
 *.aux.xml
+
+# Local-only artifacts
+output.pdf.png
+PROJECT_REVIEW_AND_IMPROVEMENTS.md
+
+# Trained models (large, regeneratable from notebooks)
+models/
 
 # QGIS project files (user-specific)
 *.qgz
