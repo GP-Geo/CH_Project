@@ -149,3 +149,24 @@ class TestPackageSurface:
 
         assert inference.load_feature_columns is xgb_mod.load_feature_columns
         assert inference.predict_with_threshold is xgb_mod.predict_with_threshold
+
+    def test_canonical_location_is_models_xgboost(self):
+        """The implementation now lives in models.xgboost; inference.xgb is a shim."""
+        from channel_heads.models import xgboost as xgb_new
+
+        assert load_feature_columns is xgb_new.load_feature_columns
+        assert predict_with_threshold is xgb_new.predict_with_threshold
+
+    def test_old_and_new_paths_resolve_to_same_impl(self):
+        from channel_heads.inference import xgb as xgb_old
+        from channel_heads.models import xgboost as xgb_new
+
+        for name in (
+            "load_feature_columns",
+            "load_threshold",
+            "load_xgb_model",
+            "verify_model_feature_order",
+            "verify_feature_matrix",
+            "predict_with_threshold",
+        ):
+            assert getattr(xgb_old, name) is getattr(xgb_new, name)

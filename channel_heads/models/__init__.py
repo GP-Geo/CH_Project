@@ -2,7 +2,7 @@
 
 Curated public surface over the historical implementation modules:
 
-* :mod:`channel_heads.models.xgboost`    ← ``inference.xgb``
+* :mod:`channel_heads.models.xgboost`    — XGBoost inference (``inference.xgb`` is a shim)
 * :mod:`channel_heads.models.thresholds` ← ``eval.metrics`` (threshold tuning)
 * :mod:`channel_heads.models.comparison` — model-variant comparison
 * :mod:`channel_heads.models.mars_combined` — Mars Phase-6C combined inference

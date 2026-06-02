@@ -7,8 +7,9 @@ production operating threshold, and exports prediction tables + GeoPackage
 layers + summary CSVs (+ best-effort figures).
 
 The model/artifact glue is shared via :mod:`channel_heads.models.xgboost`
-(→ :mod:`channel_heads.inference.xgb`); this module holds the Mars-specific
-prediction assembly, summaries, geometry layers and output export.
+(the canonical location; :mod:`channel_heads.inference.xgb` is a compatibility
+shim); this module holds the Mars-specific prediction assembly, summaries,
+geometry layers and output export.
 
 Public entry point: :func:`run_mars_tabular_inference`.
 """

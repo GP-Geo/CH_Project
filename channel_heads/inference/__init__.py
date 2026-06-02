@@ -2,8 +2,9 @@
 
 Artifact loading, model/feature compatibility checks, and predict-with-threshold
 glue used by the tabular, combined (emb/logit), and regime inference entry
-points. See :mod:`channel_heads.inference.xgb` and
-:mod:`channel_heads.inference.device`.
+points. The XGBoost helpers now live in :mod:`channel_heads.models.xgboost`
+(re-exported here via the :mod:`channel_heads.inference.xgb` shim); device
+selection lives in :mod:`channel_heads.inference.device`.
 """
 
 from __future__ import annotations
