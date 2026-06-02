@@ -8,9 +8,8 @@ _Last updated: 2026-06-02_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** scripts cleanup / canonical imports (Slice 4; see
-  `AGENT_RUN_LOG.md`); prior was CNN training core into training package
-  (Slice 3d).
+- **Latest stable commit:** Earth/regime training ownership audit (Slice 5; see
+  `AGENT_RUN_LOG.md`); prior was scripts cleanup / canonical imports (Slice 4).
 - **Working tree:** clean at time of writing.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
@@ -33,6 +32,8 @@ _Last updated: 2026-06-02_
   (this is the most recent slice, commit `90fd694`).
 - **Scripts cleanup:** thin scripts now import canonical package modules directly
   where safe; no scripts were archived.
+- **Earth/regime training audit:** ownership plan recorded in
+  `AGENT_AUDIT_EARTH_REGIME.md` (audit-only; no implementation moved).
 
 ## Canonical ownership (current truth)
 
@@ -137,6 +138,18 @@ _Last updated: 2026-06-02_
   > `cpu` order). No scripts were archived because none were clearly dead in
   this pass. CLI surfaces, model paths, hyperparameters, strict/lenient
   state-dict behavior, and outputs unchanged.
+- **Earth/regime training audit (Slice 5): DONE.** See
+  `AGENT_AUDIT_EARTH_REGIME.md`. Key findings: Earth/regime scripts are not
+  disposable; real logic remains in regime feature generation, regime patch
+  generation, baseline/regime combined-XGB training, regime Mars inference,
+  threshold retuning, and LOBO-CV diagnostics. Existing package owners already
+  cover regime presets, generic CNN architecture/training, generic lenient CNN
+  embeddings, XGBoost inference helpers, eval split/threshold primitives, and
+  strict regime embedding attachment. Recommended future homes:
+  `training/datasets.py`, expanded `training/cnn.py`,
+  `training/xgboost.py`, `training/regime.py`, `models/regime.py`, and
+  `eval/lobo.py`, with scripts reduced to wrappers only after tests pin
+  behavior.
 
 ## Known shims (keep working)
 
@@ -151,7 +164,10 @@ _Last updated: 2026-06-02_
 
 ## Known transitional / not-yet-audited areas
 
-- `channel_heads/inference/regime.py` — transitional; defer to Earth/regime audit.
+- `channel_heads/inference/regime.py` — audited in Slice 5. Keep untouched for
+  now; future recommendation is to move it to `channel_heads/models/regime.py`
+  and leave `inference/regime.py` as a shim after tests pin strict load,
+  patch-index filtering, embedding overwrite, and finite checks.
 - CNN modules: **all three flat `cnn_*` modules are now shims** —
   `cnn_model.py` → `models/cnn.py` (3a), `cnn_features.py` →
   `models/cnn_features.py` (3c), `cnn_training.py` → `training/cnn.py` (3d);
@@ -166,7 +182,7 @@ _Last updated: 2026-06-02_
 
 ## Next recommended task
 
-**Slice 5 — Earth / regime training audit.** Read-only audit of the
-Earth/regime training path plus `channel_heads/inference/regime.py`; produce an
-ownership/consolidation plan without changing regime behavior. See
-`AGENT_BACKLOG.md` Slice 5. Stop after writing the audit note and run-log entry.
+**Slice 6 — `geometric_analysis.py` audit (audit-only).** Read-only review of
+`geometric_analysis.py` ownership/boundaries; recommend a target package
+location and shim plan. See `AGENT_BACKLOG.md` Slice 6. Do not modify
+`geometric_analysis.py` implementation.

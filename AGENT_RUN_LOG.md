@@ -4,6 +4,44 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-02 — Slice 5: Earth/regime training ownership audit
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `cda8281`
+- **Task:** Slice 5 — read-only audit of the remaining Earth/regime training
+  scripts and package modules, including `channel_heads/inference/regime.py`.
+  No implementation code changed.
+- **Files created:**
+  - `AGENT_AUDIT_EARTH_REGIME.md` — reference map, script classification,
+    duplication map, recommended canonical ownership, proposed implementation
+    slices, risks, and required tests.
+- **Files updated:**
+  - `AGENT_STATE.md` — recorded Slice 5 audit completion, current
+    `inference/regime.py` recommendation, and Slice 6 as next task.
+  - `AGENT_BACKLOG.md` — marked Slice 5 done.
+  - `AGENT_RUN_LOG.md` — this entry.
+- **Key findings:**
+  - Earth/regime scripts are not disposable. Real logic remains in regime Earth
+    feature generation, regime patch generation, baseline/regime combined-XGB
+    training, Mars regime inference output writing, threshold retuning, and
+    LOBO-CV diagnostics.
+  - Existing package owners already cover regime presets, generic CNN
+    architecture/dataset/training loop, generic lenient CNN embeddings,
+    XGBoost inference helpers, grouped split/threshold primitives, and strict
+    regime embedding attachment.
+  - Recommended future homes: `training/datasets.py`, expanded
+    `training/cnn.py`, `training/xgboost.py`, `training/regime.py`,
+    `models/regime.py`, and `eval/lobo.py`. Scripts should become thin wrappers
+    only after tests pin feature order, threshold policies, strict/lenient CNN
+    state loading, embedding overwrite, artifact paths, LOBO behavior, and Mars
+    regime output schemas.
+- **Not touched:** implementation source, scripts, notebooks, `data/`, root
+  `/models/`, generated outputs, DEMs, shapefiles, GeoPackages, CSV/parquet
+  outputs, figures, `geometric_analysis.py`, `rasterizer.py`.
+- **Validation:** no pytest run (markdown/handoff audit only, per slice
+  instructions). `git diff --check` clean.
+- **Next step:** Slice 6 — read-only `geometric_analysis.py` audit.
+
 ## 2026-06-02 — Slice 4: repoint scripts to canonical imports
 
 - **Branch:** `refactor/package-first-architecture`

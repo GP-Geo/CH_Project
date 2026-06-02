@@ -89,7 +89,15 @@ Standard tests:
 - **Stop condition:** Stop if a script's runtime behavior or CLI surface would
   change. Archiving ≠ deleting.
 
-## Slice 5 — Earth / regime training audit
+## Slice 5 — Earth / regime training audit (DONE)
+
+> Completed — see `AGENT_AUDIT_EARTH_REGIME.md` and `AGENT_RUN_LOG.md`. Audit
+> only: no implementation code changed. Key recommendation is to keep
+> Earth/regime scripts as wrappers later, after moving real logic into
+> `training/datasets.py`, `training/cnn.py`, `training/xgboost.py`,
+> `training/regime.py`, `models/regime.py`, and `eval/lobo.py` with tests
+> protecting feature order, thresholds, strict/lenient CNN loading, artifact
+> paths, LOBO behavior, and Mars regime embedding overwrite semantics.
 
 - **Goal:** Read-only audit of the Earth/regime training + `inference/regime.py`
   to plan a future consolidation without changing regime behavior.
