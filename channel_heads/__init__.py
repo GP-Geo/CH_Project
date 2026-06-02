@@ -61,7 +61,7 @@ from .config import (
     list_available_dems,
     resolve_dem_path,
 )
-from . import io, mars
+from . import io, mars, models, pipelines, rasterization
 from .coupling_analysis import CouplingAnalyzer, PairTouchResult
 from .first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
 
@@ -159,6 +159,11 @@ __all__ = [
     "io",
     # Mars cross-planet pipeline logic
     "mars",
+    # Curated model + rasterization layers
+    "models",
+    "rasterization",
+    # High-level pipeline API
+    "pipelines",
     # Rasterizer
     "rasterize_outlet_pair",
     "raster_quality_flags",
