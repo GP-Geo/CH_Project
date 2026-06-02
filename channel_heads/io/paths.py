@@ -1,11 +1,11 @@
 """Single source of truth for every path the project reads or writes.
 
-Earth (training) paths come from the low-level :mod:`channel_heads.config`
-root-finder; this module re-exports them and adds the **Mars** and **models**
-constants that were previously redeclared (inconsistently) at the top of every
-script. Import paths from here — never hardcode ``PROJECT_ROOT / "data/..."``.
+This module owns project-root detection, Earth DEM/result paths, Mars data
+paths, and trained-model artifact paths. Import paths from here; the historical
+``channel_heads.config`` module re-exports this API for compatibility.
 
     from channel_heads.io import paths
+    dem = paths.EXAMPLE_DEMS["inyo"]
     gdf = paths.MARS_VALLEYS          # input vectors
     out = paths.MARS_MODEL_OUTPUTS_DIR / "mars_predictions.gpkg"
 
@@ -15,25 +15,170 @@ demand so pipeline code does not need to ``mkdir`` by hand.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
-# Re-export the Earth/core paths from the low-level config module so callers
-# only need to know about channel_heads.io.paths.
-from channel_heads.config import (
-    CROPPED_DEMS_DIR,
-    DATA_DIR,
-    EXAMPLE_DEMS,
-    EXPORTS_DIR,
-    NOTEBOOKS_DIR,
-    PROJECT_ROOT,
-    RAW_DIR,
-    RESULTS_DIR,
-    ensure_directories,
-    get_experiment_output_dir,
-    get_output_dir,
-    list_available_dems,
-    resolve_dem_path,
-)
+
+def _find_project_root() -> Path:
+    """Find the project root directory.
+
+    ``CHANNEL_HEADS_ROOT`` overrides auto-detection. Otherwise, search upward
+    from this file for ``pyproject.toml`` or ``.git``; if no marker is found,
+    fall back to the current working directory. This preserves the historical
+    :mod:`channel_heads.config` behavior.
+    """
+
+    if os.getenv("CHANNEL_HEADS_ROOT"):
+        return Path(os.getenv("CHANNEL_HEADS_ROOT"))
+
+    current = Path(__file__).resolve().parent
+    markers = ("pyproject.toml", ".git")
+
+    for _ in range(6):
+        if any((current / marker).exists() for marker in markers):
+            return current
+        parent = current.parent
+        if parent == current:
+            break
+        current = parent
+
+    return Path.cwd()
+
+
+def _get_data_dir() -> Path:
+    """Get the data directory, honoring ``CHANNEL_HEADS_DATA`` when set."""
+
+    if os.getenv("CHANNEL_HEADS_DATA"):
+        return Path(os.getenv("CHANNEL_HEADS_DATA"))
+    return PROJECT_ROOT / "data"
+
+
+# --------------------------------------------------------------------------- #
+# Earth/core directories
+# --------------------------------------------------------------------------- #
+PROJECT_ROOT: Path = _find_project_root()
+"""Project root directory."""
+
+DATA_DIR: Path = _get_data_dir()
+"""Main data directory."""
+
+RAW_DIR: Path = DATA_DIR / "raw"
+"""Raw input data directory (SRTM downloads, etc.)."""
+
+CROPPED_DEMS_DIR: Path = DATA_DIR / "cropped_DEMs"
+"""Directory containing processed/cropped study area DEMs."""
+
+RESULTS_DIR: Path = DATA_DIR / "results"
+"""Directory for analysis results and pipeline outputs."""
+
+EXPORTS_DIR: Path = DATA_DIR / "exports"
+"""Directory for exported figures and PDFs."""
+
+NOTEBOOKS_DIR: Path = PROJECT_ROOT / "notebooks"
+"""Jupyter notebooks directory."""
+
+# Historical compatibility aliases from channel_heads.config.
+RAW_DATA_DIR: Path = RAW_DIR
+PROCESSED_DIR: Path = CROPPED_DEMS_DIR
+OUTPUTS_DIR: Path = RESULTS_DIR
+
+
+EXAMPLE_DEMS: dict[str, Path] = {
+    "inyo": CROPPED_DEMS_DIR / "Inyo_strm_crop.tif",
+    "humboldt": CROPPED_DEMS_DIR / "Humboldt_strm_crop.tif",
+    "calnalpine": CROPPED_DEMS_DIR / "CalnAlpine_strm_crop.tif",
+    "daqing": CROPPED_DEMS_DIR / "Daqing_strm_crop.tif",
+    "luliang": CROPPED_DEMS_DIR / "Luliang_strm_crop.tif",
+    "kammanasie": CROPPED_DEMS_DIR / "Kammanasie_strm_crop.tif",
+    "finisterre": CROPPED_DEMS_DIR / "Finisterre_strm_crop.tif",
+    "taiwan": CROPPED_DEMS_DIR / "Taiwan_strm_crop.tif",
+    "panamint": CROPPED_DEMS_DIR / "Panamint_strm_crop.tif",
+    "sakhalin": CROPPED_DEMS_DIR / "Sakhalin_strm_crop.tif",
+    "vallefertil": CROPPED_DEMS_DIR / "SierradelValleFertil_strm_crop.tif",
+    "sierramadre": CROPPED_DEMS_DIR / "SierraMadre_strm_crop.tif",
+    "sierranevadaspain": CROPPED_DEMS_DIR / "SierraNevadaSpain_strm_crop.tif",
+    "toano": CROPPED_DEMS_DIR / "Toano_strm_crop.tif",
+    "troodos": CROPPED_DEMS_DIR / "Troodos_strm_crop.tif",
+    "tsugaru": CROPPED_DEMS_DIR / "Tsugaru_strm_crop.tif",
+    "yoro": CROPPED_DEMS_DIR / "Yoro_strm_crop.tif",
+}
+"""Dictionary mapping friendly basin names to DEM file paths."""
+
+
+def get_output_dir(
+    study_area: str,
+    experiment: str | None = None,
+    threshold: int | None = None,
+    create: bool = True,
+) -> Path:
+    """Get output directory for a specific study area and experiment."""
+
+    output_dir = RESULTS_DIR / study_area
+
+    if experiment and threshold:
+        output_dir = output_dir / f"{experiment}_th{threshold}"
+    elif experiment:
+        output_dir = output_dir / experiment
+    elif threshold:
+        output_dir = output_dir / f"th{threshold}"
+
+    if create:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
+def get_experiment_output_dir(
+    experiment_name: str,
+    create: bool = True,
+) -> Path:
+    """Get a top-level experiment output directory."""
+
+    output_dir = RESULTS_DIR / "experiments" / experiment_name
+    if create:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
+def list_available_dems() -> dict[str, Path]:
+    """List all available DEM files in :data:`CROPPED_DEMS_DIR`."""
+
+    dems = {}
+    if CROPPED_DEMS_DIR.exists():
+        for tif_path in CROPPED_DEMS_DIR.glob("*.tif"):
+            name = tif_path.stem
+            if name.endswith("_strm_crop"):
+                name = name[:-10]
+            dems[name.lower()] = tif_path
+    return dems
+
+
+def ensure_directories() -> None:
+    """Create all standard Earth/core project directories if missing."""
+
+    for directory in [DATA_DIR, RAW_DIR, CROPPED_DEMS_DIR, RESULTS_DIR, EXPORTS_DIR]:
+        directory.mkdir(parents=True, exist_ok=True)
+
+
+def resolve_dem_path(dem_ref: str) -> Path | None:
+    """Resolve a DEM reference to an absolute path when it can be found."""
+
+    if dem_ref.lower() in EXAMPLE_DEMS:
+        return EXAMPLE_DEMS[dem_ref.lower()]
+
+    path = Path(dem_ref)
+
+    if path.is_absolute():
+        return path if path.exists() else None
+
+    project_path = PROJECT_ROOT / path
+    if project_path.exists():
+        return project_path
+
+    dem_path = CROPPED_DEMS_DIR / path.name
+    if dem_path.exists():
+        return dem_path
+
+    return None
 
 # --------------------------------------------------------------------------- #
 # Top-level directories
@@ -122,12 +267,15 @@ def model_path(name: str) -> Path:
 
 
 __all__ = [
-    # core (re-exported from config)
+    # Earth/core
     "PROJECT_ROOT",
     "DATA_DIR",
     "RAW_DIR",
+    "RAW_DATA_DIR",
     "CROPPED_DEMS_DIR",
+    "PROCESSED_DIR",
     "RESULTS_DIR",
+    "OUTPUTS_DIR",
     "EXPORTS_DIR",
     "NOTEBOOKS_DIR",
     "EXAMPLE_DEMS",

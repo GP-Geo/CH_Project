@@ -50,7 +50,7 @@ from .basin_config import (
     get_z_th,
     list_basins,
 )
-from .config import (
+from .io.paths import (
     CROPPED_DEMS_DIR,
     DATA_DIR,
     EXAMPLE_DEMS,

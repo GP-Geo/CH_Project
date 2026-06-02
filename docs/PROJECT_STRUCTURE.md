@@ -60,9 +60,9 @@ channel-heads/
 | `inference/` | XGBoost glue: `xgb.py` (load/verify/predict), `device.py` (`pick_device`), `regime.py` (regime-CNN embedding attach). |
 | `eval/` | `metrics.py` (F1-opt / max-precision threshold, classification metrics), `splitting.py` (`outlet_group_holdout`, `leave_one_group_out_oof`). |
 | `viz/` | Earth DEM/basin plotting (`earth.py`) plus vector figures: `contact_sheet.py`, `curves.py` (ROC), `per_outlet.py`, `stream_crossing.py`. |
-| `basin_config.py`, `config.py`, `logging_config.py`, `cli.py`, `stream_utils.py` | Config / paths / logging / CLI / helpers. |
+| `basin_config.py`, `io/paths.py`, `config.py`, `logging_config.py`, `cli.py`, `stream_utils.py` | Basin params / canonical paths / legacy path shim / logging / CLI / helpers. |
 
-`config.RESULTS_DIR == OUTPUTS_DIR == data/results` (canonical output dir).
+`io.paths.RESULTS_DIR == config.RESULTS_DIR == OUTPUTS_DIR == data/results` (canonical output dir).
 Public API is re-exported from each subpackage's `__init__.py`.
 
 ---

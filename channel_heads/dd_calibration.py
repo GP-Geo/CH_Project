@@ -36,7 +36,7 @@ import pandas as pd
 from scipy.spatial import ConvexHull
 from scipy.spatial.qhull import QhullError
 
-from .config import DATA_DIR
+from .io.paths import DATA_DIR
 from .logging_config import get_logger
 from .units import (
     METERS_PER_DEGREE_LAT,
@@ -1238,7 +1238,7 @@ def run_practical_sweep(
     DEM sweep is heavy); otherwise the result is written there.
     """
     from .basin_config import LOCAL_TO_PAPER_BASIN, get_basin_config
-    from .config import EXAMPLE_DEMS
+    from .io.paths import EXAMPLE_DEMS
 
     thresholds_km2 = thresholds_km2 or PRACTICAL_THRESHOLDS_KM2
 
@@ -1565,7 +1565,7 @@ def augment_sweep_with_outlet_coords(
     import topotoolbox as tt3
 
     from .basin_config import LOCAL_TO_PAPER_BASIN, get_basin_config
-    from .config import EXAMPLE_DEMS
+    from .io.paths import EXAMPLE_DEMS
 
     out = df.copy()
     out["outlet_row"] = -1

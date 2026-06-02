@@ -72,7 +72,7 @@ and calls `channel_heads.*` only (no duplicated cell logic). See
 - **E5** Lazy-import `topotoolbox` in `cli.py` (try/except with helpful message).
 - **E6** Update placeholder GitHub URLs in `pyproject.toml`.
 - Remove deprecated no-op `use_meters` parameter (next major version).
-- Validate `CHANNEL_HEADS_ROOT` path existence in `config.py`.
+- Validate `CHANNEL_HEADS_ROOT` path existence in `io.paths`.
 
 ## 4. Performance (profiled 2026-02-02)
 

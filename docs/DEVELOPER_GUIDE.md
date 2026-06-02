@@ -57,7 +57,7 @@ conda run -n ch-heads ruff check <files>      # targeted; repo-wide has known pr
 | `inference/` | XGBoost load/verify/predict, device pick, regime-CNN embedding attach. |
 | `eval/` | Threshold tuning, classification metrics, grouped/LOBO splits. |
 | `viz/` | Earth DEM/basin plotting plus vector figures: contact sheets, ROC curves, per-outlet, stream-crossing QA. |
-| `basin_config.py`, `config.py`, `logging_config.py`, `cli.py` | Basin params, paths, logging, CLI. |
+| `basin_config.py`, `io/paths.py`, `config.py`, `logging_config.py`, `cli.py` | Basin params, canonical paths, legacy path shim, logging, CLI. |
 | `stream_utils.py` | `outlet_node_ids_from_streampoi`. |
 
 Public API is re-exported from each subpackage's `__init__.py`.
@@ -145,7 +145,7 @@ PROJECT_STRUCTURE.md.
 
 - PEP 8, type hints (mypy in CI), NumPy-style docstrings, `black`, `ruff`.
 - Prefer vectorized numpy/pandas over Python loops.
-- Use `channel_heads.config` paths, never hardcode.
+- Use `channel_heads.io.paths` paths, never hardcode. `channel_heads.config` remains a compatibility shim.
 - Call `clear_cache()` between outlets; use `evaluate_pairs_for_outlet_parallel`
   for large outlets.
 - Never delete data; mark legacy instead (see PROJECT_STRUCTURE.md / archive policy).

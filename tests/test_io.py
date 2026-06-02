@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import importlib
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -14,6 +17,89 @@ def test_paths_are_under_project_root():
     assert paths.MODELS_DIR.name == "models"
     assert paths.XGB_PRODUCTION.name == "xgb_touching_classifier.json"
     assert paths.PRODUCTION_THRESHOLD == pytest.approx(0.577406)
+
+
+def test_config_reexports_canonical_io_paths():
+    config = importlib.import_module("channel_heads.config")
+
+    for name in (
+        "PROJECT_ROOT",
+        "DATA_DIR",
+        "RAW_DIR",
+        "RAW_DATA_DIR",
+        "CROPPED_DEMS_DIR",
+        "PROCESSED_DIR",
+        "RESULTS_DIR",
+        "OUTPUTS_DIR",
+        "EXPORTS_DIR",
+        "NOTEBOOKS_DIR",
+        "EXAMPLE_DEMS",
+    ):
+        assert getattr(config, name) == getattr(paths, name)
+
+    for name in (
+        "get_output_dir",
+        "get_experiment_output_dir",
+        "list_available_dems",
+        "ensure_directories",
+        "resolve_dem_path",
+    ):
+        assert getattr(config, name) is getattr(paths, name)
+
+
+def test_core_path_categories_and_legacy_aliases():
+    assert paths.RAW_DIR == paths.DATA_DIR / "raw"
+    assert paths.RAW_DATA_DIR == paths.RAW_DIR
+    assert paths.CROPPED_DEMS_DIR == paths.DATA_DIR / "cropped_DEMs"
+    assert paths.PROCESSED_DIR == paths.CROPPED_DEMS_DIR
+    assert paths.RESULTS_DIR == paths.DATA_DIR / "results"
+    assert paths.OUTPUTS_DIR == paths.RESULTS_DIR
+    assert paths.EXPORTS_DIR == paths.DATA_DIR / "exports"
+    assert paths.MARS_DIR == paths.DATA_DIR / "Mars"
+    assert paths.FINAL_VALLEYS_DIR == paths.DATA_DIR / "final_valleys"
+    assert paths.MARS_VALLEYS == paths.FINAL_VALLEYS_DIR / "final_valleys_fixed.gpkg"
+    assert paths.MARS_TOPOLOGY_GPKG.parent == paths.MARS_TOPOLOGY_DIR
+    assert paths.MARS_CNN_PATCH_INDEX.parent == paths.MARS_MODEL_INPUTS_DIR
+
+
+def test_models_artifact_dir_is_not_models_package():
+    import channel_heads.models as models_package
+
+    package_dir = Path(models_package.__file__).parent
+    assert paths.MODELS_DIR == paths.PROJECT_ROOT / "models"
+    assert paths.MODELS_DIR != package_dir
+    model_name = "xgb_touching_classifier.json"
+    assert paths.model_path(model_name) == paths.MODELS_DIR / model_name
+
+
+def test_environment_overrides_are_preserved(monkeypatch, tmp_path):
+    config = importlib.import_module("channel_heads.config")
+
+    original_root = paths.PROJECT_ROOT
+    original_data = paths.DATA_DIR
+    root_override = tmp_path / "project-root"
+    data_override = tmp_path / "external-data"
+    monkeypatch.setenv("CHANNEL_HEADS_ROOT", str(root_override))
+    monkeypatch.setenv("CHANNEL_HEADS_DATA", str(data_override))
+
+    try:
+        importlib.reload(paths)
+        importlib.reload(config)
+
+        assert paths.PROJECT_ROOT == root_override
+        assert paths.DATA_DIR == data_override
+        assert paths.CROPPED_DEMS_DIR == data_override / "cropped_DEMs"
+        assert paths.EXAMPLE_DEMS["inyo"] == data_override / "cropped_DEMs/Inyo_strm_crop.tif"
+        assert config.PROJECT_ROOT == paths.PROJECT_ROOT
+        assert config.DATA_DIR == paths.DATA_DIR
+    finally:
+        monkeypatch.delenv("CHANNEL_HEADS_ROOT", raising=False)
+        monkeypatch.delenv("CHANNEL_HEADS_DATA", raising=False)
+        importlib.reload(paths)
+        importlib.reload(config)
+
+    assert paths.PROJECT_ROOT == original_root
+    assert paths.DATA_DIR == original_data
 
 
 def test_path_accessor_creates_dir(tmp_path, monkeypatch):
