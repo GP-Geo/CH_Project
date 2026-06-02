@@ -3,7 +3,8 @@
 import numpy as np
 import pandas as pd
 import pytest
-import torch
+
+torch = pytest.importorskip("torch")
 
 from channel_heads.cnn_features import (
     CNN_FEATURE_COLS,

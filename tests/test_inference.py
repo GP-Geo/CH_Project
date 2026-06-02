@@ -95,12 +95,12 @@ class TestVerifyFeatureMatrix:
 # Model loading / feature-order verification / prediction
 # --------------------------------------------------------------------------
 def _toy_model(features):
-    from xgboost import XGBClassifier
+    xgboost = pytest.importorskip("xgboost")
 
     rng = np.random.default_rng(0)
     X = pd.DataFrame(rng.normal(size=(40, len(features))), columns=features)
     y = (X[features[0]] > 0).astype(int)
-    model = XGBClassifier(n_estimators=5, max_depth=2, use_label_encoder=False)
+    model = xgboost.XGBClassifier(n_estimators=5, max_depth=2, use_label_encoder=False)
     model.fit(X, y)
     return model, X
 

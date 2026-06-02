@@ -13,6 +13,8 @@ from __future__ import annotations
 import random
 from collections import defaultdict, deque
 
+import pytest
+
 from channel_heads.pairing.dag import first_meet_pairs_on_dag, normalize_pair
 
 
@@ -191,6 +193,7 @@ class TestMarsGraphHelpers:
         assert trace_downstream_path(3, 0, children, max_steps=5) is None
 
     def test_chain_segment_geometries_reverses_as_needed(self):
+        pytest.importorskip("shapely")
         from shapely.geometry import LineString
 
         from channel_heads.pairing import chain_segment_geometries
@@ -205,6 +208,8 @@ class TestMarsGraphHelpers:
         assert list(line.coords) == [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0)]
 
     def test_detect_crossed_segments(self):
+        pytest.importorskip("geopandas")
+        pytest.importorskip("shapely")
         import geopandas as gpd
         from shapely.geometry import LineString
 
@@ -224,6 +229,7 @@ class TestMarsGraphHelpers:
         assert detect_crossed_segments((0.0, 0.0), (0.0, 0.0), segs) == []
 
     def test_chain_missing_edge_returns_none(self):
+        pytest.importorskip("shapely")
         from shapely.geometry import LineString
 
         from channel_heads.pairing import chain_segment_geometries

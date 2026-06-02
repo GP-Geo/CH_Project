@@ -8,8 +8,12 @@ either saves to disk or returns the figure for inline display.
 from __future__ import annotations
 
 import matplotlib
+import pytest
 
 matplotlib.use("Agg")
+
+pytest.importorskip("geopandas")
+pytest.importorskip("shapely")
 
 import geopandas as gpd  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402

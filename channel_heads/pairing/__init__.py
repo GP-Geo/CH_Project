@@ -12,12 +12,21 @@ from .dag import (
     normalize_pair,
     topological_sort,
 )
-from .mars_graph import (
-    build_directed_adjacency,
-    chain_segment_geometries,
-    detect_crossed_segments,
-    trace_downstream_path,
-)
+
+# Mars graph helpers require geopandas/shapely. Keep them optional so the
+# pure-Python DAG core (and its tests) import without the geo stack installed.
+try:
+    from .mars_graph import (
+        build_directed_adjacency,
+        chain_segment_geometries,
+        detect_crossed_segments,
+        trace_downstream_path,
+    )
+except ImportError:
+    build_directed_adjacency = None
+    chain_segment_geometries = None
+    detect_crossed_segments = None
+    trace_downstream_path = None
 
 __all__ = [
     "build_children_from_parents",

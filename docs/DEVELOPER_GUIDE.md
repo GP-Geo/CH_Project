@@ -26,7 +26,7 @@ valley-network topology.
 ```bash
 conda env create -f env/environment.yml
 conda activate ch-heads
-pip install -e ".[dev]"
+pip install -e ".[dev,geo,viz,cnn,ml]"
 python -c "from channel_heads import CouplingAnalyzer; print('OK')"
 ```
 
@@ -47,7 +47,7 @@ conda run -n ch-heads ruff check <files>      # targeted; repo-wide has known pr
 | `first_meet_pairs_for_outlet.py` | Channel-head pairing (Kahn topological sort + head-set propagation). |
 | `geometric_analysis.py` | Lengthwise asymmetry (ΔL), geometric features, labeling/filtering, CSV enrichment. *(Large; split is a planned refactor — see ROADMAP.)* |
 | `rasterizer.py` | 5-class 128×128 patch rasterization (direct final-grid). Canonical for both Earth and Mars. |
-| `cnn_features.py`, `cnn_model.py` | `OutletCNN` (5→…→4-dim embedding), dataset, `extract_embeddings`. |
+| `cnn_features.py`, `cnn_model.py`, `cnn_training.py` | `OutletCNN` (5→…→4-dim embedding), dataset, embedding extraction, shared CNN training loop/defaults. |
 | `dd_calibration.py` | Drainage-density / threshold calibration helpers. |
 | `pruning.py` | Strahler-strip + order-gap network pruning (regime pipeline). |
 | `units.py` | **Single source of truth for unit conversions** (added Phase 2 — see §6). |
@@ -106,7 +106,7 @@ asymmetry + geometric features → labeled dataset → XGBoost.
 - Earth CNN: `models/cnn_outlet_final.pt` — 128×128 uint8 5-class patches
   (BACKGROUND=0, BRANCH_A=1, BRANCH_B=2, OTHER_STREAMS=3, CONFLUENCE_MARKER=4),
   `embedding_dim=4`, no normalization, augment off at inference.
-- Notebooks `ml/00`–`05` implement dataset build → train → CNN.
+- Notebooks `training/00`–`05` implement dataset build → train → CNN.
 
 **Mars (inference)** and the **regime-calibration** re-runs are documented in
 [MARS_PIPELINE.md](MARS_PIPELINE.md). The CNN is **not** optional — the dual
@@ -114,7 +114,7 @@ track (tabular + CNN) is a design contract.
 
 > ⚠ The production `xgb_touching_classifier.json` is **preserved as-is**.
 > Research/regime variants live alongside it with explicit suffixes
-> (`_geom_only`, `_geom_plus_cnn_emb`, `_reg{A,B}`).
+> (`_geom_only`, `_geom_plus_cnn_emb`, `_reg{A,B,C}`).
 
 ## 6. Units (`channel_heads/units.py`)
 

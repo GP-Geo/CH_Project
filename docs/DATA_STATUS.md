@@ -34,7 +34,7 @@ a clean rebuild knows what to keep, what to regenerate, and what is stale.
 | `data/Mars/model_inputs/mars_cnn_patch_index.parquet`, `*_tabular_plus_cnn.parquet` | `STALE_AFTER_RASTER_FIX` | Depend on the patches / embeddings. |
 | `data/Mars/model_outputs/` predictions + figures | `CAN_REGENERATE` | Inference outputs; the combined/emb ones depend on the (stale) embeddings. |
 | `data/results/<basin>/` per-basin dirs | `CAN_REGENERATE` | Earth pipeline outputs. |
-| `data/results/<basin>/rasters/`, `data/results/_rasters_reg{A,B}/` | `STALE_AFTER_RASTER_FIX` | Pre-rewrite rasters. |
+| `data/results/<basin>/rasters/`, `data/results/_rasters_reg{A,B,C}/` | `STALE_AFTER_RASTER_FIX` | Pre-rewrite rasters. |
 | `data/results/master_dataset_v2.csv`, 5-feature tables, geom-only XGBoost inputs | `CAN_REGENERATE` | Tabular-only — **unaffected** by the raster fix. |
 | `data/results/master_dataset_*_with_emb.csv`, `*_v4_cnn_full.csv` | `STALE_AFTER_RASTER_FIX` | Carry CNN embeddings. |
 | `data/results/raster_manifest*.csv` | `STALE_AFTER_RASTER_FIX` | Index of pre-rewrite rasters. |

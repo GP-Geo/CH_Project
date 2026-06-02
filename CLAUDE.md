@@ -21,7 +21,7 @@ in [`docs/`](docs/) — this file is a thin pointer.
 - **Never delete data.** Mark legacy / archive instead (see PROJECT_STRUCTURE.md).
 - The production model `models/xgb_touching_classifier.json` (threshold 0.577406)
   and `models/cnn_outlet_final.pt` are **preserved as-is**; research/regime
-  variants use explicit suffixes (`_geom_*`, `_reg{A,B}`).
+  variants use explicit suffixes (`_geom_*`, `_reg{A,B,C}`).
 - Mars CNN patches **must** stay 5-class to match the Earth-trained CNN.
 - Unit conversions go through `channel_heads/units.py` (single source of truth).
 - Validate with `conda run -n ch-heads pytest -q`; run `ruff` **targeted** on
@@ -32,5 +32,5 @@ in [`docs/`](docs/) — this file is a thin pointer.
 
 ```bash
 conda env create -f env/environment.yml && conda activate ch-heads
-pip install -e ".[dev]"
+pip install -e ".[dev,geo,viz,cnn,ml]"
 ```

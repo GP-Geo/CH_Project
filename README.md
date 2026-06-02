@@ -18,7 +18,7 @@ classifier (Earth held-out test AUC ≈ 0.92) plus a 5-class CNN.
 ```bash
 conda env create -f env/environment.yml
 conda activate ch-heads
-pip install -e ".[dev]"
+pip install -e ".[dev,geo,viz,cnn,ml]"
 python -c "from channel_heads import CouplingAnalyzer; print('OK')"
 ch-analyze --help
 ```

@@ -55,8 +55,15 @@ cnn = [
     "torch>=2.0",
 ]
 
+ml = [
+    "scikit-learn>=1.7",
+    "xgboost>=3.2",
+    "pyarrow>=15.0",
+    "scipy>=1.10",
+]
+
 all = [
-    "channel-heads[dev,geo,viz,cnn]",
+    "channel-heads[dev,geo,viz,cnn,ml]",
 ]
 
 [project.urls]
@@ -68,11 +75,8 @@ Issues = "https://github.com/yourusername/channel-heads/issues"
 [project.scripts]
 ch-analyze = "channel_heads.cli:main"
 
-[tool.setuptools]
-packages = ["channel_heads"]
-
-[tool.setuptools.package-data]
-channel_heads = ["*.py"]
+[tool.setuptools.packages.find]
+include = ["channel_heads*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

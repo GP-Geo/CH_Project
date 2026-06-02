@@ -16,6 +16,8 @@ import channel_heads.inference.regime as regime
 
 
 def _write_patch_index(tmp_path):
+    pytest.importorskip("pyarrow")
+
     idx = pd.DataFrame(
         {
             "pair_id": ["p1", "p2", "p3"],

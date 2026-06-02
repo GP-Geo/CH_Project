@@ -50,7 +50,7 @@ channel-heads/
 | `first_meet_pairs_for_outlet.py` | Earth channel-head pairing (delegates to `pairing/`). |
 | `geometric_analysis.py` | Asymmetry + geometric features + labeling + CSV enrichment. |
 | `rasterizer.py` | 5-class 128×128 patch rasterization (direct final-grid); shared `bresenham_line`. |
-| `cnn_features.py`, `cnn_model.py` | CNN dataset + `OutletCNN` + embedding extraction. |
+| `cnn_features.py`, `cnn_model.py`, `cnn_training.py` | CNN dataset + `OutletCNN` + embedding extraction + shared training loop/defaults. |
 | `dd_calibration.py` | Drainage-density / threshold calibration. |
 | `pruning.py` | Strahler-strip + order-gap pruning. |
 | `units.py` | Unit conversions (single source of truth). |
@@ -85,8 +85,8 @@ QA = diagnostics · MAINT = maintenance.
 | `extract_mars_cnn_embeddings.py` | MARS | 5 | CNN embeddings via `cnn_outlet_final.pt`. |
 | `run_mars_combined_xgb_inference.py` | MARS | 6C | Combined XGBoost variants on Mars. |
 | `train_combined_xgb_phase6b.py` | TRAIN | 6B | Train+persist 3 Earth XGBoost variants. |
-| `build_earth_features_regime.py` | REGIME | 2 | Per-basin Earth features under a regime. **⚠ hub: imported by 5 regime scripts.** |
-| `build_cnn_patches_regime.py` | REGIME | 3 | Regime CNN patches. **Sibling-imports `build_earth_features_regime`.** |
+| `build_earth_features_regime.py` | REGIME | 2 | Per-basin Earth features under a regime; consumes `channel_heads.regimes`. |
+| `build_cnn_patches_regime.py` | REGIME | 3 | Regime CNN patches; consumes `channel_heads.regimes`. |
 | `train_cnn_regime.py` | REGIME | 4 | Train per-regime `OutletCNN`. |
 | `train_combined_xgb_regime.py` | REGIME | 5 | Train per-regime geom+emb XGBoost. |
 | `run_mars_combined_regime.py` | REGIME | 6 | Mars inference under a regime. |
@@ -114,14 +114,13 @@ scripts/run_regime_pipeline.sh regB   #   → train_cnn_regime → train_combine
 
 ### Known path couplings (verify before moving)
 1. `tests/test_rasterizer.py` loads `scripts/build_mars_cnn_patches_5class.py` by hardcoded path.
-2. `build_cnn_patches_regime.py` sibling-imports `build_earth_features_regime` via `sys.path.insert`.
-3. `run_regime_pipeline.sh` invokes 5 regime scripts as `scripts/<name>.py`.
-4. Most scripts compute `PROJECT_ROOT = Path(__file__).resolve().parents[1]` — moving one level deeper needs `parents[2]` (done for the moved render/diagnostics scripts).
-5. `clean-cache.sh`/`setup-hooks.sh` use `cd "$(dirname $0)/.."`; `setup-hooks.sh` generates a hook hardcoding `./scripts/clean-cache.sh`.
+2. `run_regime_pipeline.sh` invokes 5 regime scripts as `scripts/<name>.py`.
+3. Most scripts compute `PROJECT_ROOT = Path(__file__).resolve().parents[1]` — moving one level deeper needs `parents[2]` (done for the moved render/diagnostics scripts).
+4. `clean-cache.sh`/`setup-hooks.sh` use `cd "$(dirname $0)/.."`; `setup-hooks.sh` generates a hook hardcoding `./scripts/clean-cache.sh`.
 
 ### Migration status
-- ✅ Applied: `rendering/` (3), `diagnostics/` (3) — `parents[1]`→`[2]` fixed; no inbound refs.
-- ⏳ Deferred (path-coupled): `mars/`, `regime/`, `training/`, `maintenance/`. The Phase 3+ refactor (REGIME presets → `channel_heads/regimes.py`) dissolves coupling #2.
+- ✅ Applied: `rendering/` (3), `diagnostics/` (3) — `parents[1]`→`[2]` fixed; no inbound refs. Regime presets and CNN training helpers now live in `channel_heads/`, removing the former sibling-import coupling.
+- ⏳ Deferred (path-coupled): `mars/`, `regime/`, `training/`, `maintenance/`.
 
 ---
 
@@ -132,7 +131,7 @@ which the in-notebook root-resolution cells assume — keep new notebooks at tha
 
 | Home | Contents |
 |------|----------|
-| `training/` | Earth training pipeline `00_full_pipeline` → `05_cnn_quick_eval` (was `notebooks/ml/`; referenced by `scripts/train_*`, `build_*`). |
+| `training/` | Earth training pipeline `00_full_pipeline` → `05_cnn_quick_eval`; referenced by `scripts/train_*`, `build_*`. |
 | `analysis/` | Earth basin analysis `01_single_basin_test` → `04_all_basins_full`. |
 | `mars/` | Mars cross-planet exploration (`dd_hull_mars_vs_earth_complexity`). |
 | `regime/` | Regime calibration: `00_calibration_overview`, `01_mars_inference` (→ `channel_heads.inference`). |
@@ -196,7 +195,7 @@ All of `data/` and `models/` is **gitignored**. Canonical output dir is
 `channel_heads/rasterizer.py` was rewritten to direct final-grid rasterization.
 Raster patches / CNN embeddings / models built before that change are
 regeneration candidates: `data/results/<basin>/rasters/`,
-`data/results/_rasters_reg{A,B}/`, `data/Mars/model_inputs/cnn_patches_5class/`,
+`data/results/_rasters_reg{A,B,C}/`, `data/Mars/model_inputs/cnn_patches_5class/`,
 the `cnn_outlet_*.pt` models, and CNN-derived master datasets. Tabular-only
 artifacts (`master_dataset_v2.csv`, 5-feature Mars tables, geom-only XGBoost)
 are unaffected. The full regeneration plan is Phase 8 (see ROADMAP).
@@ -204,4 +203,4 @@ are unaffected. The full regeneration plan is Phase 8 (see ROADMAP).
 ### Housekeeping (not actioned)
 - `final_valleys/*.sr.lock` — stale ESRI lock files (junk; safe to delete).
 - `*.DS_Store` — removed by `scripts/clean-cache.sh`.
-- ⚠ `data/archive/` and `data/_rebuild_backup_20260531/` are **not** gitignored — add a `.gitignore` rule before committing (the backup is ~97 MB).
+- `data/archive/` and `data/_rebuild_backup_20260531/` are gitignored; keep the backup off-repo.

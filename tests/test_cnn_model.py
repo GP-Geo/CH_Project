@@ -2,13 +2,20 @@
 
 import numpy as np
 import pytest
-import torch
+
+torch = pytest.importorskip("torch")
 
 from channel_heads.cnn_model import (
     DEFAULT_EMBEDDING_DIM,
     OutletCNN,
     OutletPairDataset,
     encode_raster_onehot,
+)
+from channel_heads.cnn_training import (
+    DEFAULT_BATCH_SIZE,
+    DEFAULT_EPOCHS,
+    DEFAULT_PATIENCE,
+    pick_device,
 )
 from channel_heads.rasterizer import NUM_CLASSES
 
@@ -207,3 +214,11 @@ class TestOutletPairDataset:
                 seen_different = True
                 break
         assert seen_different, "Augmentation never produced a flip"
+
+
+def test_cnn_training_defaults_and_device_picker():
+    """Shared training module exposes usable defaults without training."""
+    assert DEFAULT_EPOCHS > 0
+    assert DEFAULT_BATCH_SIZE > 0
+    assert DEFAULT_PATIENCE > 0
+    assert pick_device() in {"cpu", "cuda", "mps"}

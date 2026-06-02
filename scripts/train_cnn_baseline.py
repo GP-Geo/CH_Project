@@ -24,19 +24,13 @@ from __future__ import annotations
 
 import argparse
 import logging
-import sys
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import torch
 
 from channel_heads.cnn_model import DEFAULT_EMBEDDING_DIM
-from channel_heads.config import PROJECT_ROOT, RESULTS_DIR
-
-# Reuse the exact training loop + device picker from the regime trainer.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from train_cnn_regime import (  # noqa: E402
+from channel_heads.cnn_training import (
     DEFAULT_BATCH_SIZE,
     DEFAULT_DROPOUT,
     DEFAULT_EPOCHS,
@@ -48,6 +42,7 @@ from train_cnn_regime import (  # noqa: E402
     pick_device,
     train_cnn,
 )
+from channel_heads.config import PROJECT_ROOT, RESULTS_DIR
 
 log = logging.getLogger("train_cnn_baseline")
 

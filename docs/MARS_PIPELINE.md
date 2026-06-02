@@ -59,7 +59,7 @@ geom+emb **0.890067**, geom+logit **0.885832**. Applied to Mars unchanged.
 
 ## 3. Strategic decisions
 
-1. Production tabular XGBoost preserved as-is; research models live alongside with `_geom_*` / `_reg{A,B}` suffixes.
+1. Production tabular XGBoost preserved as-is; research models live alongside with `_geom_*` / `_reg{A,B,C}` suffixes.
 2. Earth-PR-tuned thresholds applied to Mars unchanged in 6C — a documented caveat; a future phase should sweep alternatives or rebuild on labeled Mars data.
 3. Notebooks 04/05 trained combined models only in memory; `train_combined_xgb_phase6b.py` is now the canonical training recipe.
 4. CNN `cnn_logit` (1-dim) and the 4-dim embedding carry essentially the same signal (Δ ROC AUC = 0.004 Earth; 95% Mars agreement). Model C (geom + logit, 6 features) is the cheaper-equally-good choice.
@@ -98,7 +98,7 @@ exploring — deferred to a later notebook, not built as a package module now.
 
 Parallel re-runs of the Earth→Mars workflow under alternative network-pruning
 regimes (km² area thresholds + Strahler-strip / order-gap pruning), orchestrated
-by `scripts/run_regime_pipeline.sh`. Regime presets currently live inside
-`build_earth_features_regime.py` and will move to `channel_heads/regimes.py`
-(Phase 3). Per-regime artifacts use `_reg{A,B}` suffixes and never overwrite
-production models.
+by `scripts/run_regime_pipeline.sh`. Regime presets live in
+`channel_heads/regimes.py` (the `REGIMES` mapping), consumed by
+`build_earth_features_regime.py` and the regime CNN/training scripts. Per-regime
+artifacts use `_reg{A,B,C}` suffixes and never overwrite production models.
