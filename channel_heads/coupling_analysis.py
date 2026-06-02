@@ -36,7 +36,8 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from skimage.draw import line as skimage_line
+
+from .stream_utils import line_pixels
 
 # Type aliases for clarity
 NodeId = int
@@ -298,7 +299,7 @@ class CouplingAnalyzer:
         """
         r1, c1 = self._rc_for_head(h1)
         r2, c2 = self._rc_for_head(h2)
-        rr, cc = skimage_line(r1, c1, r2, c2)
+        rr, cc = line_pixels(r1, c1, r2, c2)
         valid = (
             (rr >= 0)
             & (rr < self._stream_mask.shape[0])

@@ -61,6 +61,8 @@ data/raw/*.tif
 data/cropped_DEMs/*.tif
 data/results/
 data/outputs/
+data/archive/
+data/_rebuild_backup_*/
 data/Mars/
 data/final_valleys/
 data/exports/**/*.pdf
