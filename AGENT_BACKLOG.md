@@ -52,10 +52,11 @@ Standard tests:
 
 > Refined by the Slice 2 audit into sub-slices 3a–3d (see `AGENT_AUDIT_CNN.md`
 > §6). **3a (architecture → `models/cnn.py`, `cnn_model.py` → shim) DONE.
-> 3b (`pick_device` dedup in `cnn_training.py` → `models/device.py`) DONE.**
-> See `AGENT_RUN_LOG.md`. Remaining: 3c (Earth embeddings → models layer),
-> 3d (training core → future `training/`). Do NOT merge the four divergent
-> forward-pass extractors.
+> 3b (`pick_device` dedup in `cnn_training.py` → `models/device.py`) DONE.
+> 3c (Earth embeddings → `models/cnn_features.py`, `cnn_features.py` → shim)
+> DONE.** See `AGENT_RUN_LOG.md`. Remaining: 3d (training core → future
+> `channel_heads/training/`). Do NOT merge the four divergent forward-pass
+> extractors.
 
 - **Goal:** Move the canonical CNN implementation into `channel_heads/models/`
   per the audit; reduce the legacy module(s) to shims. 5-class patches MUST

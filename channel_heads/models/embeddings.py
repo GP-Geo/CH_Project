@@ -2,8 +2,8 @@
 
 This module moves the historical ``scripts/extract_mars_cnn_embeddings.py``
 logic into the package. It keeps the Earth CNN preprocessing path intact by
-calling :func:`channel_heads.cnn_features.extract_embeddings`, then assembles
-the Mars embedding table and the tabular-plus-CNN model input table.
+calling :func:`channel_heads.models.cnn_features.extract_embeddings`, then
+assembles the Mars embedding table and the tabular-plus-CNN model input table.
 """
 
 from __future__ import annotations
@@ -13,11 +13,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from channel_heads.cnn_features import CNN_FEATURE_COLS, extract_embeddings
 from channel_heads.cnn_model import DEFAULT_EMBEDDING_DIM, OutletCNN
 from channel_heads.io import paths
 from channel_heads.io.tables import write_table
 from channel_heads.logging_config import get_logger
+from channel_heads.models.cnn_features import CNN_FEATURE_COLS, extract_embeddings
 from channel_heads.models.device import pick_device
 
 log = get_logger("models.embeddings")

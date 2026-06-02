@@ -8,8 +8,8 @@ _Last updated: 2026-06-02_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** CNN training device dedup (Slice 3b; see
-  `AGENT_RUN_LOG.md`); prior was `a1b5b29 refactor(models): move CNN architecture into models`.
+- **Latest stable commit:** CNN embedding helpers into models (Slice 3c; see
+  `AGENT_RUN_LOG.md`); prior was `6b2e31b refactor(models): deduplicate CNN training device selection`.
 - **Working tree:** clean at time of writing.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
@@ -42,6 +42,7 @@ _Last updated: 2026-06-02_
 | XGBoost model load / validate / predict / threshold | `channel_heads/models/xgboost.py` | `channel_heads/inference/xgb.py` (shim) |
 | Torch device selection (`pick_device`) | `channel_heads/models/device.py` | `channel_heads/inference/device.py` (shim) |
 | CNN architecture / dataset / one-hot (`OutletCNN`, `OutletPairDataset`, `encode_raster_onehot`, `DEFAULT_EMBEDDING_DIM`, `DEFAULT_TARGET_SIZE`) | `channel_heads/models/cnn.py` | `channel_heads/cnn_model.py` (shim) |
+| Generic/Earth CNN embedding helpers (`extract_embeddings`, `merge_cnn_features`, `CNN_FEATURE_COLS`) | `channel_heads/models/cnn_features.py` | `channel_heads/cnn_features.py` (shim) |
 
 ## Model-layer status
 
@@ -91,6 +92,21 @@ _Last updated: 2026-06-02_
   hyperparameters, early stopping, dataset behavior, and architecture untouched.
   The script-level `pick_device` copies in `scripts/train_combined_xgb_*.py`
   remain (scripts are out of scope until Slice 4).
+- **Earth/generic embedding helpers consolidation (Slice 3c): DONE.** The real
+  `extract_embeddings`, `merge_cnn_features`, and `CNN_FEATURE_COLS` now live in
+  `channel_heads/models/cnn_features.py` (moved verbatim; imports the CNN
+  architecture from `channel_heads.models.cnn`). `channel_heads/cnn_features.py`
+  is a pure re-export shim. The **lenient default `load_state_dict`** (no
+  `strict=`, no missing/unexpected check) and the manifest-keyed DataFrame
+  schema are preserved exactly — deliberately distinct from the strict
+  extractors in `inference/regime.py` and `models/mars_combined.py` (NOT merged).
+  Internal consumers repointed to the canonical module
+  (`channel_heads/__init__.py`, `models/embeddings.py`). `models/embeddings.py`
+  remains the Mars Phase-5 orchestration surface (only its import line +
+  docstring changed). Old imports (`channel_heads.cnn_features`,
+  `from channel_heads.cnn_features import extract_embeddings, CNN_FEATURE_COLS`,
+  top-level `channel_heads`) all resolve to the same objects (pinned by
+  `tests/test_cnn_consolidation.py::TestCNNFeaturesConsolidated`).
 
 ## Known shims (keep working)
 
@@ -100,15 +116,16 @@ _Last updated: 2026-06-02_
 - `channel_heads/plotting_utils.py` → `channel_heads/viz/earth.py`
 - `channel_heads/config.py` → `channel_heads/io/paths.py`
 - `channel_heads/cnn_model.py` → `channel_heads/models/cnn.py`
+- `channel_heads/cnn_features.py` → `channel_heads/models/cnn_features.py`
 
 ## Known transitional / not-yet-audited areas
 
 - `channel_heads/inference/regime.py` — transitional; defer to Earth/regime audit.
-- CNN modules: `cnn_model.py` is now a shim → `models/cnn.py` (Slice 3a done).
+- CNN modules: `cnn_model.py` → shim to `models/cnn.py` (Slice 3a) and
+  `cnn_features.py` → shim to `models/cnn_features.py` (Slice 3c) are both done.
   `cnn_training.py` no longer duplicates `pick_device` (Slice 3b done) but is
-  still the real home of the training loop/defaults (training-core move to a
-  future `training/` package is Slice 3d). `cnn_features.py` (Earth embeddings)
-  is still real and not yet consolidated — see Slices 3c/3d in
+  still the real home of the training loop/defaults — the training-core move to a
+  future `channel_heads/training/` package is the remaining sub-slice (3d). See
   `AGENT_AUDIT_CNN.md` §6.
 - `geometric_analysis.py`, `rasterizer.py` — audit-only, no refactor yet.
 - `scripts/` — several still import `from channel_heads.inference import ...`
@@ -116,12 +133,12 @@ _Last updated: 2026-06-02_
 
 ## Next recommended task
 
-**Slice 3c — Earth embedding features → models layer:** move `extract_embeddings`,
-`merge_cnn_features`, `CNN_FEATURE_COLS` out of `channel_heads/cnn_features.py`
-into the models layer (new `models/cnn_features.py` or fold into
-`models/embeddings.py`); reduce `cnn_features.py` to a shim and repoint internal
-consumers (`models/embeddings.py`, `channel_heads/__init__.py`) to the canonical
-source. Preserve the **lenient** state-dict load and the DataFrame schema
-exactly. Tests: `tests/test_cnn_features.py`, `tests/test_mars_embeddings.py`,
-full pytest. Stop if the lenient-load behavior or output schema changes. See
+**Slice 3d — CNN training core → future `channel_heads/training/` package:**
+move `train_cnn` + the `DEFAULT_*` / `HOLDOUT_BASIN` / `RANDOM_STATE`
+hyperparameters out of `channel_heads/cnn_training.py` into a new
+`channel_heads/training/cnn.py`; reduce `cnn_training.py` to a shim;
+`models/cnn.py`'s lazy `__getattr__` re-export should source the training
+symbols from the new home. Keep scripts importing `channel_heads.cnn_training`
+(shim) — repointing them is Slice 4. Preserve every default value. Tests:
+`tests/test_cnn_model.py`, full pytest. Stop if any default changes. See
 `AGENT_AUDIT_CNN.md` §6; do not merge the four forward-pass extractors.

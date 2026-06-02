@@ -4,6 +4,48 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-02 — Slice 3c: move CNN embedding helpers into models
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `6b2e31b refactor(models): deduplicate CNN training device selection`
+- **Task:** Slice 3c — move the generic/Earth CNN embedding helpers from
+  `channel_heads/cnn_features.py` into the canonical models layer; reduce
+  `cnn_features.py` to a shim. Behavior-preserving (no rewrite).
+- **Files created:** `channel_heads/models/cnn_features.py` — real
+  `extract_embeddings`, `merge_cnn_features`, `CNN_FEATURE_COLS` (moved verbatim;
+  imports `OutletCNN`/`OutletPairDataset`/`DEFAULT_EMBEDDING_DIM` from
+  `channel_heads.models.cnn`). Keeps the **lenient default `load_state_dict`**
+  (no `strict=`, no missing/unexpected check) — deliberately distinct from the
+  strict extractors in `inference/regime.py` / `models/mars_combined.py`.
+- **Files updated:**
+  - `channel_heads/cnn_features.py` — reduced to a pure re-export shim.
+  - `channel_heads/models/embeddings.py` — repointed the embedding import to
+    `channel_heads.models.cnn_features` (+ docstring); import block re-sorted by
+    ruff. Mars Phase-5 orchestration logic unchanged.
+  - `channel_heads/__init__.py` — repointed the CNN-embedding import to
+    `from .models.cnn_features import ...` (one isort-ordered line pair).
+  - `tests/test_cnn_consolidation.py` — added `TestCNNFeaturesConsolidated`
+    (old/new path identity, `CNN_FEATURE_COLS` unchanged, canonical module,
+    and a synthetic `extract_embeddings` smoke proving the lenient load path).
+- **Not touched (per slice scope):** `inference/regime.py`, `mars_combined.py`
+  forward-pass logic, `cnn_training.py`, `rasterizer.py`, `geometric_analysis.py`,
+  trained artifacts, `data/`, root `/models/`, notebooks, scripts.
+- **Validation:** import checks under multiple entry points (channel_heads,
+  cnn_features shim, models.cnn_features, models.embeddings) — all resolve, no
+  cycle, old `is` new for all three symbols and from the top-level package.
+  Targeted (`test_mars_embeddings.py`, `test_cnn_consolidation.py`,
+  `test_cnn_model.py`): 49 passed; with `test_cnn_features.py` added: 60 passed.
+  Full `pytest`: **497 passed, 7 warnings** (was 492; +5 consolidation tests).
+  `ruff` clean on the new/changed model files; the `__init__.py` I001 is
+  pre-existing (verified on HEAD), test-file E402s match the existing
+  `importorskip` pattern. `git diff --check` clean.
+- **Risks:** Low. Embedding implementation moved byte-for-byte; lenient-load and
+  DataFrame schema preserved (the existing `test_cnn_features.py` exercises the
+  full extract path through the shim). The strict/lenient split is intentionally
+  kept — no forward-pass extractors were merged.
+- **Next step:** Slice 3d — move the CNN training core (`train_cnn` + defaults)
+  into a new `channel_heads/training/` package; `cnn_training.py` → shim.
+
 ## 2026-06-02 — Slice 3b: deduplicate CNN training device selection
 
 - **Branch:** `refactor/package-first-architecture`

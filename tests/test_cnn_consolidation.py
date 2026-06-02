@@ -176,3 +176,69 @@ class TestPickDeviceDeduplicated:
         from channel_heads.models.device import pick_device as canonical_pick
 
         assert cnn_pick is canonical_pick
+
+
+class TestCNNFeaturesConsolidated:
+    """Earth/generic embedding helpers: canonical home + shim identity."""
+
+    def test_old_and_new_paths_same_objects(self):
+        import channel_heads.cnn_features as legacy_feat
+        import channel_heads.models.cnn_features as canonical_feat
+
+        assert legacy_feat.extract_embeddings is canonical_feat.extract_embeddings
+        assert legacy_feat.merge_cnn_features is canonical_feat.merge_cnn_features
+        assert legacy_feat.CNN_FEATURE_COLS is canonical_feat.CNN_FEATURE_COLS
+
+    def test_from_import_resolves_same(self):
+        from channel_heads.cnn_features import extract_embeddings as old_extract
+        from channel_heads.models.cnn_features import extract_embeddings as new_extract
+
+        assert old_extract is new_extract
+
+    def test_canonical_function_module(self):
+        import channel_heads.models.cnn_features as canonical_feat
+
+        assert canonical_feat.extract_embeddings.__module__ == "channel_heads.models.cnn_features"
+
+    def test_cnn_feature_cols_unchanged(self):
+        from channel_heads.models.cnn_features import CNN_FEATURE_COLS
+
+        assert CNN_FEATURE_COLS == ["emb_0", "emb_1", "emb_2", "emb_3"]
+        assert CNN_FEATURE_COLS == [f"emb_{i}" for i in range(4)]
+
+    def test_extract_embeddings_new_path_smoke(self, tmp_path):
+        """Lenient default state-dict load + embedding extraction on a fixture."""
+        import numpy as np
+        import pandas as pd
+
+        from channel_heads.models.cnn import OutletCNN
+        from channel_heads.models.cnn_features import CNN_FEATURE_COLS, extract_embeddings
+
+        # Save a state dict from the same architecture (loads via default
+        # load_state_dict, exactly as the historical extract_embeddings did).
+        model_path = tmp_path / "model.pt"
+        torch.save(OutletCNN(embedding_dim=4).state_dict(), model_path)
+
+        raster_dir = tmp_path / "rasters"
+        raster_dir.mkdir()
+        n = 5
+        for i in range(n):
+            raster = np.random.default_rng(i).integers(0, NUM_CLASSES, size=(64, 64), dtype=np.uint8)
+            np.save(raster_dir / f"r_{i}.npy", raster)
+
+        manifest = pd.DataFrame(
+            {
+                "outlet": [1] * n,
+                "confluence": list(range(n)),
+                "head_1": list(range(10, 10 + n)),
+                "head_2": list(range(20, 20 + n)),
+                "raster_path": [f"r_{i}.npy" for i in range(n)],
+            }
+        )
+
+        result = extract_embeddings(model_path, raster_dir, manifest)
+        assert len(result) == n
+        for col in CNN_FEATURE_COLS:
+            assert col in result.columns
+            assert np.all(np.isfinite(result[col].to_numpy()))
+            assert (result[col] >= 0).all()  # ReLU embedding
