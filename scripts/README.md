@@ -13,13 +13,11 @@ Tiny argparse shells over `channel_heads.pipelines`:
 | `cli/run_mars_inference.py` | `pipelines.run_mars_combined_inference` |
 | `cli/generate_poster_figures.py` | `pipelines.generate_poster_figures` |
 
-## root `*.py` — TRANSITIONAL pipeline-stage implementations
-These still hold stage logic that is **scheduled for extraction** into
-`channel_heads/` (features, CNN patches, embeddings, combined inference, regime
-+ training stages). They are **not** the interface — `channel_heads.pipelines`
-invokes them in-process until extraction is complete. See the extraction backlog
-in [`docs/architecture.md`](../docs/architecture.md). Do not call them directly
-in new code; call the matching `pipelines.*` function.
+## root `*.py` — legacy entry points
+Most Mars root scripts are now thin wrappers around package-resident logic in
+`channel_heads/`. Remaining transitional implementations are Earth/regime
+training-oriented and are scheduled for a separate extraction slice. Do not call
+root scripts in new code; call the matching `pipelines.*` function.
 
 `diagnostics/` and `rendering/` remain notebook-backed batch helpers (each has a
 primary notebook in `notebooks/`). `*.sh` files orchestrate multi-stage rebuilds.

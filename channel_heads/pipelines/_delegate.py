@@ -1,13 +1,9 @@
-"""Transitional bridge for pipeline stages whose logic still lives in scripts.
+"""Transitional bridge for non-Mars stages whose logic still lives in scripts.
 
-The Phase-1/2B Mars stages (topology, pairs) are fully migrated into
-:mod:`channel_heads.mars`. The remaining heavy stages (feature tables, CNN
-patches, embeddings, combined inference) still hold their logic in ``scripts/``
-and are scheduled for extraction. Until then, the public pipeline functions run
-the corresponding script **in-process** so the API is complete and runnable.
-
-These are marked ``TRANSITIONAL`` in their docstrings; see
-``docs/architecture.md`` for the extraction backlog.
+Mars inference no longer uses this bridge; its stages are package-resident.
+Earth/regime training and poster helpers still delegate here pending separate
+extraction slices. These stages are marked ``TRANSITIONAL`` in their docstrings;
+see ``docs/architecture.md`` for the extraction backlog.
 """
 
 from __future__ import annotations

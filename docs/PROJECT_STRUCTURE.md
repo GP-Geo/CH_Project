@@ -70,20 +70,22 @@ Public API is re-exported from each subpackage's `__init__.py`.
 ## 3. `scripts/` inventory
 
 Partially organized: `rendering/` and `diagnostics/` are subfolders; the rest is
-still flat (path-coupled — see Migration). Categories: MARS = Mars cross-planet ·
+still flat. Mars stage scripts are thin compatibility wrappers over
+`channel_heads.pipelines`; Earth/regime training scripts remain transitional.
+Categories: MARS = Mars cross-planet ·
 REGIME = regime calibration · TRAIN = Earth training · RENDER = visualization ·
 QA = diagnostics · MAINT = maintenance.
 
 | Script | Category | Phase/Step | Purpose |
 |--------|----------|-----------|---------|
-| `extract_mars_outlet_candidates.py` | MARS | pre-1 | Estimate Martian outlet candidates from MOLA. |
-| `build_mars_network_topology.py` | MARS | 1 | Build Mars valley-network topology GeoPackage. |
-| `extract_mars_first_meet_pairs.py` | MARS | 2B | First-meet pair extraction on the Mars graph. |
-| `build_mars_pair_features_5feat.py` | MARS | 3A | Mars 5-feature table + filtering. |
-| `run_mars_xgb_inference_5feat.py` | MARS | 3B | Production XGBoost on Mars table (inference only). |
-| `build_mars_cnn_patches_5class.py` | MARS | 4 | Mars 5-class 128×128 patches. **⚠ imported by `tests/test_rasterizer.py`.** |
-| `extract_mars_cnn_embeddings.py` | MARS | 5 | CNN embeddings via `cnn_outlet_final.pt`. |
-| `run_mars_combined_xgb_inference.py` | MARS | 6C | Combined XGBoost variants on Mars. |
+| `extract_mars_outlet_candidates.py` | MARS | pre-1 | Archived outlet-candidate prototype; superseded by package topology logic. |
+| `build_mars_network_topology.py` | MARS | 1 | Thin wrapper for Mars topology build. |
+| `extract_mars_first_meet_pairs.py` | MARS | 2B | Thin wrapper for first-meet pair extraction. |
+| `build_mars_pair_features_5feat.py` | MARS | 3A | Thin wrapper for Mars 5-feature table + filtering. |
+| `run_mars_xgb_inference_5feat.py` | MARS | 3B | Thin wrapper for production XGBoost Mars inference. |
+| `build_mars_cnn_patches_5class.py` | MARS | 4 | Thin wrapper for Mars 5-class 128×128 patches. |
+| `extract_mars_cnn_embeddings.py` | MARS | 5 | Thin wrapper for CNN embeddings via `cnn_outlet_final.pt`. |
+| `run_mars_combined_xgb_inference.py` | MARS | 6C | Thin wrapper for combined XGBoost variants on Mars. |
 | `train_combined_xgb_phase6b.py` | TRAIN | 6B | Train+persist 3 Earth XGBoost variants. |
 | `build_earth_features_regime.py` | REGIME | 2 | Per-basin Earth features under a regime; consumes `channel_heads.regimes`. |
 | `build_cnn_patches_regime.py` | REGIME | 3 | Regime CNN patches; consumes `channel_heads.regimes`. |
@@ -113,14 +115,14 @@ scripts/run_regime_pipeline.sh regB   #   → train_cnn_regime → train_combine
 ```
 
 ### Known path couplings (verify before moving)
-1. `tests/test_rasterizer.py` loads `scripts/build_mars_cnn_patches_5class.py` by hardcoded path.
-2. `run_regime_pipeline.sh` invokes 5 regime scripts as `scripts/<name>.py`.
-3. Most scripts compute `PROJECT_ROOT = Path(__file__).resolve().parents[1]` — moving one level deeper needs `parents[2]` (done for the moved render/diagnostics scripts).
-4. `clean-cache.sh`/`setup-hooks.sh` use `cd "$(dirname $0)/.."`; `setup-hooks.sh` generates a hook hardcoding `./scripts/clean-cache.sh`.
+1. `run_regime_pipeline.sh` invokes 5 regime scripts as `scripts/<name>.py`.
+2. Most non-wrapper scripts compute `PROJECT_ROOT = Path(__file__).resolve().parents[1]` — moving one level deeper needs `parents[2]` (done for the moved render/diagnostics scripts).
+3. `clean-cache.sh`/`setup-hooks.sh` use `cd "$(dirname $0)/.."`; `setup-hooks.sh` generates a hook hardcoding `./scripts/clean-cache.sh`.
 
 ### Migration status
+- ✅ Applied: Mars Phases 1-6C are package-resident; root Mars scripts are wrappers.
 - ✅ Applied: `rendering/` (3), `diagnostics/` (3) — `parents[1]`→`[2]` fixed; no inbound refs. Regime presets and CNN training helpers now live in `channel_heads/`, removing the former sibling-import coupling.
-- ⏳ Deferred (path-coupled): `mars/`, `regime/`, `training/`, `maintenance/`.
+- ⏳ Deferred (path-coupled): `regime/`, `training/`, `maintenance/`.
 
 ---
 

@@ -18,9 +18,8 @@ Figures (:mod:`channel_heads.pipelines.poster`)::
 
     generate_poster_figures
 
-Topology + pairs are fully migrated into :mod:`channel_heads.mars`; the
-remaining stages are transitional delegators to ``scripts/`` pending extraction
-(see ``docs/architecture.md``).
+Mars inference stages are package-resident. Earth training still delegates to
+historical scripts pending a separate refactor (see ``docs/architecture.md``).
 """
 
 from channel_heads.pipelines import earth, mars, poster

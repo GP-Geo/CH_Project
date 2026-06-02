@@ -40,17 +40,20 @@ propagation), computed on the Mars directed graph
 
 ## 2. Phase history (Phases 1–6C complete)
 
-| Phase | What | Key artifacts | Script |
+| Phase | What | Key artifacts | Package entry point |
 |------|------|---------------|--------|
-| 1 | Topology GPKG (391 networks, 5,619 segments, 6,003 nodes, 2,999 heads, 2,612 confluences) | `data/Mars/topology/mars_vn_topology_model_ready.gpkg` | `build_mars_network_topology.py` |
-| 2B | First-meet pairs (15,677 pairs + per-branch polylines) | `mars_vn_pairs.gpkg` | `extract_mars_first_meet_pairs.py` |
-| 3A | 5-feature table + terrestrial filtering. Stream-crossing filter dropped 11,892/15,677 (76%) → **3,785** model-ready pairs | `mars_pair_features_5feat_{all,model_ready}.parquet` + audit CSV | `build_mars_pair_features_5feat.py` |
-| 3B | Tabular inference (production XGBoost, threshold 0.577406) → **2,183 touching (57.7%)**, 898 high-conf (≥0.80) | `mars_xgb_predictions_5feat.{parquet,csv,gpkg}` | `run_mars_xgb_inference_5feat.py` |
-| 4 | 5-class CNN patches (3,785, Earth-compatible) | `cnn_patches_5class/{network}/{pair}.npy` | `build_mars_cnn_patches_5class.py` |
-| 5 | CNN embeddings (3,785 × emb_0..3; no collapse; r≈0.4–0.5 vs tabular prob). **`cnn_logit` was NOT persisted** — filled transiently in 6C | `mars_cnn_embeddings.parquet`, `mars_model_input_tabular_plus_cnn.parquet` | `extract_mars_cnn_embeddings.py` |
+| 1 | Topology GPKG (391 networks, 5,619 segments, 6,003 nodes, 2,999 heads, 2,612 confluences) | `data/Mars/topology/mars_vn_topology_model_ready.gpkg` | `pipelines.build_mars_topology` |
+| 2B | First-meet pairs (15,677 pairs + per-branch polylines) | `mars_vn_pairs.gpkg` | `pipelines.extract_mars_pairs` |
+| 3A | 5-feature table + terrestrial filtering. Stream-crossing filter dropped 11,892/15,677 (76%) → **3,785** model-ready pairs | `mars_pair_features_5feat_{all,model_ready}.parquet` + audit CSV | `pipelines.build_mars_features` |
+| 3B | Tabular inference (production XGBoost, threshold 0.577406) → **2,183 touching (57.7%)**, 898 high-conf (≥0.80) | `mars_xgb_predictions_5feat.{parquet,csv,gpkg}` | `pipelines.run_mars_xgb_inference` |
+| 4 | 5-class CNN patches (3,785, Earth-compatible) | `cnn_patches_5class/{network}/{pair}.npy` | `pipelines.build_mars_cnn_patches` |
+| 5 | CNN embeddings (3,785 × emb_0..3; no collapse; r≈0.4–0.5 vs tabular prob). **`cnn_logit` was NOT persisted** — filled transiently in 6C | `mars_cnn_embeddings.parquet`, `mars_model_input_tabular_plus_cnn.parquet` | `pipelines.extract_mars_cnn_embeddings` |
 | 6A | Audit: no combined XGBoost artifact existed on disk (notebooks 04/05 trained but never saved) | `phase_6a_combined_model_audit.md` | — |
 | 6B | Trained + persisted 3 Earth XGBoost variants (geom_only / geom+emb / geom+logit), identical hyperparams + GroupShuffleSplit. Earth test ROC AUC: geom_only **0.77**, geom+emb **0.93**, geom+logit **0.93** | `xgb_geom_*.json` + `feature_columns_*` + `optimal_threshold_*` + `combined_models_comparison.csv` | `train_combined_xgb_phase6b.py` |
-| 6C | Combined Mars inference. emb: **1,390 touching (36.7%)**, logit: 1,415 (37.4%); high-conf ≥0.80 ≈ 1,680 (44%). emb↔logit agreement **95%**; combined↔tabular **70%** | `mars_combined_model_predictions.{parquet,csv,gpkg}` + comparison/by-network CSVs + figures | `run_mars_combined_xgb_inference.py` |
+| 6C | Combined Mars inference. emb: **1,390 touching (36.7%)**, logit: 1,415 (37.4%); high-conf ≥0.80 ≈ 1,680 (44%). emb↔logit agreement **95%**; combined↔tabular **70%** | `mars_combined_model_predictions.{parquet,csv,gpkg}` + comparison/by-network CSVs + figures | `pipelines.run_mars_combined_inference` |
+
+The Mars stage scripts remain as thin compatibility wrappers; reusable Mars
+inference logic lives in `channel_heads/`.
 
 Phase-6C thresholds (Earth-tuned, "max precision at recall ≥ 0.5"):
 geom+emb **0.890067**, geom+logit **0.885832**. Applied to Mars unchanged.

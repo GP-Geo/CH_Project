@@ -31,14 +31,22 @@ notebooks / `build_earth_features_regime` for regime variants.
 
 ## 2. Mars cross-planet (baseline)
 
+Run all package-resident Mars stages through the maintained CLI:
+
+```bash
+python scripts/cli/run_mars_pipeline.py --stage all
 ```
-build_mars_network_topology        # data/Mars/topology/*.gpkg
-  -> extract_mars_first_meet_pairs  # mars_vn_pairs.gpkg
-  -> build_mars_pair_features_5feat # 5-feature tables (tabular; raster-independent)
-  -> run_mars_xgb_inference_5feat   # tabular predictions
-  -> build_mars_cnn_patches_5class  # 5-class patches  (REGENERATES stale rasters)
-  -> extract_mars_cnn_embeddings    # embeddings via cnn_outlet_final.pt
-  -> run_mars_combined_xgb_inference # combined emb/logit predictions
+
+Equivalent package flow:
+
+```
+build_mars_topology              # data/Mars/topology/*.gpkg
+  -> extract_mars_pairs          # mars_vn_pairs.gpkg
+  -> build_mars_features         # 5-feature tables (tabular; raster-independent)
+  -> run_mars_xgb_inference      # tabular predictions
+  -> build_mars_cnn_patches      # 5-class patches  (REGENERATES stale rasters)
+  -> extract_mars_cnn_embeddings # embeddings via cnn_outlet_final.pt
+  -> run_mars_combined_inference # combined emb/logit predictions
 ```
 Understand/inspect each step read-only via `notebooks/mars/02–04` and
 `notebooks/presentation/`. Mars CNN patches **must stay 5-class** to match the
@@ -60,7 +68,7 @@ Then optionally re-tune a regime threshold: `python scripts/retune_threshold_reg
 scripts/run_full_rebuild.sh           # baseline CNN + combined XGB + Mars embeddings + Mars combined
 ```
 Drives: `train_cnn_baseline` → `train_combined_xgb_phase6b` →
-`extract_mars_cnn_embeddings` → `run_mars_combined_xgb_inference`, then the per-regime steps.
+`extract_mars_cnn_embeddings` → `run_mars_combined_inference`, then the per-regime steps.
 
 ## 5. Diagnostics & figures (after a rebuild)
 

@@ -2,7 +2,7 @@
 
 The project is understandable through two things: the **`channel_heads/`
 package** and the **notebooks**. `scripts/` is no longer part of the
-architecture — it holds only thin CLI wrappers plus transitional stage
+architecture — it holds thin wrappers plus non-Mars transitional stage
 implementations pending extraction.
 
 > Read `channel_heads/pipelines/mars.py` top to bottom and you have the whole
@@ -50,11 +50,11 @@ from channel_heads import pipelines
 
 pipelines.build_mars_topology()         # Phase 1   (channel_heads.mars.topology)
 pipelines.extract_mars_pairs()          # Phase 2B  (channel_heads.mars.pairs)
-pipelines.build_mars_features()         # Phase 3A  (transitional)
-pipelines.run_mars_xgb_inference()      # Phase 3B  (transitional)
-pipelines.build_mars_cnn_patches()      # Phase 4   (transitional)
-pipelines.extract_mars_cnn_embeddings() # Phase 5   (transitional)
-pipelines.run_mars_combined_inference() # Phase 6C  (transitional)
+pipelines.build_mars_features()         # Phase 3A  (channel_heads.features.mars_features)
+pipelines.run_mars_xgb_inference()      # Phase 3B  (channel_heads.models.mars_inference)
+pipelines.build_mars_cnn_patches()      # Phase 4   (channel_heads.rasterization.mars_patches)
+pipelines.extract_mars_cnn_embeddings() # Phase 5   (channel_heads.models.embeddings)
+pipelines.run_mars_combined_inference() # Phase 6C  (channel_heads.models.mars_combined)
 pipelines.run_full_mars_pipeline()      # all of the above, in order
 
 from channel_heads.io import paths, read_table, write_table, read_gpkg, write_gpkg
@@ -72,16 +72,15 @@ from channel_heads import models   # models.xgboost / thresholds / comparison / 
 | Mars features (3A) | ✅ migrated | `channel_heads/features/mars_features.py` |
 | Mars XGB inference (3B) | ✅ migrated | `channel_heads/models/mars_inference.py` |
 | Mars CNN patches (4) | ✅ migrated | `channel_heads/rasterization/mars_patches.py` |
-| Mars CNN embeddings (5) | ⏳ transitional | `scripts/extract_mars_cnn_embeddings.py` |
-| Mars combined inference (6C) | ⏳ transitional | `scripts/run_mars_combined_xgb_inference.py` |
+| Mars CNN embeddings (5) | ✅ migrated | `channel_heads/models/embeddings.py` |
+| Mars combined inference (6C) | ✅ migrated | `channel_heads/models/mars_combined.py` |
 | Earth training | ⏳ transitional | `scripts/train_*` |
 | Regime calibration | ⏳ transitional | `scripts/*_regime.py`, `run_regime_pipeline.sh` |
 
-**Transitional** = the `pipelines.*` function runs the script in-process
-(`channel_heads/pipelines/_delegate.py`). The next batch of work moves each
-script body into the matching package module (`channel_heads/features/`,
-`channel_heads/mars/`, `channel_heads/models/`) and turns the script into a thin
-`cli/` wrapper. The architecture and public API do not change when that happens.
+The full Mars inference pipeline is now package-resident. Remaining
+**transitional** stages are non-Mars: the `pipelines.*` function runs the script
+in-process via `channel_heads/pipelines/_delegate.py` until those Earth/regime
+training paths are extracted.
 
 See also: [pipeline.md](pipeline.md) · [modeling.md](modeling.md) ·
 [data_management.md](data_management.md) · [notebooks.md](notebooks.md).

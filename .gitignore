@@ -74,7 +74,7 @@ output.pdf.png
 PROJECT_REVIEW_AND_IMPROVEMENTS.md
 
 # Trained models (large, regeneratable from notebooks)
-models/
+/models/
 
 # QGIS project files (user-specific)
 *.qgz

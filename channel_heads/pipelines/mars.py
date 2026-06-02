@@ -15,11 +15,11 @@ Stage order (see ``docs/pipeline.md``)::
     -> compare_mars_model_outputs     # Phase 6C variant comparison
 
 Migrated into the package: topology, pairs (:mod:`channel_heads.mars`),
-features (:mod:`channel_heads.features.mars_features`), tabular XGBoost inference
-(:mod:`channel_heads.models.mars_inference`) and CNN patches
-(:mod:`channel_heads.rasterization.mars_patches`).
-TRANSITIONAL (logic still in ``scripts/``, scheduled for extraction):
-embeddings, combined inference, comparison.
+features (:mod:`channel_heads.features.mars_features`), tabular XGBoost
+inference (:mod:`channel_heads.models.mars_inference`), CNN patches
+(:mod:`channel_heads.rasterization.mars_patches`), CNN embeddings
+(:mod:`channel_heads.models.embeddings`) and combined Mars inference
+(:mod:`channel_heads.models.mars_combined`).
 """
 
 from __future__ import annotations
@@ -28,7 +28,6 @@ from pathlib import Path
 
 from channel_heads import mars
 from channel_heads.io import paths
-from channel_heads.pipelines._delegate import run_script
 
 
 # --------------------------------------------------------------------------- #
@@ -110,36 +109,97 @@ def build_mars_cnn_patches(output_dir=paths.MARS_CNN_PATCHES_DIR) -> dict:
 
 
 # --------------------------------------------------------------------------- #
-# Phase 5 — CNN embeddings  (TRANSITIONAL)
+# Phase 5 — CNN embeddings  (MIGRATED)
 # --------------------------------------------------------------------------- #
-def extract_mars_cnn_embeddings() -> None:
+def extract_mars_cnn_embeddings(
+    patch_index_parquet=paths.MARS_CNN_PATCH_INDEX,
+    features_parquet=paths.MARS_MODEL_INPUTS_DIR / "mars_pair_features_5feat_model_ready.parquet",
+    predictions_parquet=paths.MARS_MODEL_OUTPUTS_DIR / "mars_xgb_predictions_5feat.parquet",
+    model_path=paths.CNN_PRODUCTION,
+    output_embeddings=paths.MARS_MODEL_INPUTS_DIR / "mars_cnn_embeddings.parquet",
+    output_combined=paths.MARS_MODEL_INPUTS_DIR / "mars_model_input_tabular_plus_cnn.parquet",
+    figures_dir=paths.MARS_CNN_PATCHES_DIR / "figures",
+    *,
+    batch_size: int = 64,
+    device: str | None = None,
+    write: bool = True,
+    make_figures: bool = True,
+) -> dict:
     """Phase 5: CNN embeddings via models/cnn_outlet_final.pt.
 
-    TRANSITIONAL — runs ``scripts/extract_mars_cnn_embeddings.py``.
+    Calls :func:`channel_heads.models.extract_mars_cnn_embeddings` directly.
+    Returns ``{"embeddings", "combined", "paths"}``.
     """
-    run_script("extract_mars_cnn_embeddings.py")
+    from channel_heads.models import extract_mars_cnn_embeddings as _extract
+
+    return _extract(
+        patch_index_parquet=patch_index_parquet,
+        features_parquet=features_parquet,
+        predictions_parquet=predictions_parquet,
+        model_path=model_path,
+        output_embeddings=output_embeddings,
+        output_combined=output_combined,
+        figures_dir=figures_dir,
+        batch_size=batch_size,
+        device=device,
+        write=write,
+        make_figures=make_figures,
+    )
 
 
 # --------------------------------------------------------------------------- #
-# Phase 6C — combined inference + comparison  (TRANSITIONAL)
+# Phase 6C — combined inference + comparison  (MIGRATED)
 # --------------------------------------------------------------------------- #
-def run_mars_combined_inference() -> None:
+def run_mars_combined_inference(
+    input_parquet=paths.MARS_MODEL_INPUTS_DIR / "mars_model_input_tabular_plus_cnn.parquet",
+    tabular_predictions_parquet=paths.MARS_MODEL_OUTPUTS_DIR / "mars_xgb_predictions_5feat.parquet",
+    patch_index_parquet=paths.MARS_CNN_PATCH_INDEX,
+    cnn_model_path=paths.CNN_PRODUCTION,
+    output_dir=paths.MARS_MODEL_OUTPUTS_DIR,
+    pairs_gpkg=paths.MARS_PAIRS_GPKG,
+    *,
+    batch_size: int = 64,
+    device: str | None = None,
+    write: bool = True,
+    write_gpkg: bool = True,
+    make_figures: bool = True,
+) -> dict:
     """Phase 6C: combined geom+CNN XGBoost variants on Mars.
 
-    TRANSITIONAL — runs ``scripts/run_mars_combined_xgb_inference.py``.
+    Calls :func:`channel_heads.models.run_mars_combined_inference` directly.
+    Returns ``{"predictions", "summary", "by_network", "thresholds",
+    "model_paths", "paths"}``.
     """
-    run_script("run_mars_combined_xgb_inference.py")
+    from channel_heads.models import run_mars_combined_inference as _run
+
+    return _run(
+        input_parquet=input_parquet,
+        tabular_predictions_parquet=tabular_predictions_parquet,
+        patch_index_parquet=patch_index_parquet,
+        cnn_model_path=cnn_model_path,
+        output_dir=output_dir,
+        pairs_gpkg=pairs_gpkg,
+        batch_size=batch_size,
+        device=device,
+        write=write,
+        write_gpkg=write_gpkg,
+        make_figures=make_figures,
+    )
 
 
-def compare_mars_model_outputs() -> None:
+def compare_mars_model_outputs(
+    predictions_parquet=paths.MARS_MODEL_OUTPUTS_DIR / "mars_combined_model_predictions.parquet",
+):
     """Phase 6C: summarise/compare the Mars model variant outputs.
 
-    TRANSITIONAL — the comparison is produced by the combined-inference script;
-    see :func:`run_mars_combined_inference`. Use
-    :func:`channel_heads.models.comparison.compare_predictions` for ad-hoc
-    comparisons in notebooks.
+    Reads the Phase-6C combined prediction table and returns the package
+    comparison summary.
     """
-    run_script("run_mars_combined_xgb_inference.py")
+    import pandas as pd
+
+    from channel_heads.models import compare_mars_model_variants
+
+    return compare_mars_model_variants(pd.read_parquet(predictions_parquet))
 
 
 def run_full_mars_pipeline() -> None:
