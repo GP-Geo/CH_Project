@@ -8,8 +8,8 @@ _Last updated: 2026-06-02_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** device consolidation (see `AGENT_RUN_LOG.md` for hash);
-  prior was `90fd694 refactor(models): move XGBoost inference implementation into models`.
+- **Latest stable commit:** CNN architecture move (Slice 3a; see
+  `AGENT_RUN_LOG.md`); prior was `3b51fb0 docs(agents): record CNN ownership audit`.
 - **Working tree:** clean at time of writing.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
@@ -41,6 +41,7 @@ _Last updated: 2026-06-02_
 | Path/config surface | `channel_heads/io/paths.py` | `channel_heads/config.py` (shim) |
 | XGBoost model load / validate / predict / threshold | `channel_heads/models/xgboost.py` | `channel_heads/inference/xgb.py` (shim) |
 | Torch device selection (`pick_device`) | `channel_heads/models/device.py` | `channel_heads/inference/device.py` (shim) |
+| CNN architecture / dataset / one-hot (`OutletCNN`, `OutletPairDataset`, `encode_raster_onehot`, `DEFAULT_EMBEDDING_DIM`, `DEFAULT_TARGET_SIZE`) | `channel_heads/models/cnn.py` | `channel_heads/cnn_model.py` (shim) |
 
 ## Model-layer status
 
@@ -65,8 +66,22 @@ _Last updated: 2026-06-02_
   current re-export to real); Earth embeddings (`cnn_features.py`) → models
   layer; training core (`cnn_training.py`) → future `channel_heads/training/`;
   flat `cnn_*` modules → shims. The four divergent CNN forward-pass extractors
-  (lenient vs strict load) are **not** to be merged in the model slice. No CNN
-  code changed yet.
+  (lenient vs strict load) are **not** to be merged in the model slice.
+- **CNN architecture consolidation (Slice 3a): DONE.** The real `OutletCNN`,
+  `OutletPairDataset`, `encode_raster_onehot`, `DEFAULT_EMBEDDING_DIM`,
+  `DEFAULT_TARGET_SIZE` now live in `channel_heads/models/cnn.py`;
+  `channel_heads/cnn_model.py` is a pure re-export shim (also re-exports
+  `NUM_CLASSES` to match its historical namespace). Architecture moved
+  byte-for-byte — state-dict keys, dims, constructor defaults, and forward
+  shapes unchanged; `strict=True` artifact loading preserved (pinned by
+  `tests/test_cnn_consolidation.py`). `models/cnn.py` re-exports the training
+  core (`train_cnn`, `pick_device`, `DEFAULT_*`, `HOLDOUT_BASIN`) from
+  `cnn_training.py` **lazily** via module `__getattr__` to avoid the
+  `cnn_training → cnn_model(shim) → models.cnn` import cycle (with a
+  `TYPE_CHECKING` block so linters still see the names). Old imports
+  (`channel_heads.cnn_model`, `channel_heads.models.cnn`, top-level
+  `channel_heads`) all resolve to the same objects. `cnn_training.py` itself was
+  NOT touched (still defines its own `pick_device` — dedup deferred to Slice 3b).
 
 ## Known shims (keep working)
 
@@ -75,22 +90,26 @@ _Last updated: 2026-06-02_
 - `channel_heads/first_meet_pairs_for_outlet.py` → `channel_heads/pairing/earth.py`
 - `channel_heads/plotting_utils.py` → `channel_heads/viz/earth.py`
 - `channel_heads/config.py` → `channel_heads/io/paths.py`
+- `channel_heads/cnn_model.py` → `channel_heads/models/cnn.py`
 
 ## Known transitional / not-yet-audited areas
 
 - `channel_heads/inference/regime.py` — transitional; defer to Earth/regime audit.
-- CNN modules (`cnn_model.py`, `cnn_features.py`, `cnn_training.py`) — not yet
-  audited against `models/`. Audit-only first.
+- CNN modules: `cnn_model.py` is now a shim → `models/cnn.py` (Slice 3a done).
+  `cnn_features.py` (Earth embeddings) and `cnn_training.py` (training core +
+  duplicate `pick_device`) are still real and not yet consolidated — see Slices
+  3b/3c/3d in `AGENT_AUDIT_CNN.md` §6.
 - `geometric_analysis.py`, `rasterizer.py` — audit-only, no refactor yet.
 - `scripts/` — several still import `from channel_heads.inference import ...`
   (acceptable for thin scripts); cleanup/archive pass pending.
 
 ## Next recommended task
 
-**Slice 3a — CNN architecture consolidation:** move `OutletCNN`,
-`OutletPairDataset`, `encode_raster_onehot`, `DEFAULT_EMBEDDING_DIM`,
-`DEFAULT_TARGET_SIZE` from `channel_heads/cnn_model.py` into
-`channel_heads/models/cnn.py` (promote to real); reduce `cnn_model.py` to a
-shim. Byte-for-byte architecture move only — `cnn_outlet_final.pt` is loaded
-`strict=True`. See `AGENT_AUDIT_CNN.md` §6 for the full 3a–3d sub-slice plan and
-the explicit "do not merge the four forward-pass extractors" rule.
+**Slice 3b — `pick_device` dedup in `cnn_training.py`:** replace the local
+`pick_device` copy in `channel_heads/cnn_training.py` with
+`from channel_heads.models.device import pick_device` (keep the name exported so
+`models/cnn.py`'s lazy re-export and the trainer scripts still resolve it).
+Tests: `tests/test_cnn_model.py` (asserts `pick_device()` returns a valid
+device), full pytest. Stop if device selection changes on any platform. See
+`AGENT_AUDIT_CNN.md` §6 for the remaining 3c/3d sub-slices and the "do not merge
+the four forward-pass extractors" rule.

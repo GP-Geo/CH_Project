@@ -109,7 +109,7 @@ from .stream_utils import outlet_node_ids_from_streampoi
 # CNN modules (optional, require PyTorch)
 try:
     from .cnn_features import CNN_FEATURE_COLS, extract_embeddings, merge_cnn_features
-    from .cnn_model import OutletCNN, OutletPairDataset, encode_raster_onehot
+    from .models.cnn import OutletCNN, OutletPairDataset, encode_raster_onehot
 
     _HAS_TORCH = True
 except ImportError:

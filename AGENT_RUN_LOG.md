@@ -4,6 +4,48 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-02 — Slice 3a: CNN architecture move into models/cnn.py
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `3b51fb0 docs(agents): record CNN ownership audit`
+- **Task:** Slice 3a — promote `channel_heads/models/cnn.py` to the canonical
+  home of the CNN architecture/dataset; reduce `channel_heads/cnn_model.py` to a
+  shim. Behavior-preserving (no rewrite).
+- **Files updated:**
+  - `channel_heads/models/cnn.py` — now holds the real `OutletCNN`,
+    `OutletPairDataset`, `encode_raster_onehot`, `DEFAULT_EMBEDDING_DIM`,
+    `DEFAULT_TARGET_SIZE` (architecture copied verbatim; `NUM_CLASSES` imported
+    from `channel_heads.rasterizer`). Training symbols (`train_cnn`,
+    `pick_device`, `DEFAULT_*`, `HOLDOUT_BASIN`) re-exported **lazily** via module
+    `__getattr__` (+ a `TYPE_CHECKING` import so linters see them) to avoid the
+    `cnn_training → cnn_model(shim) → models.cnn` import cycle.
+  - `channel_heads/cnn_model.py` — reduced to a pure re-export shim of the five
+    architecture symbols + `NUM_CLASSES` (preserves its historical namespace).
+  - `channel_heads/__init__.py` — one-line repoint of the CNN architecture import
+    to `from .models.cnn import ...` (prefers canonical path; cnn_features stays
+    on the shim as it is out of scope).
+- **Files created:** `tests/test_cnn_consolidation.py` — proves old/new paths are
+  the *same* objects, instantiation from both paths, **state-dict keys pinned**
+  (artifact contract), forward/embed shapes, dataset behavior, lazy training
+  re-export, and the shim re-exporting `NUM_CLASSES`.
+- **Not touched (per slice scope):** `cnn_features.py`, `cnn_training.py`,
+  `models/embeddings.py`, `inference/regime.py`, `mars_combined.py`,
+  `rasterizer.py`, trained artifacts, `data/`, notebooks.
+- **Validation:** import smoke checks under 6 entry points (channel_heads,
+  cnn_model shim, cnn_training, models.cnn, cnn_features, models.embeddings) —
+  all resolve, no cycle, old `is` new. Targeted tests (consolidation + cnn_model
+  + cnn_features + mars_embeddings + mars_combined + inference_regime): 61
+  passed. Full `pytest`: **490 passed, 7 warnings** (was 471 before; +19
+  consolidation tests). `ruff` clean on `models/cnn.py` and `cnn_model.py`; the
+  `__init__.py` I001 and the test E402s are pre-existing patterns (verified on
+  HEAD / matching `test_cnn_model.py`'s `importorskip`). `git diff --check` clean.
+- **Risks:** Low. Architecture moved byte-for-byte (state-dict keys/dims/forward
+  unchanged → `strict=True` artifact load preserved). The only structural
+  novelty is the lazy training re-export, required and verified to break the
+  import cycle without changing the curated surface.
+- **Next step:** Slice 3b — dedup `pick_device` in `cnn_training.py` onto
+  `channel_heads/models/device.py`.
+
 ## 2026-06-02 — Slice 2: CNN audit (audit-only)
 
 - **Branch:** `refactor/package-first-architecture`
