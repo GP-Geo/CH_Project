@@ -9,12 +9,11 @@ constructor defaults, and forward shapes are unchanged from the historical
 ``channel_heads.cnn_model`` module).
 
 The shared training loop and hyperparameter defaults live in
-:mod:`channel_heads.cnn_training` and are re-exported from this module's curated
+:mod:`channel_heads.training.cnn` and are re-exported from this module's curated
 surface *lazily* (via module ``__getattr__``). The lazy re-export keeps this
-module importable without pulling in :mod:`channel_heads.cnn_training`, which
-would otherwise create an import cycle through the
-:mod:`channel_heads.cnn_model` compatibility shim
-(``cnn_training`` → ``cnn_model`` shim → ``models.cnn``).
+module importable without pulling in :mod:`channel_heads.training.cnn`, which
+imports back from this module (``training.cnn`` → ``models.cnn``) and would
+otherwise create an import cycle.
 
 The historical import location :mod:`channel_heads.cnn_model` re-exports the
 architecture/dataset symbols from here as a compatibility shim. Requires
@@ -39,8 +38,8 @@ if TYPE_CHECKING:
     # Re-exported lazily at runtime via module ``__getattr__`` (see below); the
     # static import here only exists so type checkers / linters see these names
     # as part of this module's public surface. It is never executed at runtime,
-    # so it does not reintroduce the cnn_training import cycle.
-    from channel_heads.cnn_training import (
+    # so it does not reintroduce the training.cnn import cycle.
+    from channel_heads.training.cnn import (
         DEFAULT_BATCH_SIZE,
         DEFAULT_DROPOUT,
         DEFAULT_EPOCHS,
@@ -251,10 +250,10 @@ class OutletPairDataset(Dataset):
 # Lazy re-export of the shared training core (curated surface)
 # =============================================================================
 
-# These symbols live in ``channel_heads.cnn_training``. They are exposed here
+# These symbols live in ``channel_heads.training.cnn``. They are exposed here
 # lazily so importing ``channel_heads.models.cnn`` never eagerly imports the
-# training module — that would close an import cycle through the
-# ``channel_heads.cnn_model`` shim (see module docstring).
+# training module — which imports back from this module, closing an import cycle
+# (see module docstring).
 _TRAINING_EXPORTS = frozenset(
     {
         "train_cnn",
@@ -272,9 +271,9 @@ _TRAINING_EXPORTS = frozenset(
 
 def __getattr__(name: str):
     if name in _TRAINING_EXPORTS:
-        from channel_heads import cnn_training
+        from channel_heads.training import cnn as training_cnn
 
-        return getattr(cnn_training, name)
+        return getattr(training_cnn, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 

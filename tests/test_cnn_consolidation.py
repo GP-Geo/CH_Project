@@ -242,3 +242,49 @@ class TestCNNFeaturesConsolidated:
             assert col in result.columns
             assert np.all(np.isfinite(result[col].to_numpy()))
             assert (result[col] >= 0).all()  # ReLU embedding
+
+
+class TestTrainingCoreConsolidated:
+    """CNN training core: canonical home in training.cnn + shim identity."""
+
+    def test_old_and_new_train_cnn_same_object(self):
+        from channel_heads.cnn_training import train_cnn as old_train
+        from channel_heads.training.cnn import train_cnn as new_train
+
+        assert old_train is new_train
+
+    def test_train_cnn_module_is_training_cnn(self):
+        from channel_heads.training.cnn import train_cnn
+
+        assert train_cnn.__module__ == "channel_heads.training.cnn"
+
+    def test_defaults_unchanged_and_identical_across_paths(self):
+        from channel_heads import cnn_training as shim
+        from channel_heads.training import cnn as canonical
+
+        assert canonical.DEFAULT_EPOCHS == shim.DEFAULT_EPOCHS == 60
+        assert canonical.DEFAULT_LR == shim.DEFAULT_LR == 1e-3
+        assert canonical.DEFAULT_WEIGHT_DECAY == shim.DEFAULT_WEIGHT_DECAY == 1e-4
+        assert canonical.DEFAULT_BATCH_SIZE == shim.DEFAULT_BATCH_SIZE == 64
+        assert canonical.DEFAULT_DROPOUT == shim.DEFAULT_DROPOUT == 0.3
+        assert canonical.DEFAULT_PATIENCE == shim.DEFAULT_PATIENCE == 12
+
+    def test_holdout_basin_unchanged(self):
+        from channel_heads import cnn_training as shim
+        from channel_heads.training import cnn as canonical
+
+        assert canonical.HOLDOUT_BASIN == shim.HOLDOUT_BASIN == "taiwan"
+
+    def test_random_state_unchanged(self):
+        from channel_heads import cnn_training as shim
+        from channel_heads.training import cnn as canonical
+
+        assert canonical.RANDOM_STATE == shim.RANDOM_STATE == 42
+
+    def test_models_cnn_lazy_reexport_sources_from_training_cnn(self):
+        """models.cnn lazy re-export resolves to training.cnn (no import cycle)."""
+        import channel_heads.models.cnn as models_cnn
+        from channel_heads.training.cnn import train_cnn as canonical_train
+
+        assert models_cnn.train_cnn is canonical_train
+        assert models_cnn.HOLDOUT_BASIN == "taiwan"

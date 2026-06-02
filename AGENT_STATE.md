@@ -8,8 +8,8 @@ _Last updated: 2026-06-02_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** CNN embedding helpers into models (Slice 3c; see
-  `AGENT_RUN_LOG.md`); prior was `6b2e31b refactor(models): deduplicate CNN training device selection`.
+- **Latest stable commit:** CNN training core into training package (Slice 3d;
+  see `AGENT_RUN_LOG.md`); prior was `8ecbd9e refactor(models): move CNN embedding helpers into models`.
 - **Working tree:** clean at time of writing.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
@@ -43,6 +43,7 @@ _Last updated: 2026-06-02_
 | Torch device selection (`pick_device`) | `channel_heads/models/device.py` | `channel_heads/inference/device.py` (shim) |
 | CNN architecture / dataset / one-hot (`OutletCNN`, `OutletPairDataset`, `encode_raster_onehot`, `DEFAULT_EMBEDDING_DIM`, `DEFAULT_TARGET_SIZE`) | `channel_heads/models/cnn.py` | `channel_heads/cnn_model.py` (shim) |
 | Generic/Earth CNN embedding helpers (`extract_embeddings`, `merge_cnn_features`, `CNN_FEATURE_COLS`) | `channel_heads/models/cnn_features.py` | `channel_heads/cnn_features.py` (shim) |
+| CNN training core (`train_cnn`, `DEFAULT_*`, `HOLDOUT_BASIN`, `RANDOM_STATE`) | `channel_heads/training/cnn.py` | `channel_heads/cnn_training.py` (shim) |
 
 ## Model-layer status
 
@@ -107,6 +108,21 @@ _Last updated: 2026-06-02_
   `from channel_heads.cnn_features import extract_embeddings, CNN_FEATURE_COLS`,
   top-level `channel_heads`) all resolve to the same objects (pinned by
   `tests/test_cnn_consolidation.py::TestCNNFeaturesConsolidated`).
+- **CNN training core → `training/` package (Slice 3d): DONE.** The real
+  `train_cnn` loop + `DEFAULT_*` / `HOLDOUT_BASIN` / `RANDOM_STATE` now live in
+  the new `channel_heads/training/cnn.py` (moved verbatim; logger name kept as
+  `"channel_heads.cnn_training"` so logging behavior is unchanged; imports the
+  CNN classes from `channel_heads.models.cnn` and re-exports `pick_device` from
+  `channel_heads.models.device`). `channel_heads/cnn_training.py` is a pure
+  re-export shim. `models/cnn.py`'s lazy `__getattr__` (and `TYPE_CHECKING`
+  block) now source the training symbols from `channel_heads.training.cnn` — the
+  lazy mechanism is still required because `training.cnn` imports `models.cnn`
+  (would cycle if eager). Old imports (`channel_heads.cnn_training`,
+  `channel_heads.training.cnn`, and `models.cnn`'s lazy surface) all resolve to
+  the same objects; the three `scripts/train_cnn_*.py` trainers (unmodified)
+  still import cleanly via the shim. Pinned by
+  `tests/test_cnn_consolidation.py::TestTrainingCoreConsolidated`. This completes
+  the CNN consolidation (Slice 3).
 
 ## Known shims (keep working)
 
@@ -117,28 +133,30 @@ _Last updated: 2026-06-02_
 - `channel_heads/config.py` → `channel_heads/io/paths.py`
 - `channel_heads/cnn_model.py` → `channel_heads/models/cnn.py`
 - `channel_heads/cnn_features.py` → `channel_heads/models/cnn_features.py`
+- `channel_heads/cnn_training.py` → `channel_heads/training/cnn.py`
 
 ## Known transitional / not-yet-audited areas
 
 - `channel_heads/inference/regime.py` — transitional; defer to Earth/regime audit.
-- CNN modules: `cnn_model.py` → shim to `models/cnn.py` (Slice 3a) and
-  `cnn_features.py` → shim to `models/cnn_features.py` (Slice 3c) are both done.
-  `cnn_training.py` no longer duplicates `pick_device` (Slice 3b done) but is
-  still the real home of the training loop/defaults — the training-core move to a
-  future `channel_heads/training/` package is the remaining sub-slice (3d). See
-  `AGENT_AUDIT_CNN.md` §6.
+- CNN modules: **all three flat `cnn_*` modules are now shims** —
+  `cnn_model.py` → `models/cnn.py` (3a), `cnn_features.py` →
+  `models/cnn_features.py` (3c), `cnn_training.py` → `training/cnn.py` (3d);
+  `pick_device` deduped onto `models/device.py` (3b). Slice 3 (CNN consolidation)
+  is complete. The four divergent forward-pass extractors in `inference/regime.py`,
+  `models/mars_combined.py`, and `scripts/train_combined_xgb_*.py` were
+  deliberately **not** merged (see `AGENT_AUDIT_CNN.md` §3b/§5).
 - `geometric_analysis.py`, `rasterizer.py` — audit-only, no refactor yet.
 - `scripts/` — several still import `from channel_heads.inference import ...`
   (acceptable for thin scripts); cleanup/archive pass pending.
 
 ## Next recommended task
 
-**Slice 3d — CNN training core → future `channel_heads/training/` package:**
-move `train_cnn` + the `DEFAULT_*` / `HOLDOUT_BASIN` / `RANDOM_STATE`
-hyperparameters out of `channel_heads/cnn_training.py` into a new
-`channel_heads/training/cnn.py`; reduce `cnn_training.py` to a shim;
-`models/cnn.py`'s lazy `__getattr__` re-export should source the training
-symbols from the new home. Keep scripts importing `channel_heads.cnn_training`
-(shim) — repointing them is Slice 4. Preserve every default value. Tests:
-`tests/test_cnn_model.py`, full pytest. Stop if any default changes. See
-`AGENT_AUDIT_CNN.md` §6; do not merge the four forward-pass extractors.
+**Slice 4 — scripts cleanup / archive.** With the CNN consolidation done
+(Slice 3 complete), repoint thin scripts under `scripts/` to canonical package
+imports where safe (e.g. `channel_heads.training.cnn`, `channel_heads.models.cnn`,
+`channel_heads.models.cnn_features`, `channel_heads.models.device` instead of the
+flat shims), and move clearly dead scripts to an `_archive/` location (do not
+delete). Keep scripts runnable; only `scripts/` files in scope. The inline
+`pick_device` / forward-pass copies in `scripts/train_combined_xgb_*.py` can be
+repointed to canonical imports here but their behavior must not change. See
+`AGENT_BACKLOG.md` Slice 4. Stop if any script's runtime behavior or CLI changes.

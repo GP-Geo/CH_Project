@@ -4,6 +4,57 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-02 — Slice 3d: move CNN training core into training package
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `8ecbd9e refactor(models): move CNN embedding helpers into models`
+- **Task:** Slice 3d — move the CNN training core out of
+  `channel_heads/cnn_training.py` into a new `channel_heads/training/` package;
+  reduce `cnn_training.py` to a shim. Separates model definitions from training
+  code. Behavior-preserving (no rewrite). Completes Slice 3.
+- **Files created:**
+  - `channel_heads/training/__init__.py` — training-layer package (minimal,
+    torch-free; does not eager-import the torch submodule).
+  - `channel_heads/training/cnn.py` — real `train_cnn` loop + `DEFAULT_*` /
+    `HOLDOUT_BASIN` / `RANDOM_STATE` (moved verbatim). Logger name kept as
+    `"channel_heads.cnn_training"` (logging behavior unchanged). Imports
+    `OutletCNN`/`OutletPairDataset` from `channel_heads.models.cnn` and
+    re-exports `pick_device` from `channel_heads.models.device`.
+- **Files updated:**
+  - `channel_heads/cnn_training.py` — reduced to a pure re-export shim
+    (`train_cnn`, `pick_device`, six `DEFAULT_*`, `HOLDOUT_BASIN`,
+    `RANDOM_STATE`).
+  - `channel_heads/models/cnn.py` — repointed the lazy `__getattr__` + the
+    `TYPE_CHECKING` block to source training symbols from
+    `channel_heads.training.cnn` (lazy still required: `training.cnn` imports
+    `models.cnn`, so an eager re-export would cycle). Docstring/comments updated.
+  - `channel_heads/models/__init__.py` — docstring refreshed (cnn / cnn_features
+    / embeddings / training.cnn relationships).
+  - `tests/test_cnn_consolidation.py` — added `TestTrainingCoreConsolidated`
+    (old/new `train_cnn` identity, module location, all `DEFAULT_*` +
+    `HOLDOUT_BASIN` + `RANDOM_STATE` unchanged and identical across paths, and
+    the `models.cnn` lazy re-export resolving to `training.cnn`).
+- **Not touched (per slice scope):** training scripts (`scripts/train_cnn_*.py`,
+  `scripts/train_combined_xgb_*.py`), `inference/regime.py`, `mars_combined.py`,
+  `rasterizer.py`, `geometric_analysis.py`, trained artifacts, `data/`, root
+  `/models/`, notebooks.
+- **Validation:** import checks under 4 cold entry points (channel_heads,
+  cnn_training shim, training.cnn, models.cnn lazy) — all resolve, no cycle,
+  old `is` new for `train_cnn`/`pick_device`; defaults (60, 1e-3, 1e-4, 64, 0.3,
+  12), `HOLDOUT_BASIN="taiwan"`, `RANDOM_STATE=42` identical across paths;
+  `models.cnn.train_cnn is training.cnn.train_cnn`; all `pick_device` paths
+  unified onto `models.device`. The three unmodified `scripts/train_cnn_*`
+  trainers import cleanly via the shim. Targeted (`test_cnn_model.py`,
+  `test_cnn_consolidation.py`): 51 passed. Full `pytest`: **503 passed, 7
+  warnings** (was 497; +6 training-core tests). `ruff` clean on all new/changed
+  files. `git diff --check` clean.
+- **Risks:** Low. `train_cnn` moved byte-for-byte (loop, loss/optimizer,
+  early-stopping, checkpoint, seeding, logger name all unchanged). Only
+  structural change is the package relocation + repointed lazy re-export, both
+  verified cycle-free.
+- **Next step:** Slice 4 — scripts cleanup / archive (repoint thin scripts to
+  canonical imports; archive dead scripts).
+
 ## 2026-06-02 — Slice 3c: move CNN embedding helpers into models
 
 - **Branch:** `refactor/package-first-architecture`
