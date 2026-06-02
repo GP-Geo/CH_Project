@@ -47,7 +47,9 @@ feature engineering → CNN embeddings → quick eval. Back this with
 `pipelines.train_earth_models()`.
 
 ### `analysis/` — Earth basin analysis (exploration)
-`01_single_basin_test` → `04_all_basins_full` (use `channel_heads.plotting_utils`).
+`01_single_basin_test` → `04_all_basins_full` (Earth plotting now lives in
+`channel_heads.viz.earth`; `channel_heads.plotting_utils` remains a notebook
+compatibility shim).
 
 ### `archive/` — superseded (do not maintain)
 `experiment_250th/350th/500th`, `experiment_template`, `optimization_review.md`.

@@ -56,7 +56,7 @@ conda run -n ch-heads ruff check <files>      # targeted; repo-wide has known pr
 | `features/` | Dimensionless feature math (`geometry`, `paths`). |
 | `inference/` | XGBoost load/verify/predict, device pick, regime-CNN embedding attach. |
 | `eval/` | Threshold tuning, classification metrics, grouped/LOBO splits. |
-| `viz/` | Vector figures: contact sheets, ROC curves, per-outlet, stream-crossing QA. |
+| `viz/` | Earth DEM/basin plotting plus vector figures: contact sheets, ROC curves, per-outlet, stream-crossing QA. |
 | `basin_config.py`, `config.py`, `logging_config.py`, `cli.py` | Basin params, paths, logging, CLI. |
 | `stream_utils.py` | `outlet_node_ids_from_streampoi`. |
 
