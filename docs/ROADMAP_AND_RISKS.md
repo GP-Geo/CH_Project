@@ -22,7 +22,7 @@ the highest priority** and is the motivation for centralizing unit logic in
 | S4 | `coupling_analysis.py` | Pre-filter distance threshold (`multiplier·√threshold`) is geometrically optimistic for elongated basins — may skip real touching pairs. | Medium | Manual |
 | S5 | `coupling_analysis.py` | `contact_px` double-counts diagonal contacts under 8-connectivity (≈2×). `touching` bool is still correct. | Medium | Manual |
 | S6 | `geometric_analysis.py` | `strahler_order_diff` uses the branch parent's order, not the head's. Defensible; document. | Low | Manual |
-| S7 | `first_meet_pairs_for_outlet.py` | O(k²) pairs at highly-branched confluences (e.g. Taiwan). Correct but can be slow. | Low | Monitor |
+| S7 | `pairing/dag.py` via `pairing/earth.py` | O(k²) pairs at highly-branched confluences (e.g. Taiwan). Correct but can be slow. | Low | Monitor |
 | S8 | `geometric_analysis.py` | `filter_hard_negatives` on the full dataset before LOBO CV → mild train/test leakage. Call per fold. | Medium | Manual |
 
 **S1 verification recipe:**

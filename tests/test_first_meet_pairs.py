@@ -1,15 +1,43 @@
 """Tests for first_meet_pairs_for_outlet module."""
 
+import importlib
+
 import numpy as np
 import pytest
 
-from channel_heads.first_meet_pairs_for_outlet import (
+from channel_heads import pairing as pairing_package
+from channel_heads.pairing import earth as earth_module
+from channel_heads.pairing.dag import first_meet_pairs_on_dag, normalize_pair
+from channel_heads.pairing.earth import (
     _build_parents_from_stream,
     _collect_basin_nodes_from_outlet,
     _normalize_pair,
     _to_node_id_list,
     first_meet_pairs_for_outlet,
 )
+
+
+class TestEarthAdapterImports:
+    """Test new public import paths and legacy compatibility shim."""
+
+    def test_legacy_module_reexports_new_implementation(self):
+        """Historical imports should resolve to the package-resident implementation."""
+        legacy_module = importlib.import_module("channel_heads.first_meet_pairs_for_outlet")
+
+        assert legacy_module.first_meet_pairs_for_outlet is earth_module.first_meet_pairs_for_outlet
+        assert legacy_module._build_parents_from_stream is earth_module._build_parents_from_stream
+        assert legacy_module._collect_basin_nodes_from_outlet is (
+            earth_module._collect_basin_nodes_from_outlet
+        )
+
+    def test_pairing_package_exports_earth_adapter(self):
+        """The pairing package exposes the Earth adapter at the package boundary."""
+        assert pairing_package.first_meet_pairs_for_outlet is earth_module.first_meet_pairs_for_outlet
+
+    def test_earth_adapter_uses_shared_dag_backend(self):
+        """Earth wrapper should reuse pairing.dag instead of duplicating generic logic."""
+        assert earth_module.first_meet_pairs_on_dag is first_meet_pairs_on_dag
+        assert earth_module._normalize_pair is normalize_pair
 
 
 class TestNormalizePair:

@@ -41,8 +41,8 @@ from .features.geometry import angle_between_vectors as _angle_between_vectors
 from .features.geometry import azimuth_difference as _azimuth_difference
 from .features.geometry import compute_azimuth as _compute_azimuth
 from .features.geometry import compute_proximity_profile as _compute_proximity_profile
-from .first_meet_pairs_for_outlet import _build_parents_from_stream, _normalize_pair
 from .logging_config import get_logger
+from .pairing.earth import _build_parents_from_stream, _normalize_pair
 from .stream_utils import line_pixels
 from .units import compute_meters_per_degree, compute_pixel_size_meters
 

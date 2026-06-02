@@ -1,7 +1,8 @@
-"""Graph-agnostic first-meet channel-head pairing.
+"""First-meet channel-head pairing.
 
-Shared by the Earth (``StreamObject`` basin) and Mars (valley-network graph)
-pipelines. See :mod:`channel_heads.pairing.dag`.
+Shared DAG algorithms live in :mod:`channel_heads.pairing.dag`. Earth
+TopoToolbox basin adaptation lives in :mod:`channel_heads.pairing.earth`; Mars
+valley-network graph helpers live in :mod:`channel_heads.pairing.mars_graph`.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from .dag import (
     normalize_pair,
     topological_sort,
 )
+from .earth import first_meet_pairs_for_outlet
 
 # Mars graph helpers require geopandas/shapely. Keep them optional so the
 # pure-Python DAG core (and its tests) import without the geo stack installed.
@@ -33,6 +35,7 @@ __all__ = [
     "build_directed_adjacency",
     "chain_segment_geometries",
     "detect_crossed_segments",
+    "first_meet_pairs_for_outlet",
     "first_meet_pairs_on_dag",
     "normalize_pair",
     "topological_sort",

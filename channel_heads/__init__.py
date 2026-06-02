@@ -63,7 +63,7 @@ from .config import (
 )
 from . import io, mars, models, pipelines, rasterization
 from .coupling_analysis import CouplingAnalyzer, PairTouchResult
-from .first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
+from .pairing.earth import first_meet_pairs_for_outlet
 
 # Geometric analysis (asymmetry, geometric features, CSV enrichment)
 from .geometric_analysis import (

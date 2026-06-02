@@ -27,7 +27,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-from .first_meet_pairs_for_outlet import (
+from .pairing.earth import (
     _build_children_from_parents,
     _build_parents_from_stream,
     _collect_basin_nodes_from_outlet,

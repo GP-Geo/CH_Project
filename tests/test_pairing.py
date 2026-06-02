@@ -242,7 +242,7 @@ class TestMarsGraphHelpers:
 
 class TestEarthWrapper:
     def test_simple_y_network_fixture(self, simple_y_network):
-        from channel_heads.first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
+        from channel_heads.pairing.earth import first_meet_pairs_for_outlet
 
         net = simple_y_network
         pairs, heads = first_meet_pairs_for_outlet(net["s"], net["outlets"][0])

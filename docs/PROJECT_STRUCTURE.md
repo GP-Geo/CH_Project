@@ -47,7 +47,7 @@ channel-heads/
 | Module | Role |
 |--------|------|
 | `coupling_analysis.py` | `CouplingAnalyzer` (coupling detection, mask cache, stream-crossing gate). |
-| `first_meet_pairs_for_outlet.py` | Earth channel-head pairing (delegates to `pairing/`). |
+| `first_meet_pairs_for_outlet.py` | Compatibility shim for the Earth first-meet adapter in `pairing/earth.py`. |
 | `geometric_analysis.py` | Asymmetry + geometric features + labeling + CSV enrichment. |
 | `rasterizer.py` | 5-class 128×128 patch rasterization (direct final-grid); shared `bresenham_line`. |
 | `cnn_features.py`, `cnn_model.py`, `cnn_training.py` | CNN dataset + `OutletCNN` + embedding extraction + shared training loop/defaults. |
@@ -55,7 +55,7 @@ channel-heads/
 | `pruning.py` | Strahler-strip + order-gap pruning. |
 | `units.py` | Unit conversions (single source of truth). |
 | `regimes.py` | `Regime` dataclass + `REGIMES` presets (regA/B/C). |
-| `pairing/` | Graph-agnostic first-meet core (`dag.py`) + Mars-graph helpers (`mars_graph.py`: adjacency, path tracing/chaining, `detect_crossed_segments`). |
+| `pairing/` | First-meet pairing package: graph-agnostic core (`dag.py`), Earth/TopoToolbox adapter (`earth.py`), and Mars-graph helpers (`mars_graph.py`). |
 | `features/` | Dimensionless feature math: `geometry.py` (angle/azimuth/proximity), `paths.py` (direction/sampling). |
 | `inference/` | XGBoost glue: `xgb.py` (load/verify/predict), `device.py` (`pick_device`), `regime.py` (regime-CNN embedding attach). |
 | `eval/` | `metrics.py` (F1-opt / max-precision threshold, classification metrics), `splitting.py` (`outlet_group_holdout`, `leave_one_group_out_oof`). |

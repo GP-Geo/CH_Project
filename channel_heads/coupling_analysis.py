@@ -11,7 +11,7 @@ Dependencies
 
 Assumptions
 -----------
-- You already have `first_meet_pairs_for_outlet(s, outlet)` available (e.g., in src/first_meet_pairs_for_outlet.py).
+- You already have `first_meet_pairs_for_outlet(s, outlet)` available (e.g., from `channel_heads.pairing.earth`).
 - `fd` is a FlowObject with: .dependencemap(GridObject), .unravel_index(idxs), .shape
 - `s`  is a StreamObject with: .node_indices (tuple of (row_idx, col_idx))
 

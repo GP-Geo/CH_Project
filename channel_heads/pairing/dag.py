@@ -1,8 +1,8 @@
 """Generic first-meet channel-head pairing on a directed acyclic graph.
 
 This is the graph-agnostic core shared by the Earth pipeline
-(``channel_heads.first_meet_pairs_for_outlet``, operating on a TopoToolbox
-``StreamObject`` basin) and the Mars pipeline
+(``channel_heads.pairing.earth.first_meet_pairs_for_outlet``, operating on a
+TopoToolbox ``StreamObject`` basin) and the Mars pipeline
 (``scripts/extract_mars_first_meet_pairs.py``, operating on a mapped
 valley-network graph).
 

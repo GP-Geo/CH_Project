@@ -9,8 +9,8 @@ import pandas as pd
 import topotoolbox as tt3
 
 from .coupling_analysis import CouplingAnalyzer
-from .first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
 from .logging_config import get_logger, setup_logging
+from .pairing.earth import first_meet_pairs_for_outlet
 from .stream_utils import outlet_node_ids_from_streampoi
 
 logger = get_logger(__name__)

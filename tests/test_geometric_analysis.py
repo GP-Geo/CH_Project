@@ -26,7 +26,7 @@ import math
 import numpy as np
 import pandas as pd
 
-from channel_heads.first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
+from channel_heads.pairing.earth import first_meet_pairs_for_outlet
 from channel_heads.geometric_analysis import (
     GEOM_FEATURE_COLS,
     GeometricFeaturesAnalyzer,
@@ -1091,7 +1091,7 @@ class TestTraceFullPath:
 
     def test_reaches_target(self, simple_y_network):
         """Full path from head to confluence ends at confluence."""
-        from channel_heads.first_meet_pairs_for_outlet import _build_parents_from_stream
+        from channel_heads.pairing.earth import _build_parents_from_stream
         from channel_heads.geometric_analysis import _build_children_from_parents
 
         s = simple_y_network["s"]
@@ -1106,7 +1106,7 @@ class TestTraceFullPath:
 
     def test_includes_all_nodes(self, simple_y_network):
         """Full path includes all intermediate nodes."""
-        from channel_heads.first_meet_pairs_for_outlet import _build_parents_from_stream
+        from channel_heads.pairing.earth import _build_parents_from_stream
         from channel_heads.geometric_analysis import _build_children_from_parents
 
         s = simple_y_network["s"]
@@ -1249,7 +1249,7 @@ class TestProximityProfileIntegration:
 
     def test_proximity_in_dataframe(self, simple_y_network):
         """evaluate_pairs_for_outlet includes proximity columns in output DataFrame."""
-        from channel_heads.first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
+        from channel_heads.pairing.earth import first_meet_pairs_for_outlet
 
         net = simple_y_network
         analyzer = GeometricFeaturesAnalyzer(net["s"], net["dem"])

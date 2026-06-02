@@ -44,7 +44,7 @@ conda run -n ch-heads ruff check <files>      # targeted; repo-wide has known pr
 | Module | Role |
 |--------|------|
 | `coupling_analysis.py` | `CouplingAnalyzer` — basin coupling detection (parallel-safe, cached masks, stream-crossing gate). |
-| `first_meet_pairs_for_outlet.py` | Channel-head pairing (Kahn topological sort + head-set propagation). |
+| `pairing/earth.py` | Earth/TopoToolbox first-meet adapter; legacy `first_meet_pairs_for_outlet.py` re-exports this module. |
 | `geometric_analysis.py` | Lengthwise asymmetry (ΔL), geometric features, labeling/filtering, CSV enrichment. *(Large; split is a planned refactor — see ROADMAP.)* |
 | `rasterizer.py` | 5-class 128×128 patch rasterization (direct final-grid). Canonical for both Earth and Mars. |
 | `cnn_features.py`, `cnn_model.py`, `cnn_training.py` | `OutletCNN` (5→…→4-dim embedding), dataset, embedding extraction, shared CNN training loop/defaults. |
@@ -52,7 +52,7 @@ conda run -n ch-heads ruff check <files>      # targeted; repo-wide has known pr
 | `pruning.py` | Strahler-strip + order-gap network pruning (regime pipeline). |
 | `units.py` | **Single source of truth for unit conversions** (added Phase 2 — see §6). |
 | `regimes.py` | `Regime` dataclass + `REGIMES` presets (regA/B/C). |
-| `pairing/` | Graph-agnostic first-meet core + Mars-graph helpers (shared by Earth + Mars). |
+| `pairing/` | Graph-agnostic first-meet core, Earth/TopoToolbox adapter, and Mars-graph helpers. |
 | `features/` | Dimensionless feature math (`geometry`, `paths`). |
 | `inference/` | XGBoost load/verify/predict, device pick, regime-CNN embedding attach. |
 | `eval/` | Threshold tuning, classification metrics, grouped/LOBO splits. |
