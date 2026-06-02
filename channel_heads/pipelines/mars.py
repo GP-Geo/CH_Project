@@ -15,9 +15,10 @@ Stage order (see ``docs/pipeline.md``)::
     -> compare_mars_model_outputs     # Phase 6C variant comparison
 
 Migrated into the package: topology, pairs (:mod:`channel_heads.mars`),
-features (:mod:`channel_heads.features.mars_features`) and tabular XGBoost
-inference (:mod:`channel_heads.models.mars_inference`).
-TRANSITIONAL (logic still in ``scripts/``, scheduled for extraction): patches,
+features (:mod:`channel_heads.features.mars_features`), tabular XGBoost inference
+(:mod:`channel_heads.models.mars_inference`) and CNN patches
+(:mod:`channel_heads.rasterization.mars_patches`).
+TRANSITIONAL (logic still in ``scripts/``, scheduled for extraction):
 embeddings, combined inference, comparison.
 """
 
@@ -95,14 +96,17 @@ def run_mars_xgb_inference(
 
 
 # --------------------------------------------------------------------------- #
-# Phase 4 — CNN patches  (TRANSITIONAL)
+# Phase 4 — CNN patches  (MIGRATED)
 # --------------------------------------------------------------------------- #
-def build_mars_cnn_patches() -> None:
+def build_mars_cnn_patches(output_dir=paths.MARS_CNN_PATCHES_DIR) -> dict:
     """Phase 4: 5-class 128x128 CNN patches (must stay 5-class).
 
-    TRANSITIONAL — runs ``scripts/build_mars_cnn_patches_5class.py``.
+    Calls :func:`channel_heads.rasterization.build_mars_cnn_patches` directly.
+    Returns ``{"manifest", "n_ok", "n_invalid", "n_failed", "paths"}``.
     """
-    run_script("build_mars_cnn_patches_5class.py")
+    from channel_heads.rasterization import build_mars_cnn_patches as _build
+
+    return _build(output_dir=output_dir)
 
 
 # --------------------------------------------------------------------------- #

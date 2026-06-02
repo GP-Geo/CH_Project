@@ -117,6 +117,10 @@ class TestOutletCNN:
 
     def test_gradient_flow(self):
         """Gradients flow through all layers."""
+        # Seed for determinism: with random input a dead-ReLU path can produce
+        # an all-zero gradient for some parameter, making this assertion flaky
+        # depending on global RNG ordering.
+        torch.manual_seed(0)
         model = OutletCNN()
         x = torch.randn(2, NUM_CLASSES, 128, 128, requires_grad=True)
         out = model(x)

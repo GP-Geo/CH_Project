@@ -1,6 +1,5 @@
 """Tests for channel_heads.rasterizer module."""
 
-import importlib.util
 import math
 from pathlib import Path
 
@@ -724,15 +723,10 @@ class TestPrecomputeQAGating:
 
 
 def _load_mars_script():
-    """Import scripts/build_mars_cnn_patches_5class.py as a module."""
-    script_path = (
-        Path(__file__).resolve().parents[1] / "scripts" / "build_mars_cnn_patches_5class.py"
-    )
-    spec = importlib.util.spec_from_file_location("build_mars_cnn_patches_5class", script_path)
-    assert spec is not None and spec.loader is not None
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    """Return the Mars patch module (logic moved into the package, Phase 4)."""
+    from channel_heads.rasterization import mars_patches
+
+    return mars_patches
 
 
 class TestMarsRasterizationSmoke:
