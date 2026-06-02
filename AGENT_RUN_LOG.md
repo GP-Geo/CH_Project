@@ -4,6 +4,38 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-02 — Slice 3b: deduplicate CNN training device selection
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `a1b5b29 refactor(models): move CNN architecture into models`
+- **Task:** Slice 3b — remove the duplicate `pick_device` in
+  `channel_heads/cnn_training.py`; use the canonical
+  `channel_heads.models.device.pick_device`.
+- **Files updated:**
+  - `channel_heads/cnn_training.py` — deleted the local `pick_device` function;
+    added `from channel_heads.models.device import pick_device` (re-export, so
+    `from channel_heads.cnn_training import pick_device` still works). No change
+    to the training loop, hyperparameters, early stopping, dataset, or
+    architecture.
+  - `tests/test_cnn_consolidation.py` — added `TestPickDeviceDeduplicated`
+    asserting `cnn_training.pick_device is models.device.pick_device` and the
+    lazy `models.cnn.pick_device is models.device.pick_device`.
+- **Not touched (per slice scope):** training loop / hyperparameters / early
+  stopping / dataset / architecture; `scripts/` (the
+  `train_combined_xgb_*.py` inline `pick_device` copies remain — Slice 4);
+  notebooks, `data/`, root `/models/`.
+- **Validation:** import checks — `cnn_training.pick_device`,
+  `models.cnn.pick_device`, and `models.device.pick_device` are all the *same*
+  object (`is`), returns `mps` here. Targeted (`test_cnn_model.py`,
+  `test_cnn_consolidation.py`, `test_inference.py`): 59 passed. Full `pytest`:
+  **492 passed, 7 warnings** (was 490; +2 dedup tests). `ruff` clean on
+  `cnn_training.py` (test-file E402s are the pre-existing `importorskip`
+  pattern). `git diff --check` clean.
+- **Risks:** Very low — pure de-duplication onto an identical canonical
+  implementation (`mps` > `cuda` > `cpu`); no platform device-selection change.
+- **Next step:** Slice 3c — move Earth embedding features (`cnn_features.py`)
+  into the models layer with a shim.
+
 ## 2026-06-02 — Slice 3a: CNN architecture move into models/cnn.py
 
 - **Branch:** `refactor/package-first-architecture`

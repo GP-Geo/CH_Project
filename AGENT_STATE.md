@@ -8,8 +8,8 @@ _Last updated: 2026-06-02_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** CNN architecture move (Slice 3a; see
-  `AGENT_RUN_LOG.md`); prior was `3b51fb0 docs(agents): record CNN ownership audit`.
+- **Latest stable commit:** CNN training device dedup (Slice 3b; see
+  `AGENT_RUN_LOG.md`); prior was `a1b5b29 refactor(models): move CNN architecture into models`.
 - **Working tree:** clean at time of writing.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
@@ -55,9 +55,9 @@ _Last updated: 2026-06-02_
   `pick_device` from `channel_heads.models.device`; it is also re-exported from
   `channel_heads.models`. Old imports (`channel_heads.inference.device`,
   `from channel_heads.inference import pick_device`) still resolve to the same
-  object. Note: a **separate** `pick_device` copy in `cnn_training.py`
-  (re-exported via `models/cnn.py`) was intentionally left untouched — it is a
-  CNN module, out of scope here, and is a candidate for the CNN slices.
+  object. As of Slice 3b the **CNN training module no longer has its own copy** —
+  `cnn_training.py` imports `pick_device` from `channel_heads.models.device`, so
+  there is now a single canonical implementation across the package.
 - **`inference/regime.py`: TRANSITIONAL.** Holds regime-CNN embedding /
   patch-index merge glue. Leave untouched until the Earth/regime training
   audit. Do not change regime behavior now.
@@ -80,8 +80,17 @@ _Last updated: 2026-06-02_
   `cnn_training → cnn_model(shim) → models.cnn` import cycle (with a
   `TYPE_CHECKING` block so linters still see the names). Old imports
   (`channel_heads.cnn_model`, `channel_heads.models.cnn`, top-level
-  `channel_heads`) all resolve to the same objects. `cnn_training.py` itself was
-  NOT touched (still defines its own `pick_device` — dedup deferred to Slice 3b).
+  `channel_heads`) all resolve to the same objects.
+- **CNN training `pick_device` dedup (Slice 3b): DONE.** The duplicate
+  `pick_device` body in `channel_heads/cnn_training.py` was removed; the module
+  now does `from channel_heads.models.device import pick_device` (re-export).
+  `from channel_heads.cnn_training import pick_device` and the lazy
+  `channel_heads.models.cnn.pick_device` both resolve to the *same* object as
+  `channel_heads.models.device.pick_device` (pinned by
+  `tests/test_cnn_consolidation.py::TestPickDeviceDeduplicated`). Training loop,
+  hyperparameters, early stopping, dataset behavior, and architecture untouched.
+  The script-level `pick_device` copies in `scripts/train_combined_xgb_*.py`
+  remain (scripts are out of scope until Slice 4).
 
 ## Known shims (keep working)
 
@@ -96,20 +105,23 @@ _Last updated: 2026-06-02_
 
 - `channel_heads/inference/regime.py` — transitional; defer to Earth/regime audit.
 - CNN modules: `cnn_model.py` is now a shim → `models/cnn.py` (Slice 3a done).
-  `cnn_features.py` (Earth embeddings) and `cnn_training.py` (training core +
-  duplicate `pick_device`) are still real and not yet consolidated — see Slices
-  3b/3c/3d in `AGENT_AUDIT_CNN.md` §6.
+  `cnn_training.py` no longer duplicates `pick_device` (Slice 3b done) but is
+  still the real home of the training loop/defaults (training-core move to a
+  future `training/` package is Slice 3d). `cnn_features.py` (Earth embeddings)
+  is still real and not yet consolidated — see Slices 3c/3d in
+  `AGENT_AUDIT_CNN.md` §6.
 - `geometric_analysis.py`, `rasterizer.py` — audit-only, no refactor yet.
 - `scripts/` — several still import `from channel_heads.inference import ...`
   (acceptable for thin scripts); cleanup/archive pass pending.
 
 ## Next recommended task
 
-**Slice 3b — `pick_device` dedup in `cnn_training.py`:** replace the local
-`pick_device` copy in `channel_heads/cnn_training.py` with
-`from channel_heads.models.device import pick_device` (keep the name exported so
-`models/cnn.py`'s lazy re-export and the trainer scripts still resolve it).
-Tests: `tests/test_cnn_model.py` (asserts `pick_device()` returns a valid
-device), full pytest. Stop if device selection changes on any platform. See
-`AGENT_AUDIT_CNN.md` §6 for the remaining 3c/3d sub-slices and the "do not merge
-the four forward-pass extractors" rule.
+**Slice 3c — Earth embedding features → models layer:** move `extract_embeddings`,
+`merge_cnn_features`, `CNN_FEATURE_COLS` out of `channel_heads/cnn_features.py`
+into the models layer (new `models/cnn_features.py` or fold into
+`models/embeddings.py`); reduce `cnn_features.py` to a shim and repoint internal
+consumers (`models/embeddings.py`, `channel_heads/__init__.py`) to the canonical
+source. Preserve the **lenient** state-dict load and the DataFrame schema
+exactly. Tests: `tests/test_cnn_features.py`, `tests/test_mars_embeddings.py`,
+full pytest. Stop if the lenient-load behavior or output schema changes. See
+`AGENT_AUDIT_CNN.md` §6; do not merge the four forward-pass extractors.

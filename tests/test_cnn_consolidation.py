@@ -160,3 +160,19 @@ class TestLazyTrainingReexport:
     def test_unknown_attribute_raises(self):
         with pytest.raises(AttributeError):
             _ = canonical.does_not_exist
+
+
+class TestPickDeviceDeduplicated:
+    """cnn_training.pick_device is the canonical models.device.pick_device."""
+
+    def test_cnn_training_pick_device_is_canonical(self):
+        from channel_heads.cnn_training import pick_device as training_pick
+        from channel_heads.models.device import pick_device as canonical_pick
+
+        assert training_pick is canonical_pick
+
+    def test_models_cnn_lazy_pick_device_is_canonical(self):
+        from channel_heads.models.cnn import pick_device as cnn_pick
+        from channel_heads.models.device import pick_device as canonical_pick
+
+        assert cnn_pick is canonical_pick

@@ -19,6 +19,10 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from channel_heads.cnn_model import OutletCNN, OutletPairDataset
+
+# ``pick_device`` is canonical in :mod:`channel_heads.models.device`; re-exported
+# here so ``from channel_heads.cnn_training import pick_device`` keeps working.
+from channel_heads.models.device import pick_device  # noqa: F401  (re-export)
 from channel_heads.rasterizer import NUM_CLASSES
 
 log = logging.getLogger("channel_heads.cnn_training")
@@ -32,14 +36,6 @@ DEFAULT_DROPOUT = 0.3
 DEFAULT_PATIENCE = 12
 HOLDOUT_BASIN = "taiwan"
 RANDOM_STATE = 42
-
-
-def pick_device() -> str:
-    if torch.backends.mps.is_available():
-        return "mps"
-    if torch.cuda.is_available():
-        return "cuda"
-    return "cpu"
 
 
 def train_cnn(
