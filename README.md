@@ -11,7 +11,13 @@ Mars valley networks. Based on Goren & Shelef (2024,
 
 The pipeline pairs channel heads that meet at confluences, detects whether their
 basins are spatially coupled (touching), and predicts coupling with an XGBoost
-classifier (Earth held-out test AUC ≈ 0.92) plus a 5-class CNN.
+classifier (Earth held-out test AUC ≈ 0.92) plus a 5-class CNN. Because the
+features are **dimensionless**, the Earth-trained model transfers to Martian
+valley networks without retraining (Earth→Mars transfer learning).
+
+The project is **package-first**: all logic lives in `channel_heads/` and runs
+through `channel_heads.pipelines`; notebooks and `scripts/cli/` are thin layers
+on top. See [docs/architecture.md](docs/architecture.md).
 
 ## Install
 
@@ -43,16 +49,29 @@ print(results)
 
 Batch CLI: `ch-analyze data/cropped_DEMs/Inyo_strm_crop.tif -o out.csv --threshold 300 -v`
 
+## Run the Mars pipeline
+
+```python
+from channel_heads import pipelines
+pipelines.run_full_mars_pipeline()   # Phase 1 -> 6C; outputs under data/Mars/
+```
+…or per stage: `python scripts/cli/run_mars_pipeline.py --stage topology`.
+Outputs land under `data/Mars/` and `data/results/` (all regenerable; see
+[docs/data_management.md](docs/data_management.md)).
+
 ## Documentation
 
 All project documentation lives in [`docs/`](docs/):
 
 | Doc | Contents |
 |-----|----------|
-| [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) | Package API, ML pipeline, testing, conventions |
-| [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) | Repo / scripts / data inventory |
-| [docs/MARS_PIPELINE.md](docs/MARS_PIPELINE.md) | Cross-planet pipeline & phase history |
-| [docs/ROADMAP_AND_RISKS.md](docs/ROADMAP_AND_RISKS.md) | Open work & scientific risk register |
+| [docs/architecture.md](docs/architecture.md) | **Start here** — package-first layout + public API |
+| [docs/pipeline.md](docs/pipeline.md) | Stage-by-stage flow, inputs/outputs, dependency graph |
+| [docs/modeling.md](docs/modeling.md) | Model variants + the Mars operating-threshold issue |
+| [docs/data_management.md](docs/data_management.md) | Data categories, safe cleanup, regeneration |
+| [docs/notebooks.md](docs/notebooks.md) | Notebook catalogue + canonical notebooks |
+| [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) | Package API, testing, conventions |
+| [docs/MARS_PIPELINE.md](docs/MARS_PIPELINE.md) · [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) · [ROADMAP_AND_RISKS.md](docs/ROADMAP_AND_RISKS.md) | Phase history, inventory, risk register |
 
 ## License
 

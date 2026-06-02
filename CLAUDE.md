@@ -8,6 +8,11 @@ in [`docs/`](docs/) — this file is a thin pointer.
 
 | If you need… | Read |
 |--------------|------|
+| **Package-first architecture + public API (start here)** | [docs/architecture.md](docs/architecture.md) |
+| Stage-by-stage pipeline (inputs/outputs/deps) | [docs/pipeline.md](docs/pipeline.md) |
+| Model variants + Mars threshold issue | [docs/modeling.md](docs/modeling.md) |
+| Data categories + safe cleanup | [docs/data_management.md](docs/data_management.md) |
+| Notebook catalogue | [docs/notebooks.md](docs/notebooks.md) |
 | Package API, ML pipeline, testing, conventions | [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) |
 | Repo / scripts / data layout & inventory | [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) |
 | Mars cross-planet pipeline & phase history | [docs/MARS_PIPELINE.md](docs/MARS_PIPELINE.md) |

@@ -15,7 +15,7 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
     import geopandas as gpd
 
 
-def read_gpkg(path: str | Path, layer: str | None = None) -> "gpd.GeoDataFrame":
+def read_gpkg(path: str | Path, layer: str | None = None) -> gpd.GeoDataFrame:
     """Read a GeoPackage (optionally a named layer)."""
     import geopandas as gpd
 
@@ -26,7 +26,7 @@ def read_gpkg(path: str | Path, layer: str | None = None) -> "gpd.GeoDataFrame":
 
 
 def write_gpkg(
-    gdf: "gpd.GeoDataFrame",
+    gdf: gpd.GeoDataFrame,
     path: str | Path,
     layer: str | None = None,
 ) -> Path:
