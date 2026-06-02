@@ -15,10 +15,10 @@ import pandas as pd
 
 from channel_heads.cnn_features import CNN_FEATURE_COLS, extract_embeddings
 from channel_heads.cnn_model import DEFAULT_EMBEDDING_DIM, OutletCNN
-from channel_heads.inference import pick_device
 from channel_heads.io import paths
 from channel_heads.io.tables import write_table
 from channel_heads.logging_config import get_logger
+from channel_heads.models.device import pick_device
 
 log = get_logger("models.embeddings")
 

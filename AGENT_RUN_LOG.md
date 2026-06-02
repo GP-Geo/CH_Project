@@ -4,6 +4,32 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-02 — Slice 1: device consolidation
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `90fd694 refactor(models): move XGBoost inference implementation into models`
+- **Task:** Slice 1 — make `channel_heads/models/device.py` the canonical home of
+  `pick_device()`; reduce `channel_heads/inference/device.py` to a shim.
+- **Files created:** `channel_heads/models/device.py` (canonical `pick_device`).
+- **Files updated:**
+  - `channel_heads/inference/device.py` — reduced to re-export shim.
+  - `channel_heads/inference/__init__.py` — docstring (still re-exports via shim).
+  - `channel_heads/models/__init__.py` — expose `device` submodule + `pick_device`.
+  - `channel_heads/models/embeddings.py`, `channel_heads/models/mars_combined.py`
+    — repointed `pick_device` import to `channel_heads.models.device`.
+  - `tests/test_inference.py` — added canonical-location/shim-identity test.
+- **Tests run:** targeted `tests/test_inference.py` + `tests/test_mars_combined.py`
+  (25 passed); full `pytest` → **471 passed, 7 warnings**. `ruff` clean on touched
+  files (import-sort autofix applied to `models/__init__.py` + `embeddings.py`).
+  `git diff --check` clean.
+- **Risks:** Low — pure move + re-export, no behavior change. Verified no circular
+  import (`models.device` imports torch lazily; importing `channel_heads.inference`
+  first still resolves). Old imports (`channel_heads.inference.device`,
+  `from channel_heads.inference import pick_device`) preserved. A separate
+  `pick_device` in `cnn_training.py` (via `models/cnn.py`) was intentionally left
+  untouched (CNN module, out of scope) — flagged for the CNN audit.
+- **Next step:** Slice 2 — CNN audit (audit-only).
+
 ## 2026-06-02 — Agent handoff workflow setup
 
 - **Branch:** `refactor/package-first-architecture`

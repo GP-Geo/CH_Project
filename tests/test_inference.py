@@ -170,3 +170,15 @@ class TestPackageSurface:
             "predict_with_threshold",
         ):
             assert getattr(xgb_old, name) is getattr(xgb_new, name)
+
+    def test_pick_device_canonical_location_is_models_device(self):
+        """pick_device now lives in models.device; inference.device is a shim."""
+        from channel_heads.inference import device as device_old
+        from channel_heads.models import device as device_new
+
+        # canonical home, shim, package surfaces, and re-export all agree
+        assert device_old.pick_device is device_new.pick_device
+        assert inference.pick_device is device_new.pick_device
+        import channel_heads.models as models
+
+        assert models.pick_device is device_new.pick_device

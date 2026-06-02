@@ -10,7 +10,11 @@ Standard tests:
 
 ---
 
-## Slice 1 — Device consolidation (NEXT)
+## Slice 1 — Device consolidation (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. `pick_device` is canonical in
+> `channel_heads/models/device.py`; `channel_heads/inference/device.py` is a shim.
+
 
 - **Goal:** Make `channel_heads/models/device.py` the canonical home of
   `pick_device()`; reduce `inference/device.py` to a compatibility shim.
@@ -27,7 +31,7 @@ Standard tests:
 - **Stop condition:** Stop if moving the import changes device selection on any
   platform, or if a circular import appears between `models` and `inference`.
 
-## Slice 2 — CNN audit (audit-only)
+## Slice 2 — CNN audit (audit-only) (NEXT)
 
 - **Goal:** Read-only comparison of `cnn_model.py`, `cnn_features.py`,
   `cnn_training.py` against `channel_heads/models/` (cnn, embeddings). Produce

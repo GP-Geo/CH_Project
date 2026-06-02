@@ -8,7 +8,8 @@ _Last updated: 2026-06-02_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** `90fd694 refactor(models): move XGBoost inference implementation into models`
+- **Latest stable commit:** device consolidation (see `AGENT_RUN_LOG.md` for hash);
+  prior was `90fd694 refactor(models): move XGBoost inference implementation into models`.
 - **Working tree:** clean at time of writing.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
@@ -39,6 +40,7 @@ _Last updated: 2026-06-02_
 | Earth plotting | `channel_heads/viz/earth.py` | `channel_heads/plotting_utils.py` (shim) |
 | Path/config surface | `channel_heads/io/paths.py` | `channel_heads/config.py` (shim) |
 | XGBoost model load / validate / predict / threshold | `channel_heads/models/xgboost.py` | `channel_heads/inference/xgb.py` (shim) |
+| Torch device selection (`pick_device`) | `channel_heads/models/device.py` | `channel_heads/inference/device.py` (shim) |
 
 ## Model-layer status
 
@@ -46,11 +48,15 @@ _Last updated: 2026-06-02_
   `channel_heads/models/xgboost.py`; `channel_heads/inference/xgb.py` is a pure
   re-export shim. Old imports (`channel_heads.inference.xgb`,
   `from channel_heads.inference import ...`) resolve to the same objects.
-- **`inference/device.py`: PENDING.** Still the canonical home of
-  `pick_device()`. Audit recommends moving it to `models/device.py` with a shim
-  left behind. `models/mars_combined.py` and `models/embeddings.py` currently
-  import `pick_device` from `channel_heads.inference`. This is the **next
-  recommended slice**.
+- **Device consolidation: DONE.** `pick_device()` now lives in
+  `channel_heads/models/device.py`; `channel_heads/inference/device.py` is a pure
+  re-export shim. `models/mars_combined.py` and `models/embeddings.py` import
+  `pick_device` from `channel_heads.models.device`; it is also re-exported from
+  `channel_heads.models`. Old imports (`channel_heads.inference.device`,
+  `from channel_heads.inference import pick_device`) still resolve to the same
+  object. Note: a **separate** `pick_device` copy in `cnn_training.py`
+  (re-exported via `models/cnn.py`) was intentionally left untouched — it is a
+  CNN module, out of scope here, and is a candidate for the CNN slices.
 - **`inference/regime.py`: TRANSITIONAL.** Holds regime-CNN embedding /
   patch-index merge glue. Leave untouched until the Earth/regime training
   audit. Do not change regime behavior now.
@@ -58,13 +64,13 @@ _Last updated: 2026-06-02_
 ## Known shims (keep working)
 
 - `channel_heads/inference/xgb.py` → `channel_heads/models/xgboost.py`
+- `channel_heads/inference/device.py` → `channel_heads/models/device.py`
 - `channel_heads/first_meet_pairs_for_outlet.py` → `channel_heads/pairing/earth.py`
 - `channel_heads/plotting_utils.py` → `channel_heads/viz/earth.py`
 - `channel_heads/config.py` → `channel_heads/io/paths.py`
 
 ## Known transitional / not-yet-audited areas
 
-- `channel_heads/inference/device.py` — pending move to `models/device.py`.
 - `channel_heads/inference/regime.py` — transitional; defer to Earth/regime audit.
 - CNN modules (`cnn_model.py`, `cnn_features.py`, `cnn_training.py`) — not yet
   audited against `models/`. Audit-only first.
@@ -74,6 +80,8 @@ _Last updated: 2026-06-02_
 
 ## Next recommended task
 
-**Device consolidation:** move `inference/device.py` → `models/device.py`,
-reduce `inference/device.py` to a shim, repoint internal `pick_device` imports
-in `models/mars_combined.py` and `models/embeddings.py`. See `AGENT_BACKLOG.md`.
+**Slice 2 — CNN audit (audit-only):** read-only comparison of `cnn_model.py`,
+`cnn_features.py`, `cnn_training.py` against `channel_heads/models/`
+(cnn, embeddings); produce an ownership recommendation. No source edits. See
+`AGENT_BACKLOG.md`. (Note the duplicate `pick_device` in `cnn_training.py` for
+that audit.)

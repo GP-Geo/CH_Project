@@ -14,10 +14,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from channel_heads.inference import pick_device
 from channel_heads.io import paths
 from channel_heads.io.tables import write_table
 from channel_heads.logging_config import get_logger
+from channel_heads.models.device import pick_device
 from channel_heads.models.xgboost import (
     load_feature_columns,
     load_threshold,

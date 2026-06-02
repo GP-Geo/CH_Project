@@ -1,14 +1,15 @@
-"""Torch device selection shared by the CNN-using inference scripts."""
+"""Compatibility shim — torch device selection moved to ``channel_heads.models.device``.
+
+The canonical implementation now lives in :mod:`channel_heads.models.device`.
+This module is preserved so existing imports
+(``channel_heads.inference.device`` and
+``from channel_heads.inference import pick_device``), older notebooks, and
+scripts keep working unchanged. New code should import from
+:mod:`channel_heads.models.device`.
+"""
 
 from __future__ import annotations
 
+from channel_heads.models.device import pick_device
 
-def pick_device() -> str:
-    """Return the best available torch device: ``mps`` > ``cuda`` > ``cpu``."""
-    import torch
-
-    if torch.backends.mps.is_available():
-        return "mps"
-    if torch.cuda.is_available():
-        return "cuda"
-    return "cpu"
+__all__ = ["pick_device"]

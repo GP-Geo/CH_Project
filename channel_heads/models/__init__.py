@@ -3,6 +3,7 @@
 Curated public surface over the historical implementation modules:
 
 * :mod:`channel_heads.models.xgboost`    — XGBoost inference (``inference.xgb`` is a shim)
+* :mod:`channel_heads.models.device`     — torch device selection (``inference.device`` is a shim)
 * :mod:`channel_heads.models.thresholds` ← ``eval.metrics`` (threshold tuning)
 * :mod:`channel_heads.models.comparison` — model-variant comparison
 * :mod:`channel_heads.models.mars_combined` — Mars Phase-6C combined inference
@@ -13,8 +14,16 @@ The CNN/embedding submodules require PyTorch and are imported lazily so this
 package imports cleanly without it.
 """
 
-from channel_heads.models import comparison, mars_combined, mars_inference, thresholds, xgboost
+from channel_heads.models import (
+    comparison,
+    device,
+    mars_combined,
+    mars_inference,
+    thresholds,
+    xgboost,
+)
 from channel_heads.models.comparison import compare_predictions
+from channel_heads.models.device import pick_device
 from channel_heads.models.mars_combined import (
     compare_mars_model_variants,
     run_mars_combined_inference,
@@ -48,6 +57,8 @@ except ImportError:
 
 __all__ = [
     "xgboost",
+    "device",
+    "pick_device",
     "thresholds",
     "comparison",
     "mars_inference",
