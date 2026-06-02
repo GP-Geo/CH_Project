@@ -11,6 +11,7 @@ from .geometry import (
     compute_azimuth,
     compute_proximity_profile,
 )
+from .mars_features import build_feature_table, build_mars_features
 from .paths import (
     DIRECTION_SAMPLE_DISTANCE_M,
     MIN_EDGES_FOR_DIRECTION,
@@ -29,4 +30,7 @@ __all__ = [
     "compute_proximity_profile",
     "line_direction_first_n_meters",
     "sample_path_coords_along_line",
+    # Mars Phase-3A feature generation
+    "build_mars_features",
+    "build_feature_table",
 ]

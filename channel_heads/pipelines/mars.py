@@ -14,8 +14,9 @@ Stage order (see ``docs/pipeline.md``)::
     -> run_mars_combined_inference   # Phase 6C combined geom+CNN variants
     -> compare_mars_model_outputs     # Phase 6C variant comparison
 
-Fully migrated into :mod:`channel_heads.mars`: topology, pairs.
-TRANSITIONAL (logic still in ``scripts/``, scheduled for extraction): features,
+Migrated into the package: topology, pairs (:mod:`channel_heads.mars`) and
+features (:mod:`channel_heads.features.mars_features`).
+TRANSITIONAL (logic still in ``scripts/``, scheduled for extraction): xgb
 inference, patches, embeddings, combined inference, comparison.
 """
 
@@ -56,14 +57,21 @@ def extract_mars_pairs(
 
 
 # --------------------------------------------------------------------------- #
-# Phase 3A — tabular features  (TRANSITIONAL)
+# Phase 3A — tabular features  (MIGRATED)
 # --------------------------------------------------------------------------- #
-def build_mars_features() -> None:
-    """Phase 3A: build the 5-feature Mars table.
+def build_mars_features(
+    topology_gpkg=paths.MARS_TOPOLOGY_GPKG,
+    pairs_gpkg=paths.MARS_PAIRS_GPKG,
+    output_dir=paths.MARS_MODEL_INPUTS_DIR,
+) -> dict:
+    """Phase 3A: build the Mars 5-feature tables (all + model-ready) + audit.
 
-    TRANSITIONAL — runs ``scripts/build_mars_pair_features_5feat.py``.
+    Calls :func:`channel_heads.features.build_mars_features` directly. Returns
+    ``{"all", "model_ready", "audit", "paths"}``.
     """
-    run_script("build_mars_pair_features_5feat.py")
+    from channel_heads.features import build_mars_features as _build
+
+    return _build(topology_gpkg, pairs_gpkg, output_dir)
 
 
 # --------------------------------------------------------------------------- #
