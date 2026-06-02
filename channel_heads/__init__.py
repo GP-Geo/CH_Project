@@ -82,18 +82,27 @@ from .geometric_analysis import (
     merge_geometric_features,
 )
 from .logging_config import get_logger, setup_logging
+from .pruning import apply_strategy, build_stream_graph, prune_by_order_gap
 
 # Rasterizer (no PyTorch dependency)
-from .rasterizer import (
-    BACKGROUND,
-    BRANCH_A,
-    BRANCH_B,
-    CONFLUENCE_MARKER,
-    NUM_CLASSES,
-    OTHER_STREAMS,
-    precompute_raster_dataset,
-    rasterize_outlet_pair,
-)
+try:
+    from .rasterizer import (
+        BACKGROUND,
+        BRANCH_A,
+        BRANCH_B,
+        CONFLUENCE_MARKER,
+        NUM_CLASSES,
+        OTHER_STREAMS,
+        precompute_raster_dataset,
+        raster_quality_flags,
+        rasterize_outlet_pair,
+    )
+except ModuleNotFoundError as exc:
+    if exc.name != "skimage":
+        raise
+    BACKGROUND = BRANCH_A = BRANCH_B = CONFLUENCE_MARKER = OTHER_STREAMS = None
+    NUM_CLASSES = None
+    precompute_raster_dataset = raster_quality_flags = rasterize_outlet_pair = None
 from .stream_utils import outlet_node_ids_from_streampoi
 
 # CNN modules (optional, require PyTorch)
@@ -147,6 +156,7 @@ __all__ = [
     "resolve_dem_path",
     # Rasterizer
     "rasterize_outlet_pair",
+    "raster_quality_flags",
     "precompute_raster_dataset",
     "BACKGROUND",
     "BRANCH_A",
@@ -164,6 +174,10 @@ __all__ = [
     # Logging
     "get_logger",
     "setup_logging",
+    # Pruning
+    "apply_strategy",
+    "build_stream_graph",
+    "prune_by_order_gap",
     # Metadata
     "__version__",
 ]

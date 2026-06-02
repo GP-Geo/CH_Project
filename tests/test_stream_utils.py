@@ -10,7 +10,7 @@ class TestOutletNodeIds:
     def test_placeholder(self):
         """Placeholder test - implement with mock StreamObject."""
         # TODO: Create mock StreamObject fixture
-        # See improvement.md for recommendations
+        # See docs/ROADMAP_AND_RISKS.md for recommendations
         pass
 
 

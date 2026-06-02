@@ -13,7 +13,7 @@ Raster encoding (5 classes):
 
 The raster is canonically aligned: centered on the confluence, rotated so the
 confluence is at the bottom and the midpoint of the two heads is at the top,
-then cropped and resized to a fixed size.
+then cropped and drawn directly into a fixed-size output grid.
 """
 
 from __future__ import annotations
@@ -26,7 +26,6 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from skimage.transform import resize as skimage_resize
 
 from .first_meet_pairs_for_outlet import (
     _build_children_from_parents,
@@ -53,9 +52,7 @@ NUM_CLASSES = 5
 # =============================================================================
 
 
-def _bresenham_line(
-    r0: int, c0: int, r1: int, c1: int
-) -> list[tuple[int, int]]:
+def bresenham_line(r0: int, c0: int, r1: int, c1: int) -> list[tuple[int, int]]:
     """Bresenham's line algorithm for 8-connected pixel paths.
 
     Returns all pixel coordinates (r, c) on the line from (r0, c0) to (r1, c1),
@@ -82,106 +79,156 @@ def _bresenham_line(
     return pixels
 
 
-def _draw_path_on_raster(
-    raster: npt.NDArray[np.uint8],
-    path_nodes: list[int],
-    node_to_idx: dict[int, int],
+def _project_to_target_grid(
     rot_r: npt.NDArray[np.float64],
     rot_c: npt.NDArray[np.float64],
     r_min: float,
+    r_max: float,
     c_min: float,
+    c_max: float,
+    target_size: int,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """Project rotated crop coordinates directly into the final raster grid."""
+    r_span = max(float(r_max - r_min), 1e-9)
+    c_span = max(float(c_max - c_min), 1e-9)
+    scale = float(target_size - 1)
+    out_r = (rot_r - r_min) / r_span * scale
+    out_c = (rot_c - c_min) / c_span * scale
+    return out_r, out_c
+
+
+def _draw_path_on_target_grid(
+    raster: npt.NDArray[np.uint8],
+    path_nodes: list[int],
+    node_to_idx: dict[int, int],
+    out_r: npt.NDArray[np.float64],
+    out_c: npt.NDArray[np.float64],
     value: int,
     protect: tuple[int, ...] = (),
 ) -> None:
-    """Draw a connected path onto the raster using Bresenham lines.
-
-    Draws lines between consecutive nodes along the path to ensure
-    8-connectivity is preserved after rotation.
-
-    Parameters
-    ----------
-    protect : tuple[int, ...]
-        Raster values that Bresenham interpolation pixels should NOT
-        overwrite. Actual path node pixels are always placed regardless.
-        This prevents one branch's interpolation from cutting through
-        another branch's line.
-    """
-    temp_h, temp_w = raster.shape
+    """Draw a connected path after projection into the final output grid."""
+    h, w = raster.shape
     prev_ir, prev_ic = -1, -1
 
-    # Collect actual node pixel positions so we can force them
     node_pixels: set[tuple[int, int]] = set()
     node_positions: list[tuple[int, int]] = []
     for node_id in path_nodes:
-        if node_id not in node_to_idx:
+        idx = node_to_idx.get(int(node_id))
+        if idx is None:
             node_positions.append((-1, -1))
             continue
-        idx = node_to_idx[node_id]
-        pr = rot_r[idx] - r_min
-        pc = rot_c[idx] - c_min
-        ir, ic = int(round(pr)), int(round(pc))
+        ir = int(round(float(out_r[idx])))
+        ic = int(round(float(out_c[idx])))
         node_positions.append((ir, ic))
-        if 0 <= ir < temp_h and 0 <= ic < temp_w:
+        if 0 <= ir < h and 0 <= ic < w:
             node_pixels.add((ir, ic))
 
-    # Draw Bresenham lines between consecutive nodes
     for ir, ic in node_positions:
         if ir < 0:
             continue
-
         if prev_ir >= 0:
-            for lr, lc in _bresenham_line(prev_ir, prev_ic, ir, ic):
-                if 0 <= lr < temp_h and 0 <= lc < temp_w:
+            for lr, lc in bresenham_line(prev_ir, prev_ic, ir, ic):
+                if 0 <= lr < h and 0 <= lc < w:
                     is_node = (lr, lc) in node_pixels
                     if is_node or raster[lr, lc] not in protect:
                         raster[lr, lc] = value
         else:
-            if 0 <= ir < temp_h and 0 <= ic < temp_w:
+            if 0 <= ir < h and 0 <= ic < w:
                 raster[ir, ic] = value
-
         prev_ir, prev_ic = ir, ic
 
 
-def _draw_edges_on_raster(
+def _draw_edges_on_target_grid(
     raster: npt.NDArray[np.uint8],
     parents: list[list[int]],
     basin_node_set: set[int],
     node_to_idx: dict[int, int],
-    rot_r: npt.NDArray[np.float64],
-    rot_c: npt.NDArray[np.float64],
-    r_min: float,
-    c_min: float,
+    out_r: npt.NDArray[np.float64],
+    out_c: npt.NDArray[np.float64],
     value: int,
 ) -> None:
-    """Draw all parent-child edges in the basin using Bresenham lines.
-
-    For each node, draws lines to all its upstream parents (both must be
-    in the basin) to ensure the stream network is 8-connected.
-
-    Parameters
-    ----------
-    parents : list[list[int]]
-        parents[v] = list of upstream nodes flowing into v.
-    """
-    temp_h, temp_w = raster.shape
-
+    """Draw all basin edges after projection into the final output grid."""
+    h, w = raster.shape
     for node_id in basin_node_set:
-        if node_id not in node_to_idx:
+        idx_n = node_to_idx.get(int(node_id))
+        if idx_n is None:
             continue
-        idx_n = node_to_idx[node_id]
-        ir0 = int(round(rot_r[idx_n] - r_min))
-        ic0 = int(round(rot_c[idx_n] - c_min))
+        ir0 = int(round(float(out_r[idx_n])))
+        ic0 = int(round(float(out_c[idx_n])))
 
         for parent in parents[node_id]:
-            if parent not in node_to_idx:
+            idx_p = node_to_idx.get(int(parent))
+            if idx_p is None:
                 continue
-            idx_p = node_to_idx[parent]
-            ir1 = int(round(rot_r[idx_p] - r_min))
-            ic1 = int(round(rot_c[idx_p] - c_min))
+            ir1 = int(round(float(out_r[idx_p])))
+            ic1 = int(round(float(out_c[idx_p])))
 
-            for lr, lc in _bresenham_line(ir0, ic0, ir1, ic1):
-                if 0 <= lr < temp_h and 0 <= lc < temp_w:
+            for lr, lc in bresenham_line(ir0, ic0, ir1, ic1):
+                if 0 <= lr < h and 0 <= lc < w:
                     raster[lr, lc] = value
+
+
+def _component_count(mask: npt.NDArray[np.bool_]) -> int:
+    """Count 8-connected components in a small binary mask."""
+    coords = np.argwhere(mask)
+    if len(coords) == 0:
+        return 0
+
+    h, w = mask.shape
+    seen: set[tuple[int, int]] = set()
+    n_components = 0
+    neighbors = (
+        (-1, -1),
+        (-1, 0),
+        (-1, 1),
+        (0, -1),
+        (0, 1),
+        (1, -1),
+        (1, 0),
+        (1, 1),
+    )
+
+    for r_raw, c_raw in coords:
+        start = (int(r_raw), int(c_raw))
+        if start in seen:
+            continue
+        n_components += 1
+        stack = [start]
+        seen.add(start)
+        while stack:
+            r, c = stack.pop()
+            for dr, dc in neighbors:
+                nr, nc = r + dr, c + dc
+                nxt = (nr, nc)
+                if 0 <= nr < h and 0 <= nc < w and mask[nr, nc] and nxt not in seen:
+                    seen.add(nxt)
+                    stack.append(nxt)
+    return n_components
+
+
+def raster_quality_flags(raster: npt.NDArray[np.uint8]) -> dict[str, bool]:
+    """Return core structural QA flags for a 5-class stream patch."""
+    has_branch_a = bool(np.any(raster == BRANCH_A))
+    has_branch_b = bool(np.any(raster == BRANCH_B))
+    has_confluence = bool(np.any(raster == CONFLUENCE_MARKER))
+    branch_a_connected = (
+        has_branch_a
+        and has_confluence
+        and _component_count((raster == BRANCH_A) | (raster == CONFLUENCE_MARKER)) == 1
+    )
+    branch_b_connected = (
+        has_branch_b
+        and has_confluence
+        and _component_count((raster == BRANCH_B) | (raster == CONFLUENCE_MARKER)) == 1
+    )
+    return {
+        "has_branch_a": has_branch_a,
+        "has_branch_b": has_branch_b,
+        "has_confluence": has_confluence,
+        "branch_a_connected": branch_a_connected,
+        "branch_b_connected": branch_b_connected,
+        "branches_connected": branch_a_connected and branch_b_connected,
+    }
 
 
 def _get_rc(
@@ -377,60 +424,60 @@ def rasterize_outlet_pair(
     c_min -= pad_c
     c_max += pad_c
 
-    # --- Step 6: Rasterize onto temporary grid ---
-    # Map rotated coordinates to pixel space in the temporary grid.
-    # We draw Bresenham lines between consecutive/adjacent nodes to
-    # ensure 8-connectivity is preserved after rotation.
-    temp_h = max(int(np.ceil(r_max - r_min)) + 1, 1)
-    temp_w = max(int(np.ceil(c_max - c_min)) + 1, 1)
-
-    raster = np.zeros((temp_h, temp_w), dtype=np.uint8)
+    # --- Step 6: Rasterize directly onto the final target grid ---
+    # Previous versions drew into a native-size temporary crop and resized to
+    # target_size. Nearest-neighbour downsampling can remove one-pixel markers
+    # or disconnect thin branches. Projecting the rotated coordinates into the
+    # final grid first makes connectivity a construction invariant.
+    raster = np.zeros((target_size, target_size), dtype=np.uint8)
 
     # Build a mapping from node ID to its index in basin_node_arr
     node_to_idx = {int(n): i for i, n in enumerate(basin_node_arr)}
+    out_r, out_c = _project_to_target_grid(rot_r, rot_c, r_min, r_max, c_min, c_max, target_size)
 
     # Draw all basin edges as OTHER_STREAMS (value 3) with connected lines
-    _draw_edges_on_raster(
-        raster, parents, basin_node_set, node_to_idx,
-        rot_r, rot_c, r_min, c_min, OTHER_STREAMS,
+    _draw_edges_on_target_grid(
+        raster,
+        parents,
+        basin_node_set,
+        node_to_idx,
+        out_r,
+        out_c,
+        OTHER_STREAMS,
     )
 
     # Overwrite branch A with connected path lines (value 1).
     # Protect: don't let A's interpolation overwrite B pixels (and vice versa).
-    _draw_path_on_raster(
-        raster, path_a, node_to_idx,
-        rot_r, rot_c, r_min, c_min, BRANCH_A,
+    _draw_path_on_target_grid(
+        raster,
+        path_a,
+        node_to_idx,
+        out_r,
+        out_c,
+        BRANCH_A,
         protect=(BRANCH_B,),
     )
 
     # Overwrite branch B with connected path lines (value 2)
-    _draw_path_on_raster(
-        raster, path_b, node_to_idx,
-        rot_r, rot_c, r_min, c_min, BRANCH_B,
+    _draw_path_on_target_grid(
+        raster,
+        path_b,
+        node_to_idx,
+        out_r,
+        out_c,
+        BRANCH_B,
         protect=(BRANCH_A,),
     )
 
     # Place confluence marker (value 4) — overwrites any branch value
     conf_idx = node_to_idx.get(confluence)
     if conf_idx is not None:
-        pr = rot_r[conf_idx] - r_min
-        pc = rot_c[conf_idx] - c_min
-        ir, ic = int(round(pr)), int(round(pc))
-        if 0 <= ir < temp_h and 0 <= ic < temp_w:
+        ir = int(round(float(out_r[conf_idx])))
+        ic = int(round(float(out_c[conf_idx])))
+        if 0 <= ir < target_size and 0 <= ic < target_size:
             raster[ir, ic] = CONFLUENCE_MARKER
 
-    # --- Step 7: Resize to target size ---
-    if raster.shape[0] == target_size and raster.shape[1] == target_size:
-        return raster
-
-    resized = skimage_resize(
-        raster,
-        (target_size, target_size),
-        order=0,  # nearest-neighbor
-        preserve_range=True,
-        anti_aliasing=False,
-    )
-    return resized.astype(np.uint8)
+    return raster
 
 
 # =============================================================================
@@ -473,6 +520,17 @@ def precompute_raster_dataset(
 
     df = pd.read_csv(master_csv)
     raster_paths: list[str | None] = [None] * len(df)
+    raster_debug_paths: list[str | None] = [None] * len(df)
+    raster_status: list[str] = ["pending"] * len(df)
+    raster_errors: list[str] = [""] * len(df)
+    qa_values: dict[str, list[bool]] = {
+        "has_branch_a": [False] * len(df),
+        "has_branch_b": [False] * len(df),
+        "has_confluence": [False] * len(df),
+        "branch_a_connected": [False] * len(df),
+        "branch_b_connected": [False] * len(df),
+        "branches_connected": [False] * len(df),
+    }
 
     for basin_name, basin_df in df.groupby("basin"):
         basin_name = str(basin_name)
@@ -483,11 +541,17 @@ def precompute_raster_dataset(
             config = get_basin_config(basin_name)
         except KeyError:
             logger.warning("No config for basin %s, skipping", basin_name)
+            for row_idx in basin_df.index:
+                raster_status[row_idx] = "skipped"
+                raster_errors[row_idx] = "missing_basin_config"
             continue
 
         result = dem_loader(basin_name, config["lat"], config["z_th"], threshold)
         if result is None:
             logger.warning("DEM not found for basin %s, skipping", basin_name)
+            for row_idx in basin_df.index:
+                raster_status[row_idx] = "skipped"
+                raster_errors[row_idx] = "missing_dem_or_stream"
             continue
 
         s, dem = result
@@ -516,9 +580,22 @@ def precompute_raster_dataset(
                     grid_shape,
                     target_size=target_size,
                 )
+                flags = raster_quality_flags(raster)
+                for key, value in flags.items():
+                    qa_values[key][row_idx] = bool(value)
+
                 np.save(fpath, raster)
-                raster_paths[row_idx] = str(fpath)
-            except Exception:
+                raster_debug_paths[row_idx] = str(fpath)
+                if flags["branches_connected"]:
+                    raster_paths[row_idx] = str(fpath)
+                    raster_status[row_idx] = "ok"
+                else:
+                    raster_status[row_idx] = "invalid"
+                    failed_flags = [key for key, value in flags.items() if not value]
+                    raster_errors[row_idx] = "qa_failed:" + ",".join(failed_flags)
+            except Exception as exc:
+                raster_status[row_idx] = "failed"
+                raster_errors[row_idx] = f"{type(exc).__name__}: {exc}"
                 logger.exception(
                     "Failed to rasterize %s outlet=%d h1=%d h2=%d",
                     basin_name,
@@ -528,4 +605,9 @@ def precompute_raster_dataset(
                 )
 
     df["raster_path"] = raster_paths
+    df["raster_debug_path"] = raster_debug_paths
+    df["raster_status"] = raster_status
+    df["raster_error"] = raster_errors
+    for key, values in qa_values.items():
+        df[key] = values
     return df

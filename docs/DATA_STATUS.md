@@ -1,0 +1,58 @@
+# Data Status
+
+Classification of everything under `data/` and `models/` (both **gitignored**) so
+a clean rebuild knows what to keep, what to regenerate, and what is stale.
+
+> See [PIPELINE_RERUN.md](PIPELINE_RERUN.md) for the commands that regenerate the
+> `CAN_REGENERATE` / `STALE_*` artifacts, and [PROJECT_STRUCTURE.md §4](PROJECT_STRUCTURE.md)
+> for the raw inventory.
+>
+> Last classified: 2026-06-02.
+
+## Legend
+
+| Tag | Meaning |
+|-----|---------|
+| `RAW_KEEP` | Primary input. Never regenerate, never delete. |
+| `CAN_REGENERATE` | Deterministically rebuildable from `RAW_KEEP` + code via the rerun plan. |
+| `STALE_AFTER_RASTER_FIX` | Built **before** the direct-final-grid rasterizer rewrite; a raster-dependent artifact that should be regenerated before being trusted. |
+| `REPORT` | Rendered figures / summaries; cheap to regenerate, safe to discard. |
+| `LEGACY` | Superseded duplicate; archive, do not read in code. |
+| `BACKUP` | Pre-rebuild snapshot; keep off-repo, do not commit. |
+
+## Classification
+
+| Path | Tag | Notes |
+|------|-----|-------|
+| `data/raw/` (SRTM) | `RAW_KEEP` | Original DEM source. |
+| `data/cropped_DEMs/*.tif` (17 Earth DEMs) | `RAW_KEEP` | Per-basin Earth inputs. |
+| `data/final_valleys/` | `RAW_KEEP` | Mars valley-network vectors (input). |
+| `data/Mars/` DEM + MOLA hillshade | `RAW_KEEP` | Mars inputs. |
+| `data/Mars/topology/*.gpkg` | `CAN_REGENERATE` | From `build_mars_network_topology` → `extract_mars_first_meet_pairs`. |
+| `data/Mars/model_inputs/mars_pair_features_5feat*.parquet` | `CAN_REGENERATE` | Tabular features (`build_mars_pair_features_5feat`). Raster-independent. |
+| `data/Mars/model_inputs/cnn_patches_5class/` | `STALE_AFTER_RASTER_FIX` | 5-class patches — regenerate via `build_mars_cnn_patches_5class`. |
+| `data/Mars/model_inputs/mars_cnn_patch_index.parquet`, `*_tabular_plus_cnn.parquet` | `STALE_AFTER_RASTER_FIX` | Depend on the patches / embeddings. |
+| `data/Mars/model_outputs/` predictions + figures | `CAN_REGENERATE` | Inference outputs; the combined/emb ones depend on the (stale) embeddings. |
+| `data/results/<basin>/` per-basin dirs | `CAN_REGENERATE` | Earth pipeline outputs. |
+| `data/results/<basin>/rasters/`, `data/results/_rasters_reg{A,B}/` | `STALE_AFTER_RASTER_FIX` | Pre-rewrite rasters. |
+| `data/results/master_dataset_v2.csv`, 5-feature tables, geom-only XGBoost inputs | `CAN_REGENERATE` | Tabular-only — **unaffected** by the raster fix. |
+| `data/results/master_dataset_*_with_emb.csv`, `*_v4_cnn_full.csv` | `STALE_AFTER_RASTER_FIX` | Carry CNN embeddings. |
+| `data/results/raster_manifest*.csv` | `STALE_AFTER_RASTER_FIX` | Index of pre-rewrite rasters. |
+| `models/xgb_*_geom_only*.json`, tabular-only models + threshold/feature-col files | `CAN_REGENERATE` | Geometry-only — unaffected by the raster fix. |
+| `models/cnn_outlet_*.pt`, `models/xgb_geom_plus_cnn_*` (emb/logit + regime) | `STALE_AFTER_RASTER_FIX` | CNN / CNN-derived — regenerate after patches. |
+| `data/exports/*.pdf`, `data/results/figures_*`, `data/Mars/model_outputs/figures*` | `REPORT` | Regenerate from `presentation/` notebooks or render scripts. |
+| `data/outputs/` | `LEGACY` | Duplicate of `data/results/` (not read by `config.py`). Archive. |
+| `data/archive/` | `LEGACY` | Archive holding area (gitignored as of 2026-06-02). |
+| `data/_rebuild_backup_20260531/` (~97 MB) | `BACKUP` | Pre-rebuild snapshot (gitignored). Keep off-repo. |
+
+## Key invariant — the rasterizer rewrite
+
+`channel_heads/rasterizer.py` was rewritten to **direct final-grid**
+rasterization. Any artifact in the raster → CNN → CNN-embedding → combined-model
+chain built before that change is `STALE_AFTER_RASTER_FIX`. **Tabular-only**
+artifacts (geometry features, geom-only XGBoost, the 5-feature Mars tables) are
+unaffected and stay `CAN_REGENERATE`.
+
+The production artifacts the project preserves as-is
+(`models/xgb_touching_classifier.json`, `models/cnn_outlet_final.pt`) are
+**not** to be overwritten by a rebuild unless explicitly intended.

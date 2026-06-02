@@ -1,6 +1,5 @@
 """Tests for channel_heads.cnn_model module."""
 
-
 import numpy as np
 import pytest
 import torch

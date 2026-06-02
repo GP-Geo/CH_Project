@@ -35,11 +35,16 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from skimage.draw import line as skimage_line
 
 from .config import resolve_dem_path
+from .features.geometry import angle_between_vectors as _angle_between_vectors
+from .features.geometry import azimuth_difference as _azimuth_difference
+from .features.geometry import compute_azimuth as _compute_azimuth
+from .features.geometry import compute_proximity_profile as _compute_proximity_profile
 from .first_meet_pairs_for_outlet import _build_parents_from_stream, _normalize_pair
 from .logging_config import get_logger
+from .stream_utils import line_pixels
+from .units import compute_meters_per_degree, compute_pixel_size_meters
 
 logger = get_logger(__name__)
 
@@ -57,10 +62,6 @@ Coord2D = tuple[float, float]
 # =============================================================================
 # Constants
 # =============================================================================
-
-# Coordinate conversion
-METERS_PER_DEGREE_LAT = 110540.0  # meters per degree of latitude (approximately constant)
-METERS_PER_DEGREE_LON_EQUATOR = 111320.0  # meters per degree of longitude at equator
 
 # Geometric feature computation
 DEFAULT_DIRECTION_SAMPLE_DISTANCE_M = 500.0
@@ -85,80 +86,6 @@ StreamLoaderFunc = Callable[[str, float, float], tuple[Any, Any] | None]
 
 
 # =============================================================================
-# Coordinate Conversion Helpers
-# =============================================================================
-
-
-def compute_meters_per_degree(lat_deg: float) -> float:
-    """Compute meters per degree at a given latitude.
-
-    For DEMs in geographic coordinates (lat/lon), this converts distances
-    from degrees to meters.
-
-    Parameters
-    ----------
-    lat_deg : float
-        Latitude in degrees (positive for northern hemisphere).
-
-    Returns
-    -------
-    float
-        Approximate meters per degree (geometric mean of lat/lon directions).
-
-    Notes
-    -----
-    The conversion uses:
-    - 1 degree of latitude ~ 110,540 meters (approximately constant)
-    - 1 degree of longitude ~ 111,320 * cos(latitude) meters
-
-    We use the geometric mean for flow paths that can go in any direction.
-
-    Examples
-    --------
-    >>> # At 36.7 latitude (Inyo Mountains)
-    >>> m_per_deg = compute_meters_per_degree(36.7)
-    >>> print(f"Meters per degree: {m_per_deg:.0f}")
-    Meters per degree: 99287
-    """
-    lat_rad = math.radians(abs(lat_deg))
-
-    # Meters per degree in each direction
-    meters_per_deg_lon = METERS_PER_DEGREE_LON_EQUATOR * math.cos(lat_rad)
-    meters_per_deg_lat = METERS_PER_DEGREE_LAT
-
-    # Use geometric mean for flow paths in arbitrary directions
-    return math.sqrt(meters_per_deg_lon * meters_per_deg_lat)
-
-
-def compute_pixel_size_meters(lat_deg: float, cellsize_deg: float) -> float:
-    """Compute approximate pixel size in meters for a geographic DEM.
-
-    For DEMs in geographic coordinates (lat/lon), pixel size varies with latitude.
-    This function computes the average linear pixel size in meters.
-
-    Parameters
-    ----------
-    lat_deg : float
-        Latitude in degrees (positive for northern hemisphere).
-    cellsize_deg : float
-        Cell size in degrees (e.g., 1/3600 for 1 arc-second SRTM).
-
-    Returns
-    -------
-    float
-        Approximate pixel size in meters.
-
-    Examples
-    --------
-    >>> # 1 arc-second SRTM at 36.7 latitude (Inyo Mountains)
-    >>> pixel_size = compute_pixel_size_meters(36.7, 1/3600)
-    >>> print(f"Pixel size: {pixel_size:.1f} m")
-    Pixel size: 27.6 m
-    """
-    return cellsize_deg * compute_meters_per_degree(lat_deg)
-
-
-# =============================================================================
 # Geometry Helpers
 # =============================================================================
 
@@ -179,94 +106,6 @@ def _euclidean_2d(x1: float, y1: float, x2: float, y2: float) -> float:
         Euclidean distance.
     """
     return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-
-
-def _angle_between_vectors(v1: Coord2D, v2: Coord2D) -> float:
-    """Compute angle between two 2D vectors in degrees.
-
-    Parameters
-    ----------
-    v1 : tuple[float, float]
-        First vector (dx, dy).
-    v2 : tuple[float, float]
-        Second vector (dx, dy).
-
-    Returns
-    -------
-    float
-        Angle in degrees [0, 180]. Returns NaN if either vector is zero.
-    """
-    dx1, dy1 = v1
-    dx2, dy2 = v2
-
-    mag1 = math.hypot(dx1, dy1)
-    mag2 = math.hypot(dx2, dy2)
-
-    if mag1 < EPSILON or mag2 < EPSILON:
-        return float("nan")
-
-    # Dot product
-    dot = dx1 * dx2 + dy1 * dy2
-
-    # Clamp to handle numerical errors
-    cos_angle = max(-1.0, min(1.0, dot / (mag1 * mag2)))
-
-    return math.degrees(math.acos(cos_angle))
-
-
-def _compute_azimuth(dx: float, dy: float) -> float:
-    """Compute azimuth from north, clockwise, in degrees.
-
-    Parameters
-    ----------
-    dx : float
-        Change in x (east-west direction).
-    dy : float
-        Change in y (north-south direction).
-
-    Returns
-    -------
-    float
-        Azimuth in degrees [0, 360). Returns NaN if vector is zero.
-    """
-    if abs(dx) < EPSILON and abs(dy) < EPSILON:
-        return float("nan")
-
-    # atan2(dx, dy) gives angle from north (y-axis), clockwise
-    azimuth = math.degrees(math.atan2(dx, dy))
-
-    # Wrap to [0, 360)
-    if azimuth < 0:
-        azimuth += 360.0
-
-    return azimuth
-
-
-def _azimuth_difference(az1: float, az2: float) -> float:
-    """Compute absolute azimuth difference wrapped to [0, 180].
-
-    Parameters
-    ----------
-    az1 : float
-        First azimuth in degrees.
-    az2 : float
-        Second azimuth in degrees.
-
-    Returns
-    -------
-    float
-        Absolute difference in degrees [0, 180].
-    """
-    if math.isnan(az1) or math.isnan(az2):
-        return float("nan")
-
-    diff = abs(az1 - az2)
-
-    # Wrap to [0, 180]
-    if diff > 180:
-        diff = 360 - diff
-
-    return diff
 
 
 def _normalize_vector(dx: float, dy: float) -> Coord2D | None:
@@ -567,38 +406,14 @@ def _sample_path_coords(
     seg_len = hi - lo
     frac = np.where(seg_len > EPSILON, (targets - lo) / seg_len, 0.0)
 
-    coords = np.column_stack([
-        xs[idxs] + frac * (xs[idxs + 1] - xs[idxs]),
-        ys[idxs] + frac * (ys[idxs + 1] - ys[idxs]),
-    ])
+    coords = np.column_stack(
+        [
+            xs[idxs] + frac * (xs[idxs + 1] - xs[idxs]),
+            ys[idxs] + frac * (ys[idxs + 1] - ys[idxs]),
+        ]
+    )
 
     return coords
-
-
-def _compute_proximity_profile(
-    coords_1: npt.NDArray[np.float64],
-    coords_2: npt.NDArray[np.float64],
-) -> tuple[float, float, float]:
-    """Compute the proximity profile statistics between two sampled channel paths.
-
-    Parameters
-    ----------
-    coords_1, coords_2 : np.ndarray of shape (n, 2)
-        Sampled (x_m, y_m) coordinates along each channel path.
-
-    Returns
-    -------
-    tuple (proximity_mean_m, proximity_max_m, proximity_profile_norm)
-        proximity_mean_m : mean pairwise distance (metres)
-        proximity_max_m  : max pairwise distance (metres)
-        proximity_profile_norm : mean / max ∈ [0, 1]; 1.0 = parallel channels,
-            <1.0 = convergent channels.
-    """
-    dists = np.hypot(coords_1[:, 0] - coords_2[:, 0], coords_1[:, 1] - coords_2[:, 1])
-    mean_m = float(np.mean(dists))
-    max_m = float(np.max(dists))
-    norm = mean_m / max_m if max_m > EPSILON else float("nan")
-    return mean_m, max_m, norm
 
 
 # =============================================================================
@@ -913,7 +728,11 @@ class LengthwiseAsymmetryAnalyzer:
             logger.warning(
                 "Negative path length for pair (%d, %d) at confluence %d "
                 "(L_1=%.4g, L_2=%.4g). Head may be downstream of confluence. Clamping to 0.",
-                h1, h2, conf, L_1_raw, L_2_raw,
+                h1,
+                h2,
+                conf,
+                L_1_raw,
+                L_2_raw,
             )
         L_1_raw = max(0.0, L_1_raw)
         L_2_raw = max(0.0, L_2_raw)
@@ -1048,7 +867,7 @@ def _line_crosses_stream(
     Uses Bresenham's line algorithm (skimage.draw.line) to enumerate
     intermediate pixels.
     """
-    rr, cc = skimage_line(r1, c1, r2, c2)
+    rr, cc = line_pixels(r1, c1, r2, c2)
     # Clip to valid array bounds
     valid = (rr >= 0) & (rr < stream_mask.shape[0]) & (cc >= 0) & (cc < stream_mask.shape[1])
     rr, cc = rr[valid], cc[valid]
@@ -1800,8 +1619,10 @@ def filter_hard_negatives(
         def _does_not_cross(h1: int, h2: int) -> bool:
             try:
                 return not _line_crosses_stream(
-                    int(r_nodes[h1]), int(c_nodes[h1]),
-                    int(r_nodes[h2]), int(c_nodes[h2]),
+                    int(r_nodes[h1]),
+                    int(c_nodes[h1]),
+                    int(r_nodes[h2]),
+                    int(c_nodes[h2]),
                     stream_mask,
                 )
             except (IndexError, KeyError):

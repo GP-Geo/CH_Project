@@ -1,8 +1,12 @@
 """Tests for channel_heads.rasterizer module."""
 
+import importlib.util
 import math
+from pathlib import Path
 
 import numpy as np
+import pandas as pd
+import pytest
 
 from channel_heads.rasterizer import (
     BACKGROUND,
@@ -11,10 +15,14 @@ from channel_heads.rasterizer import (
     CONFLUENCE_MARKER,
     NUM_CLASSES,
     OTHER_STREAMS,
+    _component_count,
     _compute_rotation_angle,
     _rotate_coordinates,
+    precompute_raster_dataset,
+    raster_quality_flags,
     rasterize_outlet_pair,
 )
+from tests.conftest import MockGridObject, MockStreamObject
 
 # =============================================================================
 # Rotation Angle Tests
@@ -249,8 +257,8 @@ class TestRasterizeOutletPair:
         mean_row = conf_positions[:, 0].mean()
         assert mean_row >= 64 * 0.3, f"Confluence at row {mean_row}, expected in lower portion"
 
-    def test_resize_preserves_categorical_values(self, simple_y_network):
-        """Nearest-neighbor resize should not create fractional values."""
+    def test_direct_output_preserves_categorical_values(self, simple_y_network):
+        """Direct final-grid drawing should keep categorical class values."""
         net = simple_y_network
         for size in [32, 64, 128, 256]:
             result = rasterize_outlet_pair(
@@ -311,6 +319,28 @@ class TestRasterizeOutletPair:
         b_count_2 = np.sum(result_ba == BRANCH_B)
         assert a_count_1 == b_count_2
         assert b_count_1 == a_count_2
+
+    def test_direct_raster_quality_flags_pass_after_downscale(self, complex_network):
+        """Branches and confluence remain connected in the final target grid."""
+        net = complex_network
+        result = rasterize_outlet_pair(
+            net["s"],
+            outlet=7,
+            head_1=0,
+            head_2=1,
+            confluence=4,
+            grid_shape=net["grid_shape"],
+            target_size=32,
+        )
+        flags = raster_quality_flags(result)
+        assert flags == {
+            "has_branch_a": True,
+            "has_branch_b": True,
+            "has_confluence": True,
+            "branch_a_connected": True,
+            "branch_b_connected": True,
+            "branches_connected": True,
+        }
 
 
 class TestRasterizeComplexNetwork:
@@ -397,6 +427,46 @@ class TestRasterizeTouchingBasins:
         assert np.any(result == CONFLUENCE_MARKER)
 
 
+class TestPrecomputeRasterDataset:
+    """Tests for batch raster precomputation metadata."""
+
+    def test_precompute_records_structural_qa(self, tmp_path, simple_y_network):
+        master_csv = tmp_path / "master.csv"
+        pd.DataFrame(
+            [
+                {
+                    "basin": "inyo",
+                    "outlet": 6,
+                    "confluence": 4,
+                    "head_1": 0,
+                    "head_2": 1,
+                    "y": 1,
+                }
+            ]
+        ).to_csv(master_csv, index=False)
+
+        def loader(_basin, _lat, _z_th, _threshold):
+            return simple_y_network["s"], simple_y_network["dem"]
+
+        out = precompute_raster_dataset(
+            master_csv=master_csv,
+            output_dir=tmp_path / "rasters",
+            dem_loader=loader,
+            target_size=32,
+        )
+
+        row = out.iloc[0]
+        assert row["raster_status"] == "ok"
+        assert row["raster_error"] == ""
+        assert row["has_branch_a"]
+        assert row["has_branch_b"]
+        assert row["has_confluence"]
+        assert row["branch_a_connected"]
+        assert row["branch_b_connected"]
+        assert row["branches_connected"]
+        assert row["raster_path"]
+
+
 # =============================================================================
 # Constants Tests
 # =============================================================================
@@ -413,3 +483,301 @@ class TestConstants:
     def test_num_classes(self):
         """NUM_CLASSES matches number of distinct classes."""
         assert NUM_CLASSES == 5
+
+
+# =============================================================================
+# Regression: direct projection vs. old draw-then-resize
+# =============================================================================
+
+
+def _make_large_extent_network():
+    """A Y-network spanning a large grid relative to a small target_size.
+
+    Heads sit at the top, the confluence near the bottom, with long branches.
+    Under the OLD pipeline (draw on a ~native crop, then nearest-neighbour
+    resize down to a small target) the one-pixel confluence marker and the
+    thin branches would routinely vanish or disconnect. With direct
+    projection into the final grid, connectivity is a construction invariant.
+    """
+    grid_shape = (200, 200)
+    # 0: head A (top-left), 1: head B (top-right),
+    # 2: confluence (bottom-center), 3: outlet (very bottom)
+    node_positions = [
+        (10, 60),
+        (10, 140),
+        (185, 100),
+        (199, 100),
+    ]
+    edges = [(0, 2), (1, 2), (2, 3)]
+    s = MockStreamObject(
+        node_positions=node_positions,
+        edges=edges,
+        channelheads=[0, 1],
+        outlets=[3],
+        confluences=[2],
+        grid_shape=grid_shape,
+    )
+    dem = MockGridObject(np.ones(grid_shape, dtype=float) * 100.0)
+    return {"s": s, "dem": dem, "grid_shape": grid_shape}
+
+
+class TestDirectProjectionRegression:
+    """Tests that would have caught the original draw-then-resize bug."""
+
+    def test_naive_nn_resize_loses_one_pixel_marker(self):
+        """Demonstrates the failure mode of the OLD pipeline.
+
+        A native-resolution label raster with thin branches and a one-pixel
+        confluence marker loses the marker (and can break connectivity) under
+        nearest-neighbour downsampling. This documents *why* direct projection
+        is required.
+        """
+        native = np.zeros((200, 200), dtype=np.uint8)
+        native[10:185, 60] = BRANCH_A  # thin vertical branch A
+        native[10:185, 140] = BRANCH_B  # thin vertical branch B
+        native[185, 100] = CONFLUENCE_MARKER  # single-pixel marker
+
+        # Classic nearest-neighbour downsample via integer striding to ~25px.
+        factor = 8
+        naive = native[::factor, ::factor]
+
+        # The one-pixel marker is dropped by NN downsampling...
+        assert not np.any(naive == CONFLUENCE_MARKER)
+        # ...and the thin branches are largely destroyed too.
+        assert np.sum(naive == BRANCH_A) < np.sum(native == BRANCH_A) / factor
+
+    def test_direct_rasterizer_survives_small_target(self):
+        """The real rasterizer keeps marker + connectivity at a small target."""
+        net = _make_large_extent_network()
+        result = rasterize_outlet_pair(
+            net["s"],
+            outlet=3,
+            head_1=0,
+            head_2=1,
+            confluence=2,
+            grid_shape=net["grid_shape"],
+            target_size=24,
+        )
+        flags = raster_quality_flags(result)
+        # Despite a 200px extent collapsed to 24px, everything survives.
+        assert flags["has_branch_a"]
+        assert flags["has_branch_b"]
+        assert flags["has_confluence"]
+        assert flags["branch_a_connected"]
+        assert flags["branch_b_connected"]
+        assert flags["branches_connected"]
+
+
+# =============================================================================
+# raster_quality_flags unit tests
+# =============================================================================
+
+
+class TestRasterQualityFlags:
+    """Direct unit tests for raster_quality_flags and _component_count."""
+
+    def test_all_valid(self):
+        """Branch A and B each 8-connected to the confluence marker."""
+        r = np.zeros((5, 5), dtype=np.uint8)
+        r[0, 0] = BRANCH_A
+        r[1, 0] = BRANCH_A
+        r[0, 2] = BRANCH_B
+        r[1, 2] = BRANCH_B
+        r[2, 1] = CONFLUENCE_MARKER  # diagonally adjacent to both (1,0) and (1,2)
+        flags = raster_quality_flags(r)
+        assert flags == {
+            "has_branch_a": True,
+            "has_branch_b": True,
+            "has_confluence": True,
+            "branch_a_connected": True,
+            "branch_b_connected": True,
+            "branches_connected": True,
+        }
+
+    def test_missing_confluence(self):
+        """No confluence marker → nothing is connected."""
+        r = np.zeros((5, 5), dtype=np.uint8)
+        r[0, 0] = BRANCH_A
+        r[0, 2] = BRANCH_B
+        flags = raster_quality_flags(r)
+        assert flags["has_branch_a"]
+        assert flags["has_branch_b"]
+        assert not flags["has_confluence"]
+        assert not flags["branch_a_connected"]
+        assert not flags["branch_b_connected"]
+        assert not flags["branches_connected"]
+
+    def test_branch_a_disconnected(self):
+        """Branch A separated from the marker by background fails connectivity."""
+        r = np.zeros((6, 6), dtype=np.uint8)
+        r[0, 0] = BRANCH_A  # isolated in the top-left corner
+        r[4, 4] = CONFLUENCE_MARKER
+        r[3, 4] = BRANCH_B  # 8-connected to the marker
+        flags = raster_quality_flags(r)
+        assert flags["has_branch_a"]
+        assert flags["has_confluence"]
+        assert not flags["branch_a_connected"]
+        assert flags["branch_b_connected"]
+        assert not flags["branches_connected"]
+
+    def test_component_count_single_vs_split(self):
+        """_component_count distinguishes connected from split masks."""
+        connected = np.zeros((4, 4), dtype=bool)
+        connected[1, 1] = True
+        connected[2, 2] = True  # diagonal → 8-connected → one component
+        assert _component_count(connected) == 1
+
+        split = np.zeros((4, 4), dtype=bool)
+        split[0, 0] = True
+        split[3, 3] = True  # far apart → two components
+        assert _component_count(split) == 2
+
+        assert _component_count(np.zeros((4, 4), dtype=bool)) == 0
+
+
+# =============================================================================
+# Batch precompute QA gating
+# =============================================================================
+
+
+class TestPrecomputeQAGating:
+    """Batch-level QA behaviour of precompute_raster_dataset."""
+
+    def _write_master(self, tmp_path):
+        master_csv = tmp_path / "master.csv"
+        pd.DataFrame(
+            [
+                {
+                    "basin": "inyo",
+                    "outlet": 6,
+                    "confluence": 4,
+                    "head_1": 0,
+                    "head_2": 1,
+                    "y": 1,
+                }
+            ]
+        ).to_csv(master_csv, index=False)
+        return master_csv
+
+    def test_ok_patch_has_all_required_classes(self, tmp_path, simple_y_network):
+        """When raster_status == 'ok', the saved patch has classes 1, 2 and 4."""
+        master_csv = self._write_master(tmp_path)
+
+        def loader(_basin, _lat, _z_th, _threshold):
+            return simple_y_network["s"], simple_y_network["dem"]
+
+        out = precompute_raster_dataset(
+            master_csv=master_csv,
+            output_dir=tmp_path / "rasters",
+            dem_loader=loader,
+            target_size=32,
+        )
+        row = out.iloc[0]
+        assert row["raster_status"] == "ok"
+        assert row["raster_path"]
+        raster = np.load(row["raster_path"])
+        present = set(np.unique(raster))
+        assert {BRANCH_A, BRANCH_B, CONFLUENCE_MARKER}.issubset(present)
+        # And the QA flags assert 8-connectivity of both branches.
+        assert row["branch_a_connected"]
+        assert row["branch_b_connected"]
+        assert row["branches_connected"]
+
+    def test_invalid_patch_gets_no_raster_path(self, tmp_path, simple_y_network, monkeypatch):
+        """A patch that fails structural QA is 'invalid' with no raster_path,
+        but is still saved to a debug path for inspection."""
+        import channel_heads.rasterizer as rast
+
+        def broken_raster(*_args, **_kwargs):
+            # Branch A and B present but no confluence marker and disconnected.
+            r = np.zeros((32, 32), dtype=np.uint8)
+            r[5, 5] = BRANCH_A
+            r[25, 25] = BRANCH_B
+            return r
+
+        monkeypatch.setattr(rast, "rasterize_outlet_pair", broken_raster)
+
+        master_csv = self._write_master(tmp_path)
+
+        def loader(_basin, _lat, _z_th, _threshold):
+            return simple_y_network["s"], simple_y_network["dem"]
+
+        out = precompute_raster_dataset(
+            master_csv=master_csv,
+            output_dir=tmp_path / "rasters",
+            dem_loader=loader,
+            target_size=32,
+        )
+        row = out.iloc[0]
+        assert row["raster_status"] == "invalid"
+        assert pd.isna(row["raster_path"]) or row["raster_path"] is None
+        assert row["raster_error"].startswith("qa_failed:")
+        # Debug artifact is still written for inspection.
+        assert row["raster_debug_path"]
+        assert Path(row["raster_debug_path"]).exists()
+        assert not row["has_confluence"]
+
+
+# =============================================================================
+# Mars rasterization smoke test (shared semantics with Earth)
+# =============================================================================
+
+
+def _load_mars_script():
+    """Import scripts/build_mars_cnn_patches_5class.py as a module."""
+    script_path = (
+        Path(__file__).resolve().parents[1] / "scripts" / "build_mars_cnn_patches_5class.py"
+    )
+    spec = importlib.util.spec_from_file_location("build_mars_cnn_patches_5class", script_path)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class TestMarsRasterizationSmoke:
+    """Smoke test that the Mars script's direct rasterization path matches
+    Earth's class encoding and produces structurally valid patches."""
+
+    def test_mars_direct_rasterization_is_valid(self):
+        shapely = pytest.importorskip("shapely")
+        mod = _load_mars_script()
+        LineString = shapely.geometry.LineString
+
+        # A simple Y in Mars projected metres: heads at the top (north),
+        # confluence at the origin, outlet draining south.
+        conf_xy = (0.0, 0.0)
+        h1_xy = (-2000.0, 8000.0)
+        h2_xy = (2000.0, 8000.0)
+        path_a = LineString([h1_xy, conf_xy])
+        path_b = LineString([h2_xy, conf_xy])
+        network_segments = [LineString([conf_xy, (0.0, -6000.0)])]
+
+        patch = mod.rasterize_mars_pair(
+            h1_xy=h1_xy,
+            h2_xy=h2_xy,
+            conf_xy=conf_xy,
+            path_a=path_a,
+            path_b=path_b,
+            network_segments=network_segments,
+        )
+
+        # Same shape / dtype / encoding as Earth.
+        assert patch.shape == (mod.TARGET_SIZE, mod.TARGET_SIZE)
+        assert patch.dtype == np.uint8
+        assert set(np.unique(patch)).issubset({0, 1, 2, 3, 4})
+
+        # Earth constants are reused, not redefined.
+        assert mod.BRANCH_A == BRANCH_A
+        assert mod.BRANCH_B == BRANCH_B
+        assert mod.OTHER_STREAMS == OTHER_STREAMS
+        assert mod.CONFLUENCE_MARKER == CONFLUENCE_MARKER
+
+        # Structural QA passes using the shared Earth helper.
+        flags = mod.raster_quality_flags(patch)
+        assert flags["has_branch_a"]
+        assert flags["has_branch_b"]
+        assert flags["has_confluence"]
+        assert flags["branch_a_connected"]
+        assert flags["branch_b_connected"]
+        assert flags["branches_connected"]
