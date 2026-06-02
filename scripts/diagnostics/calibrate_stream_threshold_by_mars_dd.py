@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Earth drainage-density calibration across stream-extraction thresholds.
 
-For each terrestrial DEM in `channel_heads.config.EXAMPLE_DEMS` (filterable via
+For each terrestrial DEM in `channel_heads.io.paths.EXAMPLE_DEMS` (filterable via
 ``--basins``), this script:
 
   1. Sweeps a list of contributing-area thresholds (km^2).
@@ -39,25 +39,22 @@ import logging
 import sys
 import time
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from channel_heads.basin_config import LOCAL_TO_PAPER_BASIN, get_basin_config
-from channel_heads.config import EXAMPLE_DEMS, RESULTS_DIR
 from channel_heads.dd_calibration import (
     DEFAULT_THRESHOLDS_KM2,
     MARS_DD_STATS,
     STATUS_OK,
     BasinMetrics,
-    choose_best_threshold,
     collect_basin_metrics_for_dem,
     compute_convex_hull_area_km2,
     summarize_threshold_metrics,
 )
+from channel_heads.io.paths import EXAMPLE_DEMS, RESULTS_DIR
 from channel_heads.logging_config import setup_logging
-
 
 # =============================================================================
 # Output handling

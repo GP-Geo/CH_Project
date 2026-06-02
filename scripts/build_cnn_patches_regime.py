@@ -36,11 +36,11 @@ import topotoolbox as tt3
 
 from channel_heads import apply_strategy
 from channel_heads.basin_config import LOCAL_TO_PAPER_BASIN, get_basin_config
-from channel_heads.config import RESULTS_DIR, resolve_dem_path
 from channel_heads.dd_calibration import (
     compute_pixel_size_m_from_dem,
     compute_threshold_cells,
 )
+from channel_heads.io.paths import RESULTS_DIR, resolve_dem_path
 from channel_heads.rasterizer import precompute_raster_dataset
 
 # Re-use the regime presets from the Step 2 script.

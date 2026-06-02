@@ -29,8 +29,9 @@ import numpy as np
 import pandas as pd
 import torch
 
-from channel_heads.cnn_model import DEFAULT_EMBEDDING_DIM
-from channel_heads.cnn_training import (
+from channel_heads.io.paths import PROJECT_ROOT, RESULTS_DIR
+from channel_heads.models.cnn import DEFAULT_EMBEDDING_DIM
+from channel_heads.training.cnn import (
     DEFAULT_BATCH_SIZE,
     DEFAULT_DROPOUT,
     DEFAULT_EPOCHS,
@@ -42,7 +43,6 @@ from channel_heads.cnn_training import (
     pick_device,
     train_cnn,
 )
-from channel_heads.config import PROJECT_ROOT, RESULTS_DIR
 
 log = logging.getLogger("train_cnn_baseline")
 

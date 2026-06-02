@@ -70,7 +70,12 @@ Standard tests:
 - **Stop condition:** Stop if class count, patch geometry, or embedding output
   changes in any way.
 
-## Slice 4 — Scripts cleanup / archive
+## Slice 4 — Scripts cleanup / archive (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. Thin scripts were repointed to canonical
+> package imports where safe, and the inline `pick_device()` copies in the
+> combined-XGB trainers now use `channel_heads.models.device.pick_device`. No
+> scripts were archived because none were clearly dead in this pass.
 
 - **Goal:** Repoint thin scripts to canonical package imports where safe; move
   clearly dead scripts to an `_archive/` location (do not delete). Keep scripts

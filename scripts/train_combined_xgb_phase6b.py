@@ -71,11 +71,12 @@ from sklearn.model_selection import GroupShuffleSplit
 from torch.utils.data import DataLoader
 from xgboost import XGBClassifier
 
-from channel_heads.cnn_model import (  # noqa: E402
+from channel_heads.models.cnn import (  # noqa: E402
     DEFAULT_EMBEDDING_DIM,
     OutletCNN,
     OutletPairDataset,
 )
+from channel_heads.models.device import pick_device  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Parameters
@@ -122,14 +123,6 @@ def setup_logging() -> None:
         format="%(asctime)s %(levelname)s %(message)s",
         datefmt="%H:%M:%S",
     )
-
-
-def pick_device() -> str:
-    if torch.backends.mps.is_available():
-        return "mps"
-    if torch.cuda.is_available():
-        return "cuda"
-    return "cpu"
 
 
 # ---------------------------------------------------------------------------

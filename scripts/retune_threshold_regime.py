@@ -38,7 +38,7 @@ from channel_heads.eval import (
     f1_optimal_threshold,
     outlet_group_holdout,
 )
-from channel_heads.inference import load_feature_columns
+from channel_heads.models.xgboost import load_feature_columns
 from channel_heads.regimes import REGIMES
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

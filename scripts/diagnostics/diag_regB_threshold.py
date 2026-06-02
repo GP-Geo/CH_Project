@@ -34,7 +34,7 @@ from channel_heads.eval import (
     f1_optimal_threshold,
     outlet_group_holdout,
 )
-from channel_heads.inference import load_feature_columns, load_xgb_model
+from channel_heads.models.xgboost import load_feature_columns, load_xgb_model
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # scripts/diagnostics/ -> repo root
 RESULTS_DIR = PROJECT_ROOT / "data/results"
@@ -147,8 +147,10 @@ def main() -> int:
                 label=f"F1-opt thr={f1_thr:.3f}\n(F1={met['F1_optimal_max']:.2f})",
             )
         ax.axvline(0.5, color="gray", ls=":", lw=1, label="recall=0.5")
-        ax.set_xlim(0, 1); ax.set_ylim(0, 1.05)
-        ax.set_xlabel("Recall"); ax.set_ylabel("Precision")
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1.05)
+        ax.set_xlabel("Recall")
+        ax.set_ylabel("Precision")
         ax.set_title(label)
         ax.grid(True, alpha=0.3)
         ax.legend(loc="lower left", fontsize=8)

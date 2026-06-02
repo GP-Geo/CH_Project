@@ -8,8 +8,9 @@ _Last updated: 2026-06-02_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** CNN training core into training package (Slice 3d;
-  see `AGENT_RUN_LOG.md`); prior was `8ecbd9e refactor(models): move CNN embedding helpers into models`.
+- **Latest stable commit:** scripts cleanup / canonical imports (Slice 4; see
+  `AGENT_RUN_LOG.md`); prior was CNN training core into training package
+  (Slice 3d).
 - **Working tree:** clean at time of writing.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
@@ -30,6 +31,8 @@ _Last updated: 2026-06-02_
 - **Paths/config:** canonical path ownership → `channel_heads/io/paths.py`.
 - **XGBoost inference:** implementation → `channel_heads/models/xgboost.py`
   (this is the most recent slice, commit `90fd694`).
+- **Scripts cleanup:** thin scripts now import canonical package modules directly
+  where safe; no scripts were archived.
 
 ## Canonical ownership (current truth)
 
@@ -123,6 +126,17 @@ _Last updated: 2026-06-02_
   still import cleanly via the shim. Pinned by
   `tests/test_cnn_consolidation.py::TestTrainingCoreConsolidated`. This completes
   the CNN consolidation (Slice 3).
+- **Scripts cleanup / archive (Slice 4): DONE.** Thin scripts under `scripts/`
+  were repointed from compatibility shims to canonical modules where safe:
+  `channel_heads.io.paths`, `channel_heads.models.cnn`,
+  `channel_heads.models.device`, `channel_heads.models.xgboost`, and
+  `channel_heads.training.cnn`. The inline `pick_device()` copies in
+  `scripts/train_combined_xgb_phase6b.py` and
+  `scripts/train_combined_xgb_regime.py` were removed in favor of the canonical
+  `channel_heads.models.device.pick_device` implementation (same `mps` > `cuda`
+  > `cpu` order). No scripts were archived because none were clearly dead in
+  this pass. CLI surfaces, model paths, hyperparameters, strict/lenient
+  state-dict behavior, and outputs unchanged.
 
 ## Known shims (keep working)
 
@@ -146,17 +160,13 @@ _Last updated: 2026-06-02_
   `models/mars_combined.py`, and `scripts/train_combined_xgb_*.py` were
   deliberately **not** merged (see `AGENT_AUDIT_CNN.md` §3b/§5).
 - `geometric_analysis.py`, `rasterizer.py` — audit-only, no refactor yet.
-- `scripts/` — several still import `from channel_heads.inference import ...`
-  (acceptable for thin scripts); cleanup/archive pass pending.
+- `scripts/` — cleanup pass complete as of Slice 4. Scripts may still import
+  transitional modules directly when that is the canonical current surface
+  (notably `channel_heads.inference.regime`); no dead scripts were archived.
 
 ## Next recommended task
 
-**Slice 4 — scripts cleanup / archive.** With the CNN consolidation done
-(Slice 3 complete), repoint thin scripts under `scripts/` to canonical package
-imports where safe (e.g. `channel_heads.training.cnn`, `channel_heads.models.cnn`,
-`channel_heads.models.cnn_features`, `channel_heads.models.device` instead of the
-flat shims), and move clearly dead scripts to an `_archive/` location (do not
-delete). Keep scripts runnable; only `scripts/` files in scope. The inline
-`pick_device` / forward-pass copies in `scripts/train_combined_xgb_*.py` can be
-repointed to canonical imports here but their behavior must not change. See
-`AGENT_BACKLOG.md` Slice 4. Stop if any script's runtime behavior or CLI changes.
+**Slice 5 — Earth / regime training audit.** Read-only audit of the
+Earth/regime training path plus `channel_heads/inference/regime.py`; produce an
+ownership/consolidation plan without changing regime behavior. See
+`AGENT_BACKLOG.md` Slice 5. Stop after writing the audit note and run-log entry.

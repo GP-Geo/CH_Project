@@ -52,11 +52,11 @@ from channel_heads import (
     outlet_node_ids_from_streampoi,
 )
 from channel_heads.basin_config import LOCAL_TO_PAPER_BASIN, get_basin_config
-from channel_heads.config import EXAMPLE_DEMS, RESULTS_DIR
 from channel_heads.dd_calibration import (
     compute_pixel_size_m_from_dem,
     compute_threshold_cells,
 )
+from channel_heads.io.paths import EXAMPLE_DEMS, RESULTS_DIR
 from channel_heads.logging_config import setup_logging
 from channel_heads.regimes import REGIMES, Regime
 

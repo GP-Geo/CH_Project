@@ -46,9 +46,10 @@ import pandas as pd
 from shapely.geometry import LineString
 from xgboost import XGBClassifier
 
-from channel_heads.config import PROJECT_ROOT
-from channel_heads.inference import load_feature_columns, load_threshold, pick_device
 from channel_heads.inference.regime import attach_regime_embeddings
+from channel_heads.io.paths import PROJECT_ROOT
+from channel_heads.models.device import pick_device
+from channel_heads.models.xgboost import load_feature_columns, load_threshold
 from channel_heads.regimes import REGIMES
 
 log = logging.getLogger("run_mars_combined_regime")

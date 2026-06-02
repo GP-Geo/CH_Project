@@ -4,6 +4,49 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-02 — Slice 4: repoint scripts to canonical imports
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `36d8f3b`
+- **Task:** Slice 4 — cleanup script imports after the package-first
+  consolidation. Repoint thin scripts from compatibility shims to canonical
+  package modules where safe, and remove script-local `pick_device()` copies.
+  Behavior-preserving: no CLI changes, no threshold/model-path/hyperparameter
+  changes, no forward-pass changes, no archive moves.
+- **Files updated:**
+  - `scripts/build_cnn_patches_regime.py`,
+    `scripts/build_earth_features_regime.py`,
+    `scripts/diagnostics/calibrate_stream_threshold_by_mars_dd.py`,
+    `scripts/diagnostics/diag_regB_threshold.py`,
+    `scripts/retune_threshold_regime.py`,
+    `scripts/run_mars_combined_regime.py`,
+    `scripts/train_cnn_baseline.py`, `scripts/train_cnn_multiseed.py`,
+    `scripts/train_cnn_regime.py`, `scripts/train_combined_xgb_phase6b.py`,
+    `scripts/train_combined_xgb_regime.py` — imports now target canonical
+    modules (`io.paths`, `models.cnn`, `models.device`, `models.xgboost`,
+    `training.cnn`) instead of shims where safe.
+  - `scripts/train_combined_xgb_phase6b.py`,
+    `scripts/train_combined_xgb_regime.py` — local `pick_device()` copies removed;
+    both scripts use `channel_heads.models.device.pick_device` (same `mps` >
+    `cuda` > `cpu` order).
+  - `scripts/diagnostics/calibrate_stream_threshold_by_mars_dd.py`,
+    `scripts/diagnostics/diag_regB_threshold.py` — tiny ruff cleanup in touched
+    files only (unused imports removed; two semicolon-combined statements split).
+  - `AGENT_STATE.md`, `AGENT_BACKLOG.md`, `AGENT_RUN_LOG.md` — handoff state
+    updated for Slice 4 completion and Slice 5 as next task.
+- **Not touched (per slice scope):** `channel_heads/` source, `data/`, root
+  `/models/`, notebooks, generated outputs, trained artifacts. No scripts were
+  archived because none were clearly dead in this pass.
+- **Validation:** smoke-imported all 11 changed scripts with
+  `conda run -n ch-heads python` (pass; only Matplotlib temp-cache warning due
+  unwritable `~/.matplotlib`). Full `pytest`: **503 passed, 7 warnings**.
+  `ruff check` clean on all changed scripts. `git diff --check` clean.
+- **Risks:** Low. Import-only/script-local helper dedup; strict state-dict load
+  in combined trainers, lenient/strict extractor split, CLI arguments, output
+  paths, thresholds, feature order, and model artifacts unchanged.
+- **Next step:** Slice 5 — read-only Earth/regime training audit, including
+  `channel_heads/inference/regime.py`.
+
 ## 2026-06-02 — Slice 3d: move CNN training core into training package
 
 - **Branch:** `refactor/package-first-architecture`

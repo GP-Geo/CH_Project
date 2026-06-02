@@ -53,12 +53,13 @@ from sklearn.model_selection import GroupShuffleSplit
 from torch.utils.data import DataLoader
 from xgboost import XGBClassifier
 
-from channel_heads.cnn_model import (
+from channel_heads.io.paths import PROJECT_ROOT, RESULTS_DIR
+from channel_heads.models.cnn import (
     DEFAULT_EMBEDDING_DIM,
     OutletCNN,
     OutletPairDataset,
 )
-from channel_heads.config import PROJECT_ROOT, RESULTS_DIR
+from channel_heads.models.device import pick_device
 from channel_heads.regimes import REGIMES
 
 log = logging.getLogger("train_combined_xgb_regime")
@@ -80,14 +81,6 @@ GEOM_FEATURES: list[str] = [
     "proximity_profile_norm",
 ]
 EMB_FEATURES: list[str] = [f"emb_{i}" for i in range(DEFAULT_EMBEDDING_DIM)]
-
-
-def pick_device() -> str:
-    if torch.backends.mps.is_available():
-        return "mps"
-    if torch.cuda.is_available():
-        return "cuda"
-    return "cpu"
 
 
 def extract_emb(model_path: Path, paths: list[Path], device: str) -> np.ndarray:
