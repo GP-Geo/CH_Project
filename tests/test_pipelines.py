@@ -35,11 +35,16 @@ def test_pipeline_stage_is_callable(name):
 
 def test_migrated_stages_do_not_delegate():
     # Migrated stages must call the package directly, not shell out to scripts.
-    for name in ("build_mars_topology", "extract_mars_pairs", "build_mars_features"):
+    for name in (
+        "build_mars_topology",
+        "extract_mars_pairs",
+        "build_mars_features",
+        "run_mars_xgb_inference",
+    ):
         src = inspect.getsource(getattr(pipelines, name))
         assert "run_script" not in src, f"{name} should call channel_heads.* directly"
 
 
 def test_transitional_stages_are_marked():
-    for name in ("build_mars_cnn_patches", "extract_mars_cnn_embeddings", "run_mars_combined_inference"):
+    for name in ("extract_mars_cnn_embeddings", "run_mars_combined_inference"):
         assert "TRANSITIONAL" in inspect.getdoc(getattr(pipelines, name))

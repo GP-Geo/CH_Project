@@ -14,10 +14,11 @@ Stage order (see ``docs/pipeline.md``)::
     -> run_mars_combined_inference   # Phase 6C combined geom+CNN variants
     -> compare_mars_model_outputs     # Phase 6C variant comparison
 
-Migrated into the package: topology, pairs (:mod:`channel_heads.mars`) and
-features (:mod:`channel_heads.features.mars_features`).
-TRANSITIONAL (logic still in ``scripts/``, scheduled for extraction): xgb
-inference, patches, embeddings, combined inference, comparison.
+Migrated into the package: topology, pairs (:mod:`channel_heads.mars`),
+features (:mod:`channel_heads.features.mars_features`) and tabular XGBoost
+inference (:mod:`channel_heads.models.mars_inference`).
+TRANSITIONAL (logic still in ``scripts/``, scheduled for extraction): patches,
+embeddings, combined inference, comparison.
 """
 
 from __future__ import annotations
@@ -75,14 +76,22 @@ def build_mars_features(
 
 
 # --------------------------------------------------------------------------- #
-# Phase 3B — production XGBoost inference  (TRANSITIONAL)
+# Phase 3B — production XGBoost inference  (MIGRATED)
 # --------------------------------------------------------------------------- #
-def run_mars_xgb_inference() -> None:
-    """Phase 3B: production XGBoost on the 5-feature table.
+def run_mars_xgb_inference(
+    features_parquet=paths.MARS_MODEL_INPUTS_DIR / "mars_pair_features_5feat_model_ready.parquet",
+    output_dir=paths.MARS_MODEL_OUTPUTS_DIR,
+) -> dict:
+    """Phase 3B: production XGBoost on the Mars 5-feature model-ready table.
 
-    TRANSITIONAL — runs ``scripts/run_mars_xgb_inference_5feat.py``.
+    Calls :func:`channel_heads.models.run_mars_tabular_inference` directly.
+    Returns ``{"predictions", "summary", "by_network", "threshold", "paths"}``.
     """
-    run_script("run_mars_xgb_inference_5feat.py")
+    from channel_heads.models import run_mars_tabular_inference
+
+    return run_mars_tabular_inference(
+        features_parquet=features_parquet, output_dir=output_dir
+    )
 
 
 # --------------------------------------------------------------------------- #
