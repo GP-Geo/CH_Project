@@ -69,9 +69,9 @@ from channel_heads import models   # models.xgboost / thresholds / comparison / 
 | Mars first-meet pairs (2B) | ✅ migrated | `channel_heads/mars/pairs.py` |
 | io / paths / tables / geopackage / cleanup | ✅ new | `channel_heads/io/` |
 | models / rasterization curated surfaces | ✅ new | `channel_heads/{models,rasterization}/` |
-| Mars features (3A) | ⏳ transitional | `scripts/build_mars_pair_features_5feat.py` |
-| Mars XGB inference (3B) | ⏳ transitional | `scripts/run_mars_xgb_inference_5feat.py` |
-| Mars CNN patches (4) | ⏳ transitional | `scripts/build_mars_cnn_patches_5class.py` |
+| Mars features (3A) | ✅ migrated | `channel_heads/features/mars_features.py` |
+| Mars XGB inference (3B) | ✅ migrated | `channel_heads/models/mars_inference.py` |
+| Mars CNN patches (4) | ✅ migrated | `channel_heads/rasterization/mars_patches.py` |
 | Mars CNN embeddings (5) | ⏳ transitional | `scripts/extract_mars_cnn_embeddings.py` |
 | Mars combined inference (6C) | ⏳ transitional | `scripts/run_mars_combined_xgb_inference.py` |
 | Earth training | ⏳ transitional | `scripts/train_*` |
