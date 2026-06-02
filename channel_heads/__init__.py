@@ -61,6 +61,7 @@ from .config import (
     list_available_dems,
     resolve_dem_path,
 )
+from . import io
 from .coupling_analysis import CouplingAnalyzer, PairTouchResult
 from .first_meet_pairs_for_outlet import first_meet_pairs_for_outlet
 
@@ -154,6 +155,8 @@ __all__ = [
     "get_experiment_output_dir",
     "list_available_dems",
     "resolve_dem_path",
+    # IO layer (paths, tables, geopackage, cleanup)
+    "io",
     # Rasterizer
     "rasterize_outlet_pair",
     "raster_quality_flags",
