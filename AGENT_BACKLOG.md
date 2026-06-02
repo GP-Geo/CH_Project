@@ -108,7 +108,16 @@ Standard tests:
 - **Suggested commit:** `docs(agents): record Earth/regime training audit`
 - **Stop condition:** Do not modify regime behavior. Stop after the note.
 
-## Slice 6 — `geometric_analysis.py` audit (audit-only)
+## Slice 6 — `geometric_analysis.py` audit (audit-only) (DONE)
+
+> Completed — see `AGENT_AUDIT_GEOMETRIC_ANALYSIS.md` and
+> `AGENT_RUN_LOG.md`. Audit only: no implementation code changed. Key
+> recommendation is to split `geometric_analysis.py` into
+> `features/earth_paths.py`, `features/asymmetry.py`,
+> `features/earth_geometry.py`, `training/labeling.py`, and
+> `features/earth_enrichment.py`, with `geometric_analysis.py` kept as a shim
+> after tests pin unit behavior, path traversal, feature/QC column order,
+> hard-negative semantics, CSV enrichment behavior, and private helper imports.
 
 - **Goal:** Read-only review of `geometric_analysis.py` ownership/boundaries;
   recommend a target package location and any shim plan.
@@ -119,7 +128,15 @@ Standard tests:
 - **Suggested commit:** `docs(agents): record geometric_analysis audit`
 - **Stop condition:** Audit only. No source change.
 
-## Slice 7 — `rasterizer.py` audit (audit-only)
+## Slice 7 — `rasterizer.py` audit (audit-only) (DONE)
+
+> Completed — see `AGENT_AUDIT_RASTERIZER.md` and `AGENT_RUN_LOG.md`. Audit
+> only: no implementation code changed. Key recommendation is to move shared
+> raster constants/schema and Earth patch rasterization/precompute into
+> `channel_heads/rasterization/`, keep Mars Phase 4 in
+> `rasterization/mars_patches.py`, move regime patch orchestration into future
+> `training/regime.py`, and leave `rasterizer.py` as a shim after behavior tests
+> pin the frozen 5-class CNN patch contract.
 
 - **Goal:** Read-only review of `rasterizer.py` vs `channel_heads/rasterization/`;
   recommend canonical ownership and shim plan.
@@ -130,7 +147,25 @@ Standard tests:
 - **Suggested commit:** `docs(agents): record rasterizer audit`
 - **Stop condition:** Audit only. No source change.
 
-## Slice 8 — Data cleanup dry-run (later)
+## Slice 8 — Behavior-pinning checkpoint before package moves
+
+- **Goal:** Add or produce a concrete test plan for focused behavior-pinning
+  tests before moving Earth/regime, geometric-analysis, or rasterization logic.
+  This should protect the contracts identified in
+  `AGENT_AUDIT_EARTH_REGIME.md`, `AGENT_AUDIT_GEOMETRIC_ANALYSIS.md`, and
+  `AGENT_AUDIT_RASTERIZER.md`.
+- **Allowed files:** tests and handoff docs if tests are added; otherwise a
+  checkpoint note only. Keep implementation code unchanged unless the user
+  explicitly requests moving into a refactor slice.
+- **Forbidden files:** implementation refactors, `data/`, root `/models/`,
+  notebooks, generated outputs.
+- **Tests to run:** targeted tests added/updated in this checkpoint; no full
+  pytest required unless code changes beyond tests.
+- **Suggested commit:** `test(agents): pin Earth regime feature and raster contracts`
+- **Stop condition:** Do not move package ownership yet. Stop after tests or the
+  test plan/checkpoint are in place.
+
+## Slice 9 — Data cleanup dry-run (later)
 
 - **Goal:** Produce a **dry-run only** report of candidate stale/generated data
   per `docs/DATA_STATUS.md`. No deletion, no moves.
@@ -140,7 +175,7 @@ Standard tests:
 - **Suggested commit:** `docs(agents): data cleanup dry-run report`
 - **Stop condition:** Never delete or move data in this slice. Report only.
 
-## Slice 9 — Notebook rebuild (later, explicit request only)
+## Slice 10 — Notebook rebuild (later, explicit request only)
 
 - **Goal:** Update notebooks to canonical imports once shims are stable.
 - **Allowed files:** `notebooks/` — only when the user explicitly requests it.

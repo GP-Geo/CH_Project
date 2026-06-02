@@ -8,9 +8,10 @@ _Last updated: 2026-06-02_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** Earth/regime training ownership audit (Slice 5; see
-  `AGENT_RUN_LOG.md`); prior was scripts cleanup / canonical imports (Slice 4).
-- **Working tree:** clean at time of writing.
+- **Latest stable commit:** Geometric analysis + rasterizer ownership audit
+  (Slices 6/7; see `AGENT_RUN_LOG.md`); prior was Earth/regime training
+  ownership audit (Slice 5).
+- **Working tree:** clean at time of writing after the audit commit.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
 
@@ -34,6 +35,10 @@ _Last updated: 2026-06-02_
   where safe; no scripts were archived.
 - **Earth/regime training audit:** ownership plan recorded in
   `AGENT_AUDIT_EARTH_REGIME.md` (audit-only; no implementation moved).
+- **Geometric analysis audit:** ownership plan recorded in
+  `AGENT_AUDIT_GEOMETRIC_ANALYSIS.md` (audit-only; no implementation moved).
+- **Rasterizer audit:** ownership plan recorded in `AGENT_AUDIT_RASTERIZER.md`
+  (audit-only; no implementation moved).
 
 ## Canonical ownership (current truth)
 
@@ -48,6 +53,12 @@ _Last updated: 2026-06-02_
 | CNN architecture / dataset / one-hot (`OutletCNN`, `OutletPairDataset`, `encode_raster_onehot`, `DEFAULT_EMBEDDING_DIM`, `DEFAULT_TARGET_SIZE`) | `channel_heads/models/cnn.py` | `channel_heads/cnn_model.py` (shim) |
 | Generic/Earth CNN embedding helpers (`extract_embeddings`, `merge_cnn_features`, `CNN_FEATURE_COLS`) | `channel_heads/models/cnn_features.py` | `channel_heads/cnn_features.py` (shim) |
 | CNN training core (`train_cnn`, `DEFAULT_*`, `HOLDOUT_BASIN`, `RANDOM_STATE`) | `channel_heads/training/cnn.py` | `channel_heads/cnn_training.py` (shim) |
+| Pure feature math | `channel_heads/features/geometry.py` | `channel_heads/geometric_analysis.py` aliases for compatibility |
+| Mars projected path helpers | `channel_heads/features/paths.py` | none |
+| Mars feature table generation | `channel_heads/features/mars_features.py` | Mars script wrappers |
+| Unit conversions | `channel_heads/units.py` | `geometric_analysis.py` and `dd_calibration.py` re-export selected helpers |
+| Mars CNN patch generation | `channel_heads/rasterization/mars_patches.py` | `scripts/build_mars_cnn_patches_5class.py` wrapper |
+| Earth 5-class patch rasterization | `channel_heads/rasterizer.py` for now | `channel_heads/rasterization/patches.py` re-export surface |
 
 ## Model-layer status
 
@@ -150,6 +161,28 @@ _Last updated: 2026-06-02_
   `training/xgboost.py`, `training/regime.py`, `models/regime.py`, and
   `eval/lobo.py`, with scripts reduced to wrappers only after tests pin
   behavior.
+- **Geometric analysis audit (Slice 6): DONE.** See
+  `AGENT_AUDIT_GEOMETRIC_ANALYSIS.md`. Key findings:
+  `geometric_analysis.py` is not disposable; it owns Earth/TopoToolbox path
+  traversal, lengthwise asymmetry, Earth geometric feature generation,
+  labeled-dataset assembly, hard-negative filtering, default stream loading,
+  and CSV enrichment. Pure math (`features.geometry`), Mars projected path
+  helpers (`features.paths`), Mars feature generation (`features.mars_features`),
+  units (`units.py`), and pairing helpers (`pairing.earth`) are already package
+  owners. Recommended future homes: `features/earth_paths.py`,
+  `features/asymmetry.py`, `features/earth_geometry.py`,
+  `training/labeling.py`, and `features/earth_enrichment.py`, with
+  `geometric_analysis.py` reduced to a shim only after tests pin feature order,
+  unit behavior, QC flags, hard-negative semantics, and private helper imports.
+- **Rasterizer audit (Slice 7): DONE.** See `AGENT_AUDIT_RASTERIZER.md`. Key
+  findings: Mars Phase 4 patch generation is package-resident in
+  `rasterization/mars_patches.py`, but Earth patch rasterization and shared
+  5-class constants still live in `rasterizer.py`.
+  `rasterization/patches.py` is currently a curated re-export, not the real
+  implementation. Recommended future homes: a shared rasterization schema,
+  promoted `rasterization/patches.py` or `earth_patches.py` for Earth
+  rasterization/precompute, `rasterizer.py` as a shim, and regime patch
+  orchestration under future `training/regime.py`.
 
 ## Known shims (keep working)
 
@@ -175,14 +208,23 @@ _Last updated: 2026-06-02_
   is complete. The four divergent forward-pass extractors in `inference/regime.py`,
   `models/mars_combined.py`, and `scripts/train_combined_xgb_*.py` were
   deliberately **not** merged (see `AGENT_AUDIT_CNN.md` §3b/§5).
-- `geometric_analysis.py`, `rasterizer.py` — audit-only, no refactor yet.
+- `geometric_analysis.py` — audited in Slice 6. Keep untouched for now; future
+  recommendation is to split into `features/earth_paths.py`,
+  `features/asymmetry.py`, `features/earth_geometry.py`,
+  `training/labeling.py`, and `features/earth_enrichment.py`, then leave
+  `geometric_analysis.py` as a shim.
+- `rasterizer.py` — audited in Slice 7. Keep untouched for now; future
+  recommendation is to move shared constants/schema and Earth rasterization into
+  `channel_heads/rasterization/`, then leave `rasterizer.py` as a shim.
 - `scripts/` — cleanup pass complete as of Slice 4. Scripts may still import
   transitional modules directly when that is the canonical current surface
   (notably `channel_heads.inference.regime`); no dead scripts were archived.
 
 ## Next recommended task
 
-**Slice 6 — `geometric_analysis.py` audit (audit-only).** Read-only review of
-`geometric_analysis.py` ownership/boundaries; recommend a target package
-location and shim plan. See `AGENT_BACKLOG.md` Slice 6. Do not modify
-`geometric_analysis.py` implementation.
+**Slice 8 — behavior-pinning checkpoint (planning/tests before moves).** Before
+moving Earth/regime, geometric-analysis, or rasterization logic, add/plan
+focused tests that pin feature order, thresholds, strict/lenient CNN loading,
+Earth path traversal, hard-negative semantics, raster class constants,
+direct-final-grid patch behavior, manifest schemas, artifact paths, and shim
+identity. See `AGENT_BACKLOG.md` Slice 8.

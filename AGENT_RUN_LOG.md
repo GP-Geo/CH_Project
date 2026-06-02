@@ -4,6 +4,49 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-02 — Slices 6/7: geometric analysis and rasterizer ownership audit
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `b35320f`
+- **Task:** Combined read-only audit for Slice 6 (`geometric_analysis.py`) and
+  Slice 7 (`rasterizer.py` / `channel_heads/rasterization/`). No
+  implementation code changed.
+- **Files created:**
+  - `AGENT_AUDIT_GEOMETRIC_ANALYSIS.md` — reference map, function/class
+    classification, duplication map, recommended canonical ownership,
+    behavior-preservation list, proposed slices, risks, and required tests.
+  - `AGENT_AUDIT_RASTERIZER.md` — reference map, module/script classification,
+    duplication map, recommended rasterization ownership, frozen patch-contract
+    behavior list, proposed slices, risks, and required tests.
+- **Files updated:**
+  - `AGENT_STATE.md` — recorded Slice 6/7 completion and set the next
+    recommended task to a behavior-pinning checkpoint before further moves.
+  - `AGENT_BACKLOG.md` — marked Slices 6/7 done and inserted Slice 8 for
+    behavior-pinning tests/checkpoint before data cleanup.
+  - `AGENT_RUN_LOG.md` — this entry.
+- **Key findings:**
+  - `geometric_analysis.py` is not disposable. It still owns Earth/TopoToolbox
+    path traversal, lengthwise asymmetry, Earth geometric feature generation,
+    labeled-dataset assembly, hard-negative filtering, default stream loading,
+    and CSV enrichment. Pure feature math, Mars path helpers, Mars feature
+    generation, units, and pairing helpers already have package owners.
+  - `rasterizer.py` still owns the frozen Earth 5-class patch contract, direct
+    final-grid drawing, QA flags, and Earth batch precompute. Mars Phase 4 is
+    already package-resident in `rasterization/mars_patches.py`, while
+    `rasterization/patches.py` is currently only a re-export surface.
+  - Recommended next step is behavior-pinning tests before moving any of this
+    logic. High-risk contracts include feature order, S1 unit behavior, QC flag
+    strings, hard-negative semantics, raster class values, direct-final-grid
+    connectivity, manifest schemas, regime node-ID consistency, and shim
+    identity.
+- **Not touched:** implementation source, scripts, notebooks, `data/`, root
+  `/models/`, generated outputs, DEMs, shapefiles, GeoPackages, CSV/parquet
+  outputs, figures.
+- **Validation:** no pytest run (markdown/handoff audit only, per user
+  instructions). `git diff --check` clean.
+- **Next step:** Slice 8 — behavior-pinning checkpoint/tests before any
+  ownership moves.
+
 ## 2026-06-02 — Slice 5: Earth/regime training ownership audit
 
 - **Branch:** `refactor/package-first-architecture`
