@@ -31,7 +31,11 @@ Standard tests:
 - **Stop condition:** Stop if moving the import changes device selection on any
   platform, or if a circular import appears between `models` and `inference`.
 
-## Slice 2 — CNN audit (audit-only) (NEXT)
+## Slice 2 — CNN audit (audit-only) (DONE)
+
+> Completed — see `AGENT_AUDIT_CNN.md` and `AGENT_RUN_LOG.md`. Canonical homes
+> recommended (architecture → `models/cnn.py`; embeddings → models layer;
+> training → future `training/`); refined sub-slices 3a–3d defined.
 
 - **Goal:** Read-only comparison of `cnn_model.py`, `cnn_features.py`,
   `cnn_training.py` against `channel_heads/models/` (cnn, embeddings). Produce

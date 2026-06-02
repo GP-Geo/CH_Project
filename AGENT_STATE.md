@@ -60,6 +60,13 @@ _Last updated: 2026-06-02_
 - **`inference/regime.py`: TRANSITIONAL.** Holds regime-CNN embedding /
   patch-index merge glue. Leave untouched until the Earth/regime training
   audit. Do not change regime behavior now.
+- **CNN audit (Slice 2): DONE.** See `AGENT_AUDIT_CNN.md`. Recommended canonical
+  homes: architecture/dataset → `channel_heads/models/cnn.py` (promote the
+  current re-export to real); Earth embeddings (`cnn_features.py`) → models
+  layer; training core (`cnn_training.py`) → future `channel_heads/training/`;
+  flat `cnn_*` modules → shims. The four divergent CNN forward-pass extractors
+  (lenient vs strict load) are **not** to be merged in the model slice. No CNN
+  code changed yet.
 
 ## Known shims (keep working)
 
@@ -80,8 +87,10 @@ _Last updated: 2026-06-02_
 
 ## Next recommended task
 
-**Slice 2 — CNN audit (audit-only):** read-only comparison of `cnn_model.py`,
-`cnn_features.py`, `cnn_training.py` against `channel_heads/models/`
-(cnn, embeddings); produce an ownership recommendation. No source edits. See
-`AGENT_BACKLOG.md`. (Note the duplicate `pick_device` in `cnn_training.py` for
-that audit.)
+**Slice 3a — CNN architecture consolidation:** move `OutletCNN`,
+`OutletPairDataset`, `encode_raster_onehot`, `DEFAULT_EMBEDDING_DIM`,
+`DEFAULT_TARGET_SIZE` from `channel_heads/cnn_model.py` into
+`channel_heads/models/cnn.py` (promote to real); reduce `cnn_model.py` to a
+shim. Byte-for-byte architecture move only — `cnn_outlet_final.pt` is loaded
+`strict=True`. See `AGENT_AUDIT_CNN.md` §6 for the full 3a–3d sub-slice plan and
+the explicit "do not merge the four forward-pass extractors" rule.

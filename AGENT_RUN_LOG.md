@@ -4,6 +4,38 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-02 — Slice 2: CNN audit (audit-only)
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `2cf2cac refactor(models): move torch device selection into models`
+- **Task:** Slice 2 — read-only ownership audit of `cnn_model.py`,
+  `cnn_features.py`, `cnn_training.py`, `models/cnn.py`, `models/embeddings.py`,
+  `models/device.py`. Produce a merge-and-consolidate plan. No source edits.
+- **Files created:** `AGENT_AUDIT_CNN.md` — full audit (reference map,
+  duplication map, canonical-ownership recommendation, models/ vs future
+  training/ split, shim plan, risks, proposed sub-slices 3a–3d).
+- **Files updated:** `AGENT_STATE.md` (model-layer status + next task),
+  this log.
+- **Key findings:**
+  - `cnn_model.py` = architecture SoT; `cnn_features.py` = Earth embedding path
+    (lenient load); `cnn_training.py` = training core + a 3rd duplicate
+    `pick_device`; `models/cnn.py` = thin re-export (good canonical name);
+    `models/embeddings.py` = real Mars Phase-5 orchestration (not redundant).
+  - `pick_device` triplicated (cnn_training + 2 scripts) besides canonical.
+  - **Four divergent CNN forward-pass extractors** (lenient vs strict load;
+    embed vs logit vs both) across `cnn_features`, `inference/regime`,
+    `mars_combined`, and 2 scripts — **must not be blindly merged.**
+  - Recommended: architecture → `models/cnn.py` (promote to real); Earth
+    embeddings → models layer; training → future `training/cnn.py`; flat
+    modules → shims. Forward-pass unification deferred to a separate
+    test-guarded slice (touches out-of-scope files).
+- **Tests run:** none (no code change), per slice spec.
+- **Risks:** none to source/data (doc-only). Frozen `cnn_outlet_final.pt`
+  architecture lock + lenient/strict load divergence flagged as the main
+  hazards for Slice 3.
+- **Next step:** Slice 3a — move CNN architecture into `models/cnn.py` with a
+  shim (see `AGENT_AUDIT_CNN.md` §6).
+
 ## 2026-06-02 — Slice 1: device consolidation
 
 - **Branch:** `refactor/package-first-architecture`
