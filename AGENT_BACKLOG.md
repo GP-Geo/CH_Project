@@ -147,7 +147,15 @@ Standard tests:
 - **Suggested commit:** `docs(agents): record rasterizer audit`
 - **Stop condition:** Audit only. No source change.
 
-## Slice 8 — Behavior-pinning checkpoint before package moves
+## Slice 8 — Behavior-pinning checkpoint before package moves (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. Added behavior-pinning tests for
+> `channel_heads/geometric_analysis.py` and `channel_heads/rasterizer.py`
+> without touching implementation code. The new coverage pins feature-column
+> order, asymmetry math, path traversal/sampling, hard-negative semantics,
+> labeled dataset assembly, CSV enrichment edge behavior, 5-class raster
+> constants, import identity, direct-final-grid behavior, confluence overwrite,
+> and precompute manifest/status behavior.
 
 - **Goal:** Add or produce a concrete test plan for focused behavior-pinning
   tests before moving Earth/regime, geometric-analysis, or rasterization logic.

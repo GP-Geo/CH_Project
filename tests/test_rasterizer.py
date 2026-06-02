@@ -222,6 +222,27 @@ class TestRasterizeOutletPair:
         )
         assert np.any(result == CONFLUENCE_MARKER)
 
+    def test_confluence_marker_overwrites_branch_values(self, simple_y_network):
+        """The shared branch endpoint is encoded as the confluence marker."""
+        net = simple_y_network
+        result = rasterize_outlet_pair(
+            net["s"],
+            outlet=6,
+            head_1=0,
+            head_2=1,
+            confluence=4,
+            grid_shape=net["grid_shape"],
+            target_size=64,
+        )
+
+        conf_positions = np.argwhere(result == CONFLUENCE_MARKER)
+        assert len(conf_positions) == 1
+        r, c = conf_positions[0]
+        assert result[r, c] == CONFLUENCE_MARKER
+        flags = raster_quality_flags(result)
+        assert flags["branch_a_connected"]
+        assert flags["branch_b_connected"]
+
     def test_other_streams_present(self, simple_y_network):
         """Other streams (value 3) present for nodes below confluence."""
         net = simple_y_network
@@ -474,6 +495,14 @@ class TestPrecomputeRasterDataset:
 class TestConstants:
     """Tests for module constants."""
 
+    def test_class_values_exact(self):
+        assert BACKGROUND == 0
+        assert BRANCH_A == 1
+        assert BRANCH_B == 2
+        assert OTHER_STREAMS == 3
+        assert CONFLUENCE_MARKER == 4
+        assert NUM_CLASSES == 5
+
     def test_class_values_distinct(self):
         """All class values are distinct."""
         values = [BACKGROUND, BRANCH_A, BRANCH_B, OTHER_STREAMS, CONFLUENCE_MARKER]
@@ -482,6 +511,27 @@ class TestConstants:
     def test_num_classes(self):
         """NUM_CLASSES matches number of distinct classes."""
         assert NUM_CLASSES == 5
+
+    def test_rasterization_public_surfaces_reexport_same_objects(self):
+        import channel_heads.rasterization as rasterization
+        import channel_heads.rasterization.patches as patches
+        import channel_heads.rasterizer as rasterizer
+
+        assert patches.rasterize_outlet_pair is rasterizer.rasterize_outlet_pair
+        assert rasterization.rasterize_outlet_pair is rasterizer.rasterize_outlet_pair
+        assert patches.precompute_raster_dataset is rasterizer.precompute_raster_dataset
+        assert rasterization.precompute_raster_dataset is rasterizer.precompute_raster_dataset
+        assert patches.raster_quality_flags is rasterizer.raster_quality_flags
+        assert rasterization.raster_quality_flags is rasterizer.raster_quality_flags
+        assert rasterization.bresenham_line is rasterizer.bresenham_line
+        assert patches.NUM_CLASSES == rasterizer.NUM_CLASSES == rasterization.NUM_CLASSES
+        assert patches.CLASS_LABELS == {
+            BACKGROUND: "background",
+            BRANCH_A: "branch_a",
+            BRANCH_B: "branch_b",
+            OTHER_STREAMS: "other_streams",
+            CONFLUENCE_MARKER: "confluence_marker",
+        }
 
 
 # =============================================================================
@@ -564,6 +614,24 @@ class TestDirectProjectionRegression:
         assert flags["has_confluence"]
         assert flags["branch_a_connected"]
         assert flags["branch_b_connected"]
+        assert flags["branches_connected"]
+
+    def test_direct_rasterizer_survives_very_small_target(self):
+        """A very small target still preserves marker and branch connectivity."""
+        net = _make_large_extent_network()
+        result = rasterize_outlet_pair(
+            net["s"],
+            outlet=3,
+            head_1=0,
+            head_2=1,
+            confluence=2,
+            grid_shape=net["grid_shape"],
+            target_size=16,
+        )
+
+        assert result.shape == (16, 16)
+        flags = raster_quality_flags(result)
+        assert flags["has_confluence"]
         assert flags["branches_connected"]
 
 
@@ -674,6 +742,25 @@ class TestPrecomputeQAGating:
         row = out.iloc[0]
         assert row["raster_status"] == "ok"
         assert row["raster_path"]
+        assert row["raster_debug_path"] == row["raster_path"]
+        assert out.columns.tolist() == [
+            "basin",
+            "outlet",
+            "confluence",
+            "head_1",
+            "head_2",
+            "y",
+            "raster_path",
+            "raster_debug_path",
+            "raster_status",
+            "raster_error",
+            "has_branch_a",
+            "has_branch_b",
+            "has_confluence",
+            "branch_a_connected",
+            "branch_b_connected",
+            "branches_connected",
+        ]
         raster = np.load(row["raster_path"])
         present = set(np.unique(raster))
         assert {BRANCH_A, BRANCH_B, CONFLUENCE_MARKER}.issubset(present)
@@ -715,6 +802,84 @@ class TestPrecomputeQAGating:
         assert row["raster_debug_path"]
         assert Path(row["raster_debug_path"]).exists()
         assert not row["has_confluence"]
+
+    def test_missing_stream_loader_marks_rows_skipped(self, tmp_path):
+        master_csv = self._write_master(tmp_path)
+
+        def loader(_basin, _lat, _z_th, _threshold):
+            return None
+
+        out = precompute_raster_dataset(
+            master_csv=master_csv,
+            output_dir=tmp_path / "rasters",
+            dem_loader=loader,
+            target_size=32,
+        )
+
+        row = out.iloc[0]
+        assert row["raster_status"] == "skipped"
+        assert row["raster_error"] == "missing_dem_or_stream"
+        assert pd.isna(row["raster_path"]) or row["raster_path"] is None
+        assert pd.isna(row["raster_debug_path"]) or row["raster_debug_path"] is None
+
+    def test_missing_basin_config_marks_rows_skipped(self, tmp_path):
+        master_csv = tmp_path / "master.csv"
+        loader_called = False
+        pd.DataFrame(
+            [
+                {
+                    "basin": "__missing_config__",
+                    "outlet": 6,
+                    "confluence": 4,
+                    "head_1": 0,
+                    "head_2": 1,
+                    "y": 1,
+                }
+            ]
+        ).to_csv(master_csv, index=False)
+
+        def loader(*_args):
+            nonlocal loader_called
+            loader_called = True
+            return None
+
+        out = precompute_raster_dataset(
+            master_csv=master_csv,
+            output_dir=tmp_path / "rasters",
+            dem_loader=loader,
+            target_size=32,
+        )
+
+        row = out.iloc[0]
+        assert row["raster_status"] == "skipped"
+        assert row["raster_error"] == "missing_basin_config"
+        assert not loader_called
+
+    def test_rasterizer_exception_marks_row_failed(self, tmp_path, simple_y_network, monkeypatch):
+        import channel_heads.rasterizer as rast
+
+        master_csv = self._write_master(tmp_path)
+
+        def loader(_basin, _lat, _z_th, _threshold):
+            return simple_y_network["s"], simple_y_network["dem"]
+
+        def raise_rasterizer(*_args, **_kwargs):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(rast, "rasterize_outlet_pair", raise_rasterizer)
+
+        out = precompute_raster_dataset(
+            master_csv=master_csv,
+            output_dir=tmp_path / "rasters",
+            dem_loader=loader,
+            target_size=32,
+        )
+
+        row = out.iloc[0]
+        assert row["raster_status"] == "failed"
+        assert row["raster_error"] == "RuntimeError: boom"
+        assert pd.isna(row["raster_path"]) or row["raster_path"] is None
+        assert pd.isna(row["raster_debug_path"]) or row["raster_debug_path"] is None
 
 
 # =============================================================================

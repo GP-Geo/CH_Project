@@ -8,10 +8,10 @@ _Last updated: 2026-06-02_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** Geometric analysis + rasterizer ownership audit
-  (Slices 6/7; see `AGENT_RUN_LOG.md`); prior was Earth/regime training
-  ownership audit (Slice 5).
-- **Working tree:** clean at time of writing after the audit commit.
+- **Latest stable commit:** Geometric analysis + rasterizer behavior-pinning
+  tests (Slice 8; see `AGENT_RUN_LOG.md`); prior was the Slice 6/7 ownership
+  audit.
+- **Working tree:** clean at time of writing after the behavior-pinning commit.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
 
@@ -39,6 +39,9 @@ _Last updated: 2026-06-02_
   `AGENT_AUDIT_GEOMETRIC_ANALYSIS.md` (audit-only; no implementation moved).
 - **Rasterizer audit:** ownership plan recorded in `AGENT_AUDIT_RASTERIZER.md`
   (audit-only; no implementation moved).
+- **Behavior-pinning checkpoint:** `tests/test_geometric_analysis.py` and
+  `tests/test_rasterizer.py` now pin high-risk contracts before future
+  extraction. Implementation source remains untouched.
 
 ## Canonical ownership (current truth)
 
@@ -183,6 +186,14 @@ _Last updated: 2026-06-02_
   promoted `rasterization/patches.py` or `earth_patches.py` for Earth
   rasterization/precompute, `rasterizer.py` as a shim, and regime patch
   orchestration under future `training/regime.py`.
+- **Behavior-pinning tests (Slice 8): DONE.** Focused tests now cover
+  `geometric_analysis.py` contracts for feature-column order, `compute_delta_L`,
+  head normalization / length swapping, `_trace_full_path`, `_sample_path_coords`,
+  hard-negative filtering, labeled-dataset assembly, and CSV enrichment edge
+  behavior. Rasterizer tests now pin 5-class constants, old/new import identity,
+  confluence overwrite behavior, small-target direct-final-grid connectivity,
+  and `precompute_raster_dataset` columns/status/error behavior. No
+  implementation code was changed.
 
 ## Known shims (keep working)
 
@@ -208,12 +219,14 @@ _Last updated: 2026-06-02_
   is complete. The four divergent forward-pass extractors in `inference/regime.py`,
   `models/mars_combined.py`, and `scripts/train_combined_xgb_*.py` were
   deliberately **not** merged (see `AGENT_AUDIT_CNN.md` §3b/§5).
-- `geometric_analysis.py` — audited in Slice 6. Keep untouched for now; future
+- `geometric_analysis.py` — audited in Slice 6 and behavior-pinned in Slice 8.
+  Keep untouched for now; future
   recommendation is to split into `features/earth_paths.py`,
   `features/asymmetry.py`, `features/earth_geometry.py`,
   `training/labeling.py`, and `features/earth_enrichment.py`, then leave
   `geometric_analysis.py` as a shim.
-- `rasterizer.py` — audited in Slice 7. Keep untouched for now; future
+- `rasterizer.py` — audited in Slice 7 and behavior-pinned in Slice 8. Keep
+  untouched for now; future
   recommendation is to move shared constants/schema and Earth rasterization into
   `channel_heads/rasterization/`, then leave `rasterizer.py` as a shim.
 - `scripts/` — cleanup pass complete as of Slice 4. Scripts may still import
@@ -222,9 +235,6 @@ _Last updated: 2026-06-02_
 
 ## Next recommended task
 
-**Slice 8 — behavior-pinning checkpoint (planning/tests before moves).** Before
-moving Earth/regime, geometric-analysis, or rasterization logic, add/plan
-focused tests that pin feature order, thresholds, strict/lenient CNN loading,
-Earth path traversal, hard-negative semantics, raster class constants,
-direct-final-grid patch behavior, manifest schemas, artifact paths, and shim
-identity. See `AGENT_BACKLOG.md` Slice 8.
+**Slice 9 — data cleanup dry-run (report-only).** Produce a dry-run report of
+candidate stale/generated data per `docs/DATA_STATUS.md`; do not delete, move,
+or mutate any data/model/generated artifact. See `AGENT_BACKLOG.md` Slice 9.

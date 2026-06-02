@@ -30,6 +30,7 @@ from channel_heads.pairing.earth import first_meet_pairs_for_outlet
 from channel_heads.geometric_analysis import (
     GEOM_FEATURE_COLS,
     GeometricFeaturesAnalyzer,
+    LengthwiseAsymmetryAnalyzer,
     PairGeometricResult,
     _angle_between_vectors,
     _azimuth_difference,
@@ -41,7 +42,9 @@ from channel_heads.geometric_analysis import (
     _normalize_vector,
     _sample_path_coords,
     _trace_full_path,
+    add_geometric_features_to_csv,
     compute_asymmetry_statistics,
+    compute_delta_L,
     filter_hard_negatives,
     generate_labeled_dataset,
     merge_geometric_features,
@@ -253,6 +256,35 @@ class TestComputeDirectionVector:
 
         assert vec is not None
         assert "short_path" in flags
+
+
+class TestBehaviorPinnedAsymmetry:
+    """Behavior-pinning tests for future geometric_analysis extraction."""
+
+    def test_compute_delta_l_formula_and_zero_total(self):
+        assert compute_delta_L(100.0, 200.0) == (2.0 * 100.0 / 300.0)
+        assert compute_delta_L(200.0, 100.0) == (2.0 * 100.0 / 300.0)
+        assert compute_delta_L(0.0, 0.0) == 0.0
+
+    def test_evaluate_pairs_normalizes_heads_and_swaps_lengths(self):
+        class StreamWithDistances:
+            def upstream_distance(self):
+                # Node 5 is the first input head, node 2 is the second input
+                # head, node 1 is the confluence.
+                return np.array([0.0, 10.0, 40.0, 0.0, 0.0, 100.0])
+
+        analyzer = LengthwiseAsymmetryAnalyzer(StreamWithDistances())
+        df = analyzer.evaluate_pairs_for_outlet(
+            outlet=9,
+            pairs_at_confluence={1: {(5, 2)}},
+        )
+
+        row = df.iloc[0]
+        assert row["head_1"] == 2
+        assert row["head_2"] == 5
+        assert row["L_1"] == 30.0
+        assert row["L_2"] == 90.0
+        assert row["delta_L"] == compute_delta_L(90.0, 30.0)
 
 
 # ============================================================================
@@ -489,6 +521,64 @@ class TestGenerateLabeledDataset:
         assert len(result) == 0
         assert "y" in result.columns
 
+    def test_label_and_merge_schema_are_keyed_by_pair_columns(self):
+        coupling_df = pd.DataFrame(
+            {
+                "outlet": [1, 1],
+                "confluence": [2, 2],
+                "head_1": [10, 10],
+                "head_2": [11, 12],
+                "touching": [True, False],
+                "contact_px": [4, 0],
+            }
+        )
+        asymmetry_df = pd.DataFrame(
+            {
+                "outlet": [1, 1],
+                "confluence": [2, 2],
+                "head_1": [10, 99],
+                "head_2": [11, 100],
+                "L_1": [100.0, 999.0],
+                "L_2": [120.0, 999.0],
+                "delta_L": [compute_delta_L(100.0, 120.0), 0.0],
+            }
+        )
+        geometric_df = pd.DataFrame(
+            {
+                "outlet": [1, 1],
+                "confluence": [2, 2],
+                "head_1": [10, 99],
+                "head_2": [11, 100],
+                "orientation_diff_deg": [15.0, 999.0],
+                "qc_flags": ["ok", "wrong_pair"],
+            }
+        )
+
+        result = generate_labeled_dataset(coupling_df, asymmetry_df, geometric_df)
+
+        assert result["y"].tolist() == [1, 0]
+        expected_columns = [
+            "outlet",
+            "confluence",
+            "head_1",
+            "head_2",
+            "touching",
+            "contact_px",
+            "y",
+            "L_1",
+            "L_2",
+            "delta_L",
+            "orientation_diff_deg",
+            "qc_flags",
+        ]
+        assert result.columns.tolist() == expected_columns
+        matched = result[result["head_2"] == 11].iloc[0]
+        unmatched = result[result["head_2"] == 12].iloc[0]
+        assert matched["L_1"] == 100.0
+        assert matched["orientation_diff_deg"] == 15.0
+        assert pd.isna(unmatched["L_1"])
+        assert pd.isna(unmatched["orientation_diff_deg"])
+
 
 class TestFilterHardNegatives:
     """Tests for filter_hard_negatives function."""
@@ -554,6 +644,31 @@ class TestFilterHardNegatives:
 
         result = filter_hard_negatives(labeled_df)
         assert len(result) == 2
+
+    def test_preserves_positives_keeps_nan_negatives_and_sorts(self):
+        labeled_df = pd.DataFrame(
+            {
+                "outlet": [2, 1, 1, 1],
+                "confluence": [20, 10, 10, 10],
+                "head_1": [5, 1, 1, 1],
+                "head_2": [6, 4, 3, 2],
+                "y": [1, 0, 0, 1],
+                "L_1": [100.0, np.nan, 1000.0, 100.0],
+                "L_2": [100.0, np.nan, 1000.0, 100.0],
+                "headhead_dist_m": [50.0, np.nan, 10_000.0, 50.0],
+            }
+        )
+
+        result = filter_hard_negatives(labeled_df, max_L_ratio=3.0, max_dist_ratio=5.0)
+
+        assert (result["y"] == 1).sum() == 2
+        assert result[result["head_2"] == 4]["y"].iloc[0] == 0
+        assert 3 not in result["head_2"].tolist()
+        assert result[["outlet", "confluence", "head_1", "head_2"]].values.tolist() == [
+            [1, 10, 1, 2],
+            [1, 10, 1, 4],
+            [2, 20, 5, 6],
+        ]
 
     def test_all_negatives(self):
         """All negatives case - nothing filtered (no positive baseline)."""
@@ -904,6 +1019,30 @@ class TestFilterHardNegativesPerGroup:
 
         pd.testing.assert_frame_equal(result_default, result_bad_col)
 
+    def test_group_recursion_uses_group_specific_positive_scale(self):
+        df = pd.DataFrame(
+            {
+                "outlet": [1, 1, 2, 2],
+                "confluence": [10, 10, 20, 20],
+                "head_1": [1, 1, 2, 2],
+                "head_2": [2, 11, 3, 12],
+                "y": [1, 0, 1, 0],
+                "L_1": [10.0, 50.0, 500.0, 50.0],
+                "L_2": [10.0, 50.0, 500.0, 50.0],
+                "headhead_dist_m": [10.0, 10.0, 100.0, 10.0],
+                "basin": ["A", "A", "B", "B"],
+            }
+        )
+
+        global_result = filter_hard_negatives(df, max_L_ratio=3.0, max_dist_ratio=5.0)
+        grouped_result = filter_hard_negatives(
+            df, max_L_ratio=3.0, max_dist_ratio=5.0, group_col="basin"
+        )
+
+        assert 11 in global_result["head_2"].tolist()
+        assert 11 not in grouped_result["head_2"].tolist()
+        assert {2, 3, 12} == set(grouped_result["head_2"])
+
 
 # ============================================================================
 # Unit Tests: _line_crosses_stream
@@ -1071,6 +1210,29 @@ class TestFilterHardNegativesWithStream:
         # Negative removed by L_ratio filter (2000 > 100*2*3.0=600)
         assert list(result["y"]) == [1]
 
+    def test_stream_crossing_filter_only_removes_negatives(self):
+        s = _MockStreamForFilter(
+            r_arr=[0, 0, 0, 0, 0],
+            c_arr=[0, 1, 2, 3, 4],
+        )
+        df = pd.DataFrame(
+            {
+                "outlet": [1, 1],
+                "confluence": [10, 10],
+                "head_1": [0, 0],
+                "head_2": [4, 4],
+                "y": [1, 0],
+                "L_1": [100.0, 100.0],
+                "L_2": [100.0, 100.0],
+                "headhead_dist_m": [50.0, 50.0],
+            }
+        )
+
+        result = filter_hard_negatives(df, s=s)
+
+        assert result["y"].tolist() == [1]
+        assert result[["head_1", "head_2"]].values.tolist() == [[0, 4]]
+
 
 # ============================================================================
 # Tests: Proximity Profile Helpers
@@ -1129,6 +1291,12 @@ class TestTraceFullPath:
         path = _trace_full_path(5, 10, children)
         assert path == [5, 10]
 
+    def test_geometric_analysis_private_import_remains_compatible(self):
+        from channel_heads import geometric_analysis as ga
+
+        assert ga._trace_full_path is _trace_full_path
+        assert ga._trace_full_path(0, 3, {0: [1], 1: [2], 2: [3]}) == [0, 1, 2, 3]
+
 
 class TestSamplePathCoords:
     """Tests for _sample_path_coords."""
@@ -1185,6 +1353,14 @@ class TestSamplePathCoords:
         coords_2 = _sample_path_coords([0, 1], node_x, node_y, n_samples=2, meters_per_unit=30.0)
         assert coords_1 is not None and coords_2 is not None
         np.testing.assert_allclose(coords_2, coords_1 * 30.0)
+
+    def test_samples_fraction_grid_and_excludes_confluence_endpoint(self):
+        node_x, node_y = self._make_arrays([(0, 0), (0, 10), (0, 20)])
+        coords = _sample_path_coords([0, 1, 2], node_x, node_y, n_samples=4, meters_per_unit=1.0)
+        assert coords is not None
+        np.testing.assert_allclose(coords[:, 0], [0.0, 5.0, 10.0, 15.0])
+        np.testing.assert_allclose(coords[:, 1], [0.0, 0.0, 0.0, 0.0])
+        assert not np.any(np.isclose(coords[:, 0], 20.0))
 
 
 class TestComputeProximityProfile:
@@ -1279,3 +1455,52 @@ class TestProximityProfileIntegration:
         assert "proximity_mean_m" in GEOM_FEATURE_COLS
         assert "proximity_max_m" in GEOM_FEATURE_COLS
         assert "proximity_profile_norm" in GEOM_FEATURE_COLS
+
+
+class TestAddGeometricFeaturesToCsvBehavior:
+    """Temp-file behavior pins for add_geometric_features_to_csv."""
+
+    def test_normalizes_heads_swaps_lengths_drops_overlap_and_writes_only_when_requested(
+        self, tmp_path
+    ):
+        input_csv = tmp_path / "pairs.csv"
+        output_csv = tmp_path / "enriched.csv"
+        pd.DataFrame(
+            {
+                "outlet": [1],
+                "confluence": [4],
+                "head_1": [5],
+                "head_2": [2],
+                "L_1": [50.0],
+                "L_2": [20.0],
+                "overlap_px": [99],
+            }
+        ).to_csv(input_csv, index=False)
+
+        def missing_stream_loader(_basin, _lat, _z_th):
+            return None
+
+        result = add_geometric_features_to_csv(
+            input_csv=input_csv,
+            output_csv=None,
+            stream_loader=missing_stream_loader,
+        )
+
+        assert not output_csv.exists()
+        assert "overlap_px" not in result.columns
+        row = result.iloc[0]
+        assert row["head_1"] == 2
+        assert row["head_2"] == 5
+        assert row["L_1"] == 20.0
+        assert row["L_2"] == 50.0
+        assert row["basin"] == "unknown"
+        assert row["qc_flags"] == "missing_stream"
+
+        written = add_geometric_features_to_csv(
+            input_csv=input_csv,
+            output_csv=output_csv,
+            stream_loader=missing_stream_loader,
+        )
+
+        assert output_csv.exists()
+        pd.testing.assert_frame_equal(pd.read_csv(output_csv), written)

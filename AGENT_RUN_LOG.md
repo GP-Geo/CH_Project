@@ -4,6 +4,38 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-02 — Slice 8: behavior-pinning tests for geometric analysis and rasterizer
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `24820f8`
+- **Task:** Test-only Slice 8 checkpoint before future extraction of
+  `channel_heads/geometric_analysis.py` and `channel_heads/rasterizer.py`. No
+  implementation code changed.
+- **Files updated:**
+  - `tests/test_geometric_analysis.py` — added behavior-pinning coverage for
+    `GEOM_FEATURE_COLS` order, `compute_delta_L`, head normalization and length
+    swapping, `_trace_full_path`, `_sample_path_coords`, hard-negative filtering
+    including grouping and stream-crossing behavior, labeled-dataset assembly,
+    and CSV enrichment edge behavior.
+  - `tests/test_rasterizer.py` — added behavior-pinning coverage for exact
+    5-class constants, import identity across `rasterizer` /
+    `rasterization.patches` / `rasterization`, confluence marker overwrite,
+    small-target direct-final-grid connectivity, and `precompute_raster_dataset`
+    manifest/status/error behavior.
+  - `AGENT_STATE.md`, `AGENT_BACKLOG.md`, `AGENT_RUN_LOG.md` — recorded Slice 8
+    completion and set Slice 9 as the next recommended task.
+- **Not touched:** implementation source, scripts, notebooks, `data/`, root
+  `/models/`, generated outputs, trained artifacts, DEMs, shapefiles,
+  GeoPackages, CSV/parquet outputs, figures.
+- **Validation:** targeted pytest
+  (`python -m pytest tests/test_geometric_analysis.py tests/test_rasterizer.py`)
+  passed: **143 passed, 1 warning**. Full pytest passed:
+  **502 passed, 17 skipped, 1 warning**. `ruff` was requested but unavailable
+  (`python -m ruff` reported no installed module and no `ruff` binary was on
+  `PATH`). `git diff --check` clean.
+- **Next step:** Slice 9 — data cleanup dry-run report only; do not mutate data
+  or model artifacts.
+
 ## 2026-06-02 — Slices 6/7: geometric analysis and rasterizer ownership audit
 
 - **Branch:** `refactor/package-first-architecture`
