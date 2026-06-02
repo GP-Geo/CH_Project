@@ -4,6 +4,25 @@ This project detects **channel-head coupling** in drainage networks (Goren &
 Shelef 2024), trained on Earth and applied to Mars. Full documentation now lives
 in [`docs/`](docs/) — this file is a thin pointer.
 
+## Agent refactor workflow (read first if continuing the refactor)
+
+An active **package-first refactor** is in progress. Before doing refactor work,
+read these in order, then follow the one-slice workflow:
+
+1. [AGENT_RULES.md](AGENT_RULES.md) — binding rules (do-not-touch paths, git
+   rules, behavior preservation).
+2. [AGENT_STATE.md](AGENT_STATE.md) — current branch, canonical ownership,
+   shims, next task.
+3. [AGENT_BACKLOG.md](AGENT_BACKLOG.md) — the next bounded slice to pick up.
+4. [AGENT_RUN_LOG.md](AGENT_RUN_LOG.md) — what was done last.
+
+Workflow: one bounded slice at a time; preserve scientific behavior exactly;
+merge-and-consolidate (keep compatibility shims), not blind replacement; never
+touch `data/`, root `/models/`, or `notebooks/` (unless explicitly requested);
+do not push or merge into `main`; run targeted then full pytest and commit only
+if green; update `AGENT_STATE.md` and `AGENT_RUN_LOG.md` after each slice; stop
+if uncertain about scientific behavior.
+
 ## Start here
 
 | If you need… | Read |
