@@ -1681,3 +1681,45 @@ class TestLabelingExtraction:
             assert getattr(geometric_analysis, name) is getattr(labeling, name), (
                 f"{name} legacy alias diverged from canonical"
             )
+
+
+class TestEnrichmentExtraction:
+    """Pin the Slice 13 extraction of CSV enrichment / Earth stream loading.
+
+    ``default_stream_loader``, ``add_geometric_features_to_csv``, their private
+    helpers, the ``StreamLoaderFunc`` alias, and the CLI entry point now live
+    canonically in ``channel_heads.features.earth_enrichment`` and are
+    re-exported from ``channel_heads.geometric_analysis`` for backward
+    compatibility.
+    """
+
+    # All these were importable from ``channel_heads.geometric_analysis``;
+    # only ``add_geometric_features_to_csv`` is additionally exposed at the
+    # top-level ``channel_heads`` API.
+    GEOMETRIC_ANALYSIS_SYMBOLS = [
+        "default_stream_loader",
+        "add_geometric_features_to_csv",
+        "StreamLoaderFunc",
+        "_build_pairs_at_confluence",
+        "_build_asymmetry_df",
+        "_add_missing_stream_qc",
+        "_add_geometric_features_cli",
+    ]
+
+    def test_symbols_identical_across_paths(self):
+        from channel_heads import geometric_analysis
+        from channel_heads.features import earth_enrichment
+
+        for name in self.GEOMETRIC_ANALYSIS_SYMBOLS:
+            assert getattr(geometric_analysis, name) is getattr(earth_enrichment, name), (
+                f"{name} legacy alias diverged from canonical"
+            )
+
+    def test_top_level_add_geometric_features_to_csv_identity(self):
+        import channel_heads
+        from channel_heads.features import earth_enrichment
+
+        assert (
+            channel_heads.add_geometric_features_to_csv
+            is earth_enrichment.add_geometric_features_to_csv
+        )

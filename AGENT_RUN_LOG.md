@@ -4,6 +4,56 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Slice 13: extract Earth enrichment helpers (geometric_analysis → shim)
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `8089216`
+- **Task:** Move the CSV-enrichment workflow and default Earth stream loader out
+  of `geometric_analysis.py` into `channel_heads/features/earth_enrichment.py`,
+  completing the `geometric_analysis.py` split (it becomes a pure re-export
+  shim). Fifth/final slice.
+- **Files created:**
+  - `channel_heads/features/earth_enrichment.py` — `default_stream_loader`,
+    `_build_pairs_at_confluence`, `_build_asymmetry_df`, `_add_missing_stream_qc`,
+    `add_geometric_features_to_csv`, `_add_geometric_features_cli`, and the
+    `StreamLoaderFunc` alias (moved verbatim). Imports `GEOM_FEATURE_COLS` /
+    `GeometricFeaturesAnalyzer` from `features.earth_geometry`, `resolve_dem_path`
+    from `config`, `_normalize_pair` from `pairing.earth`. Per-module
+    `get_logger(__name__)`; has its own `__main__` guard too.
+- **Files updated:**
+  - `channel_heads/geometric_analysis.py` — **rewritten as a pure re-export
+    shim.** It now only imports/re-exports the asymmetry, earth_geometry,
+    earth_paths, geometry, training.labeling, earth_enrichment, and units
+    symbols (underscored helpers via redundant-alias / `# noqa: F401`), keeps the
+    historical type aliases, the `__all__` public list (with `GEOM_FEATURE_COLS`
+    added), and the `if __name__ == "__main__": _add_geometric_features_cli()`
+    CLI. All prior imports specific to the moved code (`argparse`, `logging`,
+    `Path`, `Any`, `numpy`, `pandas`, `resolve_dem_path`, `_normalize_pair`,
+    `get_logger`/`logger`, `Callable`/`StreamLoaderFunc` definition) were removed.
+  - `tests/test_geometric_analysis.py` — added `TestEnrichmentExtraction`
+    (legacy/canonical identity for the public + private enrichment symbols, the
+    CLI, the `StreamLoaderFunc` alias, and the top-level
+    `add_geometric_features_to_csv`).
+  - `AGENT_STATE.md`, `AGENT_BACKLOG.md`, `AGENT_RUN_LOG.md`.
+- **Not touched:** scripts (`build_earth_features_regime.py`,
+  `build_cnn_patches_regime.py` still reference the helpers via the shim /
+  docstrings), notebooks, `data/`, root `/models/`, generated outputs, trained
+  artifacts.
+- **Validation:** targeted pytest → **154 passed, 1 warning**; full pytest →
+  **530 passed, 7 warnings**. `ruff check` clean on `features/earth_enrichment.py`
+  and `geometric_analysis.py` (ruff `--fix` organized the re-export blocks).
+  `git diff --check` clean. CLI smoke: `python -m channel_heads.geometric_analysis
+  --help` prints usage (the runpy double-import RuntimeWarning is the standard,
+  pre-existing `-m`-on-imported-module notice). Regime-script import surface
+  verified to resolve to the canonical objects.
+- **Risks:** Low. Enrichment moved verbatim — CSV schema (overlap_px drop,
+  head/L swapping, missing basin/lat=36.0/z_th=0.0 defaults, `missing_stream`
+  flags, default threshold 300, write-only-when-`output_csv`) unchanged. Only
+  the logger name differs (no test depends on it).
+- **Next step:** `geometric_analysis.py` split complete. Optional follow-ups:
+  thin the shim / repoint `__init__` + regime script to canonical modules; the
+  backlog's data cleanup dry-run; or the `inference/regime.py` consolidation.
+
 ## 2026-06-03 — Slice 12: extract labeling and hard-negative filters
 
 - **Branch:** `refactor/package-first-architecture`

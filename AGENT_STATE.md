@@ -61,6 +61,8 @@ _Last updated: 2026-06-03_
 | Earth lengthwise asymmetry (`PairAsymmetryResult`, `compute_delta_L`, `LengthwiseAsymmetryAnalyzer`, `compute_asymmetry_statistics`, `merge_coupling_and_asymmetry`) | `channel_heads/features/asymmetry.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
 | Earth geometry analyzer (`GEOM_FEATURE_COLS`, `DEFAULT_DIRECTION_SAMPLE_DISTANCE_M`, `PairGeometricResult`, `GeometricFeaturesAnalyzer`, `merge_geometric_features`) | `channel_heads/features/earth_geometry.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
 | Earth labeling / hard-negative filtering (`generate_labeled_dataset`, `filter_hard_negatives`, `_line_crosses_stream`, `_build_stream_mask`) | `channel_heads/training/labeling.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
+| Earth CSV enrichment / stream loading (`default_stream_loader`, `add_geometric_features_to_csv`, `StreamLoaderFunc`, `_build_pairs_at_confluence`, `_build_asymmetry_df`, `_add_missing_stream_qc`, `_add_geometric_features_cli`) | `channel_heads/features/earth_enrichment.py` | `channel_heads/geometric_analysis.py` re-exports + keeps the `__main__` CLI |
+| `channel_heads/geometric_analysis.py` | **Pure re-export shim** (no implementation left) | n/a — this *is* the compatibility surface |
 | Mars projected path helpers | `channel_heads/features/paths.py` | none |
 | Mars feature table generation | `channel_heads/features/mars_features.py` | Mars script wrappers |
 | Unit conversions | `channel_heads/units.py` | `geometric_analysis.py` and `dd_calibration.py` re-export selected helpers |
@@ -190,6 +192,21 @@ _Last updated: 2026-06-03_
   promoted `rasterization/patches.py` or `earth_patches.py` for Earth
   rasterization/precompute, `rasterizer.py` as a shim, and regime patch
   orchestration under future `training/regime.py`.
+- **CSV enrichment extraction + shim completion (Slice 13): DONE.**
+  `default_stream_loader`, `add_geometric_features_to_csv`, the private helpers
+  (`_build_pairs_at_confluence`, `_build_asymmetry_df`, `_add_missing_stream_qc`),
+  the `StreamLoaderFunc` alias, and the `_add_geometric_features_cli` CLI now
+  live canonically in `channel_heads/features/earth_enrichment.py` (moved
+  verbatim; per-module `get_logger(__name__)`). **`geometric_analysis.py` is now
+  a pure re-export shim** — it imports/re-exports the asymmetry, geometry, path,
+  labeling, enrichment, and unit symbols, keeps the type aliases for
+  compatibility, and keeps the `if __name__ == "__main__"` CLI working
+  (`python -m channel_heads.geometric_analysis`). The CSV schema (overlap_px
+  drop, head/L swapping, missing basin/lat=36.0/z_th=0.0 defaults,
+  `missing_stream` flags, default threshold 300, write-only-when-requested) is
+  unchanged. `scripts/build_earth_features_regime.py` and the top-level
+  `channel_heads` API still resolve through the shim. Pinned by
+  `tests/test_geometric_analysis.py::TestEnrichmentExtraction`.
 - **Labeling / hard-negative extraction (Slice 12): DONE.**
   `generate_labeled_dataset`, `filter_hard_negatives`, and the private
   stream-crossing helpers (`_line_crosses_stream`, `_build_stream_mask`) now
@@ -271,17 +288,13 @@ _Last updated: 2026-06-03_
   is complete. The four divergent forward-pass extractors in `inference/regime.py`,
   `models/mars_combined.py`, and `scripts/train_combined_xgb_*.py` were
   deliberately **not** merged (see `AGENT_AUDIT_CNN.md` §3b/§5).
-- `geometric_analysis.py` — audited in Slice 6, behavior-pinned in Slice 8.
-  Earth path helpers extracted to `features/earth_paths.py` (Slice 9); asymmetry
-  to `features/asymmetry.py` (Slice 10); the Earth geometry analyzer to
-  `features/earth_geometry.py` (Slice 11); labeling / hard-negative filtering to
-  `training/labeling.py` (Slice 12). Still owns the CSV enrichment surface
-  (`default_stream_loader`, `_build_pairs_at_confluence`, `_build_asymmetry_df`,
-  `_add_missing_stream_qc`, `add_geometric_features_to_csv`,
-  `_add_geometric_features_cli`, `StreamLoaderFunc`, the `__main__` CLI).
-  Remaining recommendation is to split enrichment into
-  `features/earth_enrichment.py` (Slice 13), then leave `geometric_analysis.py`
-  as a pure re-export shim.
+- `geometric_analysis.py` — **fully reduced to a pure re-export shim** (Slices
+  9–13). All implementation now lives in `features/earth_paths.py`,
+  `features/asymmetry.py`, `features/earth_geometry.py`, `training/labeling.py`,
+  and `features/earth_enrichment.py`. The shim re-exports every historical
+  symbol (public + the underscored helpers used by tests/legacy callers), keeps
+  the type aliases, and keeps the `python -m channel_heads.geometric_analysis`
+  CLI working. No further extraction from this module is pending.
 - `rasterizer.py` — audited in Slice 7 and behavior-pinned in Slice 8. Keep
   untouched for now; future
   recommendation is to move shared constants/schema and Earth rasterization into
@@ -292,15 +305,22 @@ _Last updated: 2026-06-03_
 
 ## Next recommended task
 
-**Slice 13 — extract CSV enrichment / Earth stream loading**
-(`default_stream_loader`, `_build_pairs_at_confluence`, `_build_asymmetry_df`,
-`_add_missing_stream_qc`, `add_geometric_features_to_csv`,
-`_add_geometric_features_cli`) into `channel_heads/features/earth_enrichment.py`,
-with `geometric_analysis.py` re-exporting and keeping its `__main__` CLI
-working. Preserve the CSV schema: `overlap_px` drop, head/L swapping, missing
-basin/lat(36.0)/z_th(0.0) defaults, `missing_stream` flags, default stream
-threshold 300, and output-path write behavior. After Slice 13,
-`geometric_analysis.py` becomes a pure re-export shim.
+The `geometric_analysis.py` split (Slices 9–13) is **complete**;
+`geometric_analysis.py` is now a pure re-export shim. Candidate follow-ups, in
+rough priority order:
+
+1. **Tidy the `geometric_analysis` re-export surface** — optionally move the
+   underscored-helper re-exports behind a thinner public contract, or repoint
+   `channel_heads/__init__.py` and `scripts/build_earth_features_regime.py` to
+   import directly from the canonical `features.*` / `training.labeling`
+   modules (the shim can then shrink). Low risk; do only with import-identity
+   tests.
+2. **Data cleanup dry-run (report-only)** — the backlog's original Slice 9 item;
+   produce a report of candidate stale/generated data per `docs/DATA_STATUS.md`.
+   Never delete, move, or mutate any data/model/generated artifact.
+3. Continue the `inference/regime.py` → `models/regime.py` and Earth/regime
+   training consolidation per `AGENT_AUDIT_EARTH_REGIME.md`, behind
+   behavior-pinning tests.
 
 The backlog's standalone **data cleanup dry-run (report-only)** item remains
 open as a later task; do not delete, move, or mutate any data/model/generated

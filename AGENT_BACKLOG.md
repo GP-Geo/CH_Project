@@ -231,13 +231,17 @@ Standard tests:
 > and sort keys unchanged.
 > Commit: `refactor(training): extract labeling and hard-negative filters`.
 
-## Slice 13 — Extract Earth enrichment helpers (next)
+## Slice 13 — Extract Earth enrichment helpers (DONE)
 
-- **Goal:** Move `default_stream_loader`, `_build_pairs_at_confluence`,
-  `_build_asymmetry_df`, `_add_missing_stream_qc`,
-  `add_geometric_features_to_csv`, `_add_geometric_features_cli` into
-  `channel_heads/features/earth_enrichment.py`; `geometric_analysis.py`
-  re-exports and keeps its `__main__` CLI working.
+> Completed — see `AGENT_RUN_LOG.md`. Moved `default_stream_loader`,
+> `_build_pairs_at_confluence`, `_build_asymmetry_df`, `_add_missing_stream_qc`,
+> `add_geometric_features_to_csv`, `_add_geometric_features_cli` (and the
+> `StreamLoaderFunc` alias) into `channel_heads/features/earth_enrichment.py`.
+> `geometric_analysis.py` is now a **pure re-export shim** and still serves the
+> `python -m channel_heads.geometric_analysis` CLI. CSV schema unchanged.
+> Commit: `refactor(features): extract Earth enrichment helpers`.
+>
+> The `geometric_analysis.py` split (Slices 9–13) is complete.
 
 ## Slice 9 (original) — Data cleanup dry-run (later)
 
