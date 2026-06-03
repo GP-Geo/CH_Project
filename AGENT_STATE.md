@@ -21,6 +21,7 @@ compatibility surfaces remain:
 See [`STAGE_ASSET_MAP.md`](STAGE_ASSET_MAP.md) for per-stage coverage.
 
 Key facts:
+- **Stages 0–3:** ✅ foundation-verified 2026-06-04. S1 (critical ΔL unit risk) resolved — `s.upstream_distance()` confirmed to return arc-degrees (CalnAlpine max=0.2404°); `LengthwiseAsymmetryAnalyzer` correctly applies `compute_meters_per_degree()` from `units.py`. Minor: `basin_config.py` lists 18 basins (includes `piedepalo`) but no `piedepalo` DEM exists on disk; `EXAMPLE_DEMS` in `paths.py` correctly has 17 entries. Does not affect training.
 - **Stages 0–6:** ✅ complete; Earth feature datasets in `data/results/`.
 - **Stage 7:** ⚠️ **NEEDS REVIEW — inconsistent/interrupted raster state.**
   The live manifests `data/results/raster_manifest_reg{A,B,C}.csv` (17 basins each)

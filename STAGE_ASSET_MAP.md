@@ -15,6 +15,8 @@ _Last updated: 2026-06-04_
 
 ## Stage 0 — Project setup and assumptions ✅
 
+**Foundation-verified 2026-06-04:** all 17 `EXAMPLE_DEMS` resolve; `CROPPED_DEMS_DIR`, `FINAL_VALLEYS_DIR`, `MARS_DIR`, `MARS_HILLSHADE`, `MARS_VALLEYS` all exist; all 12 regime parameters (regA/B/C) exactly match `docs/REGIME_SELECTION.md`; `units.py` confirmed sole source of unit conversions. S1 (ΔL unit assumption) resolved — arc-degrees confirmed. Minor: `basin_config.py` has 18 entries (includes `piedepalo` with no DEM on disk); `EXAMPLE_DEMS` correctly has 17.
+
 | Asset | Location |
 |---|---|
 | Canonical paths | `channel_heads/io/paths.py` |
@@ -25,6 +27,8 @@ _Last updated: 2026-06-04_
 ---
 
 ## Stage 1 — Earth source-data exploration 🔶
+
+**Foundation-verified 2026-06-04:** all 17 DEMs load cleanly; all EPSG:4326, cell 0.000833°, z-ranges geomorphically plausible, 0 QA issues. Toano `z_max` in `basin_config.py` (2914 m) is 87 m above DEM max (2827 m) — expected (DEM crop smaller than paper extent; `z_th=1710 m` unaffected).
 
 | Asset | Location |
 |---|---|
@@ -40,6 +44,8 @@ _Last updated: 2026-06-04_
 
 ## Stage 2 — Earth interactive network exploration 🔶
 
+**Foundation-verified 2026-06-04:** all 17 basins run through full regB extraction + Strahler pruning; no empty networks; survivor ratios 0.14–0.51 (low ratios for Taiwan/Sierra Madre expected for large basins). `apply_strategy()` API confirmed correct.
+
 | Asset | Location |
 |---|---|
 | **Explorer notebook** | `notebooks/analysis/02_earth_network_explorer.ipynb` ← per-basin threshold/pruning preview |
@@ -51,6 +57,8 @@ _Last updated: 2026-06-04_
 ---
 
 ## Stage 3 — Mars interactive network exploration 🔶
+
+**Foundation-verified 2026-06-04:** Mars topology GeoPackage has 391 networks, 7 coherent layers, all CRS metre-units on Mars sphere, coordinate extents within Mars equatorial circumference — no CRS/unit problems. MOLA hillshade (Robinson) and valleys (Equidistant Cylindrical) use different projections by design; topology pipeline reprojects internally.
 
 | Asset | Location |
 |---|---|

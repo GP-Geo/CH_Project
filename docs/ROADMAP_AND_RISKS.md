@@ -81,7 +81,7 @@ and calls `channel_heads.*` only (no duplicated cell logic). See
 
 ## 5. Testing backlog
 
-- Verify S1 units (integration test, Priority 2 above).
+- ~~Verify S1 units~~ — **Done 2026-06-04** (see §1 S1 row; arc-degrees confirmed).
 - Integration test on a small real DEM (CalnAlpine, ~1547 pairs).
 - `filter_hard_negatives(s=...)` stream-crossing test; negative-L warning test; vectorized `_sample_path_coords` regression test.
 - `contact_px` 4-connectivity test; pre-filter no-false-negative test on elongated basins.

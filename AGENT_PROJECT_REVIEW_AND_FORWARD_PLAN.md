@@ -245,7 +245,7 @@ _Scope: review, planning, and targeted documentation correction only. No code, n
 | R7 | Package ownership confusion (`training` vs `models`) leads to edits in wrong layer | Low | Low | 8 | One-sentence doc note (recommended) | No |
 | R8 | Unclear notebook status / no runnable Stage-7 readiness notebook | Med | Med | 7 | Add lightweight readiness/QA notebook (wave deliverable) | No |
 | R9 | Over-refactoring instead of scientific progress | Med | Med | all | Structure is already stable — freeze refactor; prefer docs + reconciliation | This wave explicitly avoids it |
-| R10 | S1 unit assumption (`upstream_distance()` ΔL ~3600×) still open | **Critical (sci)** | Unknown | 6 | Run S1 verification recipe (ROADMAP §1); independent of raster state | No (but should be scheduled) |
+| R10 | S1 unit assumption (`upstream_distance()` ΔL ~3600×) | ~~Critical~~ **Resolved** | **Not a bug** | 6 | Verified 2026-06-04: `s.upstream_distance().max() = 0.2404` arc-degrees on CalnAlpine; `meters_per_unit = 97309 m/deg`; ΔL conversion correct | **Done** |
 | R11 | `run_regime_pipeline.sh` silently can't run regC (exits) | Low | Low | 8 | Doc corrected (§14); use per-step CLI for regC | No |
 
 ---
