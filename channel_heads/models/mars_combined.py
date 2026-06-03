@@ -26,7 +26,7 @@ from channel_heads.models.xgboost import (
     verify_feature_matrix,
     verify_model_feature_order,
 )
-from channel_heads.rasterizer import (
+from channel_heads.rasterization.schema import (
     BACKGROUND,
     BRANCH_A,
     BRANCH_B,

@@ -514,7 +514,10 @@ class TestConstants:
 
     def test_rasterization_public_surfaces_reexport_same_objects(self):
         import channel_heads.rasterization as rasterization
+        import channel_heads.rasterization.manifest as manifest
         import channel_heads.rasterization.patches as patches
+        import channel_heads.rasterization.schema as schema
+        import channel_heads.models.cnn as cnn
         import channel_heads.rasterizer as rasterizer
 
         assert patches.rasterize_outlet_pair is rasterizer.rasterize_outlet_pair
@@ -524,14 +527,31 @@ class TestConstants:
         assert patches.raster_quality_flags is rasterizer.raster_quality_flags
         assert rasterization.raster_quality_flags is rasterizer.raster_quality_flags
         assert rasterization.bresenham_line is rasterizer.bresenham_line
-        assert patches.NUM_CLASSES == rasterizer.NUM_CLASSES == rasterization.NUM_CLASSES
-        assert patches.CLASS_LABELS == {
+        assert (
+            schema.NUM_CLASSES
+            == patches.NUM_CLASSES
+            == rasterizer.NUM_CLASSES
+            == rasterization.NUM_CLASSES
+            == cnn.NUM_CLASSES
+        )
+        assert patches.CLASS_LABELS is schema.CLASS_LABELS
+        assert rasterization.CLASS_LABELS is schema.CLASS_LABELS
+        assert manifest.PATCH_FLAG_COLUMNS is schema.PATCH_FLAG_COLUMNS
+        assert schema.CLASS_LABELS == {
             BACKGROUND: "background",
             BRANCH_A: "branch_a",
             BRANCH_B: "branch_b",
             OTHER_STREAMS: "other_streams",
             CONFLUENCE_MARKER: "confluence_marker",
         }
+        assert schema.PATCH_FLAG_COLUMNS == [
+            "has_branch_a",
+            "has_branch_b",
+            "has_confluence",
+            "branch_a_connected",
+            "branch_b_connected",
+            "branches_connected",
+        ]
 
 
 # =============================================================================

@@ -31,7 +31,7 @@ from channel_heads.models.cnn import OutletCNN, OutletPairDataset
 # here so ``from channel_heads.cnn_training import pick_device`` (and the
 # ``channel_heads.training.cnn`` path) keep working.
 from channel_heads.models.device import pick_device  # noqa: F401  (re-export)
-from channel_heads.rasterizer import NUM_CLASSES
+from channel_heads.rasterization.schema import NUM_CLASSES
 
 log = logging.getLogger("channel_heads.cnn_training")
 

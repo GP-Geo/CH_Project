@@ -8,25 +8,20 @@ underlying implementation is preserved as-is.
 
 from __future__ import annotations
 
-from channel_heads.rasterizer import (
+from channel_heads.rasterization.schema import (
     BACKGROUND,
     BRANCH_A,
     BRANCH_B,
+    CLASS_LABELS,
     CONFLUENCE_MARKER,
     NUM_CLASSES,
     OTHER_STREAMS,
+)
+from channel_heads.rasterizer import (
     precompute_raster_dataset,
     raster_quality_flags,
     rasterize_outlet_pair,
 )
-
-CLASS_LABELS = {
-    BACKGROUND: "background",
-    BRANCH_A: "branch_a",
-    BRANCH_B: "branch_b",
-    OTHER_STREAMS: "other_streams",
-    CONFLUENCE_MARKER: "confluence_marker",
-}
 
 __all__ = [
     "rasterize_outlet_pair",

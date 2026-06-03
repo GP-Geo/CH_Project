@@ -34,17 +34,16 @@ from .pairing.earth import (
 )
 from .features.earth_paths import _trace_full_path
 from .logging_config import get_logger
+from .rasterization.schema import (
+    BACKGROUND,
+    BRANCH_A,
+    BRANCH_B,
+    CONFLUENCE_MARKER,
+    NUM_CLASSES,
+    OTHER_STREAMS,
+)
 
 logger = get_logger(__name__)
-
-# Raster class values
-BACKGROUND = 0
-BRANCH_A = 1
-BRANCH_B = 2
-OTHER_STREAMS = 3
-CONFLUENCE_MARKER = 4
-
-NUM_CLASSES = 5
 
 
 # =============================================================================

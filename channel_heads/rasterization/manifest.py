@@ -8,15 +8,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-# Structural-QA flag columns (from rasterizer.raster_quality_flags).
-PATCH_FLAG_COLUMNS = [
-    "has_branch_a",
-    "has_branch_b",
-    "has_confluence",
-    "branch_a_connected",
-    "branch_b_connected",
-    "branches_connected",
-]
+from channel_heads.rasterization.schema import PATCH_FLAG_COLUMNS
 
 # Full manifest schema, in order.
 PATCH_INDEX_COLUMNS = [

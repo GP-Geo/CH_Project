@@ -4,6 +4,54 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Raster R1: extract shared raster schema constants
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `5f4741e`
+- **Task:** First rasterization cleanup slice. Make shared 5-class raster
+  schema constants package-resident without moving Earth rasterization logic.
+- **Files created:**
+  - `channel_heads/rasterization/schema.py` — canonical `BACKGROUND`,
+    `BRANCH_A`, `BRANCH_B`, `OTHER_STREAMS`, `CONFLUENCE_MARKER`,
+    `NUM_CLASSES`, `CLASS_LABELS`, and `PATCH_FLAG_COLUMNS`.
+- **Files updated:**
+  - `channel_heads/rasterizer.py` — imports class constants from schema but
+    still owns Earth `bresenham_line`, direct-final-grid drawing,
+    `raster_quality_flags`, `rasterize_outlet_pair`, and
+    `precompute_raster_dataset`.
+  - `channel_heads/rasterization/patches.py` and
+    `channel_heads/rasterization/__init__.py` — re-export schema constants while
+    continuing to re-export the Earth implementation from `rasterizer.py`.
+  - `channel_heads/rasterization/manifest.py` — imports `PATCH_FLAG_COLUMNS`
+    from schema.
+  - `channel_heads/rasterization/mars_patches.py`,
+    `channel_heads/models/mars_combined.py`, `channel_heads/models/cnn.py`,
+    `channel_heads/training/cnn.py`, and `channel_heads/__init__.py` —
+    constant-only imports now prefer schema where safe.
+  - `tests/test_rasterizer.py` — pins schema / old-path / package-surface
+    constant and label/flag-column compatibility.
+  - `AGENT_STATE.md`, `AGENT_BACKLOG.md`, `AGENT_RUN_LOG.md`.
+- **Not changed:** Earth single-patch rasterization implementation,
+  `precompute_raster_dataset`, Mars patch rendering behavior, regime patch
+  scripts, notebooks, `data/`, root `/models/`, trained artifacts, generated
+  outputs.
+- **Validation:** import checks passed for `channel_heads.rasterizer`,
+  `channel_heads.rasterization`, `channel_heads.rasterization.patches`,
+  `channel_heads.rasterization.schema`, legacy `rasterize_outlet_pair` /
+  `precompute_raster_dataset`, and package `rasterize_outlet_pair`. Targeted
+  pytest (`tests/test_rasterizer.py tests/test_mars_patches.py
+  tests/test_cnn_model.py tests/test_cnn_consolidation.py`) → **101 passed,
+  1 warning**. Full pytest → **513 passed, 17 skipped, 1 warning**.
+  `git diff --check` clean. `ruff` was requested but unavailable
+  (`python -m ruff` reported no installed module and no `ruff` binary was on
+  `PATH`).
+- **Risks:** Low. Constants/labels/flag-column ownership changed only; integer
+  values, class count, QA flag names, patch dtype/size, draw order, and output
+  behavior are unchanged.
+- **Next step:** Raster R2 — move Earth single-patch rasterization helpers and
+  `rasterize_outlet_pair` into `channel_heads/rasterization/earth_patches.py`;
+  do not move `precompute_raster_dataset` until R3.
+
 ## 2026-06-03 — Slice 14: repoint internal imports off the geometric_analysis shim
 
 - **Branch:** `refactor/package-first-architecture`

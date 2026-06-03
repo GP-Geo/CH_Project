@@ -32,7 +32,7 @@ import torch.nn as nn
 import torch.nn.functional as F  # noqa: N812
 from torch.utils.data import Dataset
 
-from channel_heads.rasterizer import NUM_CLASSES
+from channel_heads.rasterization.schema import NUM_CLASSES
 
 if TYPE_CHECKING:
     # Re-exported lazily at runtime via module ``__getattr__`` (see below); the

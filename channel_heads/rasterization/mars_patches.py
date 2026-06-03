@@ -43,14 +43,14 @@ from channel_heads.rasterization.manifest import (
     empty_flags,
     validate_patch_manifest,
 )
-from channel_heads.rasterizer import (
+from channel_heads.rasterization.schema import (
     BACKGROUND,
     BRANCH_A,
     BRANCH_B,
     CONFLUENCE_MARKER,
     OTHER_STREAMS,
-    raster_quality_flags,
 )
+from channel_heads.rasterizer import raster_quality_flags
 
 log = get_logger("rasterization.mars_patches")
 

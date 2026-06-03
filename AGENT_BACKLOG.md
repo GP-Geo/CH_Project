@@ -253,6 +253,59 @@ Standard tests:
 > API, `__all__`, and all object identities are unchanged.
 > Commit: `refactor(features): repoint internal imports from geometric analysis shim`.
 
+## Raster Slice R1 — Extract shared raster schema/constants (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. Added
+> `channel_heads/rasterization/schema.py` as the canonical home for the frozen
+> 5-class patch constants, `CLASS_LABELS`, and `PATCH_FLAG_COLUMNS`. Repointed
+> constant-only internal imports to schema where safe. `rasterizer.py`,
+> `rasterization.patches`, and `rasterization` still expose compatibility values.
+> No Earth rasterization or batch-precompute implementation moved.
+> Commit: `refactor(rasterization): extract shared raster schema constants`.
+
+## Raster Slice R2 — Move Earth single-patch rasterization implementation
+
+- **Goal:** Move the Earth single-patch rasterization implementation into
+  `channel_heads/rasterization/earth_patches.py`, while preserving behavior
+  exactly and keeping old import paths working.
+- **Allowed files:** `channel_heads/rasterization/earth_patches.py` (new),
+  `channel_heads/rasterization/patches.py`,
+  `channel_heads/rasterization/__init__.py`, `channel_heads/rasterizer.py`,
+  `channel_heads/rasterization/drawing.py` only if an import repoint is clearly
+  safe, tests and handoff docs.
+- **Move only:** `bresenham_line`, `_project_to_target_grid`,
+  `_draw_path_on_target_grid`, `_draw_edges_on_target_grid`, `_component_count`,
+  `raster_quality_flags`, `_get_rc`, `_compute_rotation_angle`,
+  `_rotate_coordinates`, and `rasterize_outlet_pair`.
+- **Forbidden:** moving `precompute_raster_dataset`, changing Mars patch logic,
+  changing regime scripts, changing class values/count/dtype/target size,
+  padding, rotation, draw order, branch protection, confluence overwrite, QA
+  semantics, output paths, data, root `/models/`, notebooks, generated outputs.
+- **Tests to run:** import checks, targeted raster/CNN/Mars tests, full pytest,
+  `git diff --check`, ruff only if available.
+- **Suggested commit:** `refactor(rasterization): move Earth patch rasterization into package`
+- **Stop condition:** Stop if any raster pixels, QA flags, import identity, or
+  Mars patch behavior would change.
+
+## Raster Slice R3 — Move Earth batch precompute
+
+- **Goal:** Move `precompute_raster_dataset` into the rasterization package
+  after R2, while preserving loader signature, output paths, filenames, debug
+  patch behavior, status/error strings, and output columns exactly.
+- **Allowed files:** `channel_heads/rasterization/earth_patches.py` or a new
+  `channel_heads/rasterization/earth_batch.py`,
+  `channel_heads/rasterization/patches.py`,
+  `channel_heads/rasterization/__init__.py`, `channel_heads/rasterizer.py`,
+  tests and handoff docs.
+- **Forbidden:** changing regime patch script behavior, touching data/root
+  `/models`/notebooks/generated outputs, changing manifest schema, output paths,
+  status/error strings, QA flag semantics, or real artifacts.
+- **Tests to run:** import checks, targeted raster/CNN/Mars tests, full pytest,
+  `git diff --check`, ruff only if available.
+- **Suggested commit:** `refactor(rasterization): move Earth raster batch precompute`
+- **Stop condition:** Stop if batch precompute output columns/status/error
+  behavior would change.
+
 ## Slice 9 (original) — Data cleanup dry-run (later)
 
 - **Goal:** Produce a **dry-run only** report of candidate stale/generated data

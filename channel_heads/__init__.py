@@ -87,16 +87,18 @@ from .training.labeling import filter_hard_negatives, generate_labeled_dataset
 from .units import compute_meters_per_degree, compute_pixel_size_meters
 from .logging_config import get_logger, setup_logging
 from .pruning import apply_strategy, build_stream_graph, prune_by_order_gap
+from .rasterization.schema import (
+    BACKGROUND,
+    BRANCH_A,
+    BRANCH_B,
+    CONFLUENCE_MARKER,
+    NUM_CLASSES,
+    OTHER_STREAMS,
+)
 
 # Rasterizer (no PyTorch dependency)
 try:
     from .rasterizer import (
-        BACKGROUND,
-        BRANCH_A,
-        BRANCH_B,
-        CONFLUENCE_MARKER,
-        NUM_CLASSES,
-        OTHER_STREAMS,
         precompute_raster_dataset,
         raster_quality_flags,
         rasterize_outlet_pair,
@@ -104,8 +106,6 @@ try:
 except ModuleNotFoundError as exc:
     if exc.name != "skimage":
         raise
-    BACKGROUND = BRANCH_A = BRANCH_B = CONFLUENCE_MARKER = OTHER_STREAMS = None
-    NUM_CLASSES = None
     precompute_raster_dataset = raster_quality_flags = rasterize_outlet_pair = None
 from .stream_utils import outlet_node_ids_from_streampoi
 
