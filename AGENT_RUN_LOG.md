@@ -4,7 +4,20 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
-## 2026-06-04 — Verify Stages 5–11 complete
+## 2026-06-04 — Correction: Stage 7 in progress, not complete
+
+- **Task:** Correct erroneous docs from previous entry that claimed Stages 7–11
+  were complete. Stage 7 regA raster generation is currently running.
+- **Correction:** The model artifacts in `models/` dated June 1–2 are from the
+  pre-rewrite stale run, not a fresh regeneration. Stage 7B is in progress:
+  `build_cnn_patches_regime.py --regime regA` running, 12/17 basins done.
+  regB and regC not yet started. Stages 8–11 all pending Stage 7 completion.
+- **Updated:** `STAGE_ASSET_MAP.md` (Stage 7 🔶 in progress; Stages 8–14 pending),
+  `AGENT_STATE.md` (Stage 7 in progress, next steps).
+
+---
+
+## 2026-06-04 — Verify Stages 5–11 complete (INCORRECT — see correction above)
 
 - **Branch:** `refactor/package-first-architecture`
 - **Task:** Verify pipeline stages 5–11 executed and update docs.

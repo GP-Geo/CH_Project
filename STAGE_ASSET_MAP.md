@@ -8,7 +8,7 @@ Status column key:
 - 🔶 **partial** — code exists but no clean notebook, or notebook is exploratory-only
 - ❌ **gap** — stage has no dedicated notebook or package support yet
 
-_Last updated: 2026-06-04 (Stages 5–11 verified complete)_
+_Last updated: 2026-06-04 (Stage 7 in progress — regA generating)_
 
 ---
 
@@ -177,9 +177,10 @@ interpretation.
 | Data outputs | `data/results/_rasters_reg{A,B,C}/` (currently `STALE_AFTER_RASTER_FIX`) |
 | | `data/results/raster_manifest_reg{A,B,C}.csv` (stale) |
 
-**Status: ✅** — rasters regenerated for all three regimes (June 2026).
-`data/results/raster_manifest_reg{A,B,C}.csv` produced; rasters used for
-CNN training (Stage 8) and may be cleaned up to save disk space after training.
+**Status: 🔶 IN PROGRESS** — regA raster generation running
+(`scripts/cli/build_cnn_patches_regime.py --regime regA -v`); 12/17 basins
+complete as of 2026-06-04. regB and regC not yet started. No manifest written
+until run completes. Run regB and regC sequentially after regA finishes.
 
 ---
 
@@ -203,15 +204,10 @@ CNN training (Stage 8) and may be cleaned up to save disk space after training.
 | | `models/xgb_geom_plus_cnn_*.json` variants (stale) |
 | | `models/xgb_geom_only.json` (`CAN_REGENERATE`, raster-independent) |
 
-**Status: ✅** — training complete (June 2026). All regime models present:
-
-| Model | ROC-AUC | LOBO pooled AUC | Threshold |
-|-------|---------|-----------------|-----------|
-| regA geom+CNN | 0.886 | 0.900 | 0.739 |
-| regB geom+CNN | 0.871 | 0.889 | 0.761 |
-| regC geom+CNN | 0.882 | 0.710† | 0.765 |
-
-† regC LOBO pooled AUC is anomalously low vs fold mean (0.908); worth reviewing in Stage 9.
+**Status: ❌ pending** — blocked on Stage 7 completion. Model artifacts in
+`models/` (`cnn_outlet_reg{A,B,C}.pt`, `xgb_geom_plus_cnn_emb_reg{A,B,C}.json`)
+are from the pre-rewrite stale run and must be replaced after Stage 7 regenerates
+all three regime raster sets.
 
 ---
 
@@ -230,9 +226,8 @@ CNN training (Stage 8) and may be cleaned up to save disk space after training.
 | | `models/optimal_threshold_*.txt` |
 | | `models/ALL_MODELS_METRICS.csv` |
 
-**Status: ✅** — validation complete (June 2026). `models/lobo_cv_metrics.csv`
-and `models/ALL_MODELS_METRICS.csv` exist for all regime and baseline variants.
-Regime thresholds tuned: regA=0.739, regB=0.761, regC=0.765.
+**Status: ❌ pending** — blocked on Stage 8. Existing `lobo_cv_metrics.csv`
+and `ALL_MODELS_METRICS.csv` are from the stale pre-rewrite run.
 
 ---
 
@@ -253,8 +248,8 @@ Regime thresholds tuned: regA=0.739, regB=0.761, regC=0.765.
 | | `data/Mars/model_inputs/cnn_patches_5class/` (`STALE_AFTER_RASTER_FIX`) |
 | | `data/Mars/model_inputs/mars_cnn_patch_index.parquet` (stale) |
 
-**Status: ✅** — fully package-resident; Mars pipeline complete. CNN embeddings
-extracted into `data/results/master_dataset_reg{A,B,C}_with_emb.csv` (4-d, emb_0..3).
+**Status: ❌ pending** — blocked on Stage 8. `master_dataset_reg{A,B,C}_with_emb.csv`
+files with embeddings are from the stale pre-rewrite CNN models.
 
 ---
 
@@ -272,9 +267,8 @@ extracted into `data/results/master_dataset_reg{A,B,C}_with_emb.csv` (4-d, emb_0
 | Data outputs | `data/Mars/model_outputs/mars_combined_*_predictions.*` (`CAN_REGENERATE`) |
 | | `data/Mars/model_outputs/mars_xgb_predictions_5feat.*` (`CAN_REGENERATE`) |
 
-**Status: ✅** — Mars inference complete for all three regimes (June 2026).
-`data/Mars/model_outputs/mars_combined_reg{A,B,C}_predictions.{csv,gpkg,parquet}` present.
-`mars_combined_regA/B/C_by_network.csv` per-network summaries present.
+**Status: ❌ pending** — blocked on Stages 8–10. Existing
+`mars_combined_reg{A,B,C}_predictions.*` are from the stale pre-rewrite models.
 
 ---
 
@@ -346,21 +340,21 @@ for any CNN-derived content. Poster figures generator exists.
 | 4 | ✅ | `docs/REGIME_SELECTION.md` written; calibration notebook imports fixed |
 | 5 | ✅ | QA gate passed (`stage5_earth_network_qa_report.csv`); 0 hard flags |
 | 6 | ✅ | Minor: no visual pair-sample QA notebook |
-| 7 | ✅ | Rasters regenerated June 2026 |
-| 8 | ✅ | All regime models trained; metrics in `ALL_MODELS_METRICS.csv` |
-| 9 | ✅ | LOBO CV + threshold tuning complete |
-| 10 | ✅ | CNN embeddings extracted into master_dataset_with_emb CSVs |
-| 11 | ✅ | Mars regime inference complete for regA/B/C |
-| 12 | 🔶 | No threshold-sensitivity notebook |
+| 7 | 🔶 | **IN PROGRESS** — regA generating (12/17 basins); regB/C pending |
+| 8 | ❌ | Pending Stage 7 completion |
+| 9 | ❌ | Pending Stage 8 |
+| 10 | ❌ | Pending Stage 8 (CNN needed for embeddings) |
+| 11 | ❌ | Pending Stages 8–10 |
+| 12 | ❌ | Pending Stage 11 |
 | 13 | ❌ | No interpretation notebook |
-| 14 | 🔶 | Figures need regeneration with new regime models |
+| 14 | ❌ | Pending Stage 11 (figures need new models) |
 
 **Priority order for new work:**
 
-1. **Stage 12 threshold sensitivity** — sweep Mars operating threshold across
-   regimes; show touching fraction, network-level statistics, high-confidence
-   distribution. Needed before scientific interpretation.
-2. **Stage 13 interpretation** — synthesizes all regime outputs into a scientific
-   story (coupling rate by network, geographic distribution, terrain context).
-3. **Stage 14 figures** — regenerate presentation figures with updated regime models.
-4. Stages 1–3 (exploratory notebooks) — lower urgency; useful for onboarding.
+1. **Finish Stage 7** — wait for regA to complete, then run regB and regC:
+   `python scripts/cli/build_cnn_patches_regime.py --regime regB -v`
+   `python scripts/cli/build_cnn_patches_regime.py --regime regC -v`
+2. **Stage 8** — train CNN and XGBoost for all three regimes with fresh rasters.
+3. **Stages 9–11** — validate, extract embeddings, run Mars inference.
+4. **Stage 12** — Mars threshold sensitivity notebook.
+5. **Stages 13–14** — interpretation and figures.
