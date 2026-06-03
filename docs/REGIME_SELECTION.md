@@ -109,7 +109,7 @@ The `coupling_n_workers` value affects only runtime performance, not results.
 | Per-basin stats | `data/results/build_earth_features_reg{A,B,C}_stats.csv` | all three |
 | Regime CNN | `models/cnn_outlet_reg{A,B,C}.pt` | per regime |
 | Regime XGBoost | `models/xgb_geom_plus_cnn_emb_reg{A,B,C}.json` | per regime |
-| Regime threshold | `models/threshold_reg{A,B,C}.json` | per regime |
+| Regime threshold | `models/optimal_threshold_geom_plus_cnn_emb_reg{A,B,C}.txt` | per regime |
 | Regime rasters | `data/results/_rasters_reg{A,B,C}/` | per regime (STALE — pre-rewrite) |
 | Mars regime predictions | `data/Mars/model_outputs/mars_combined_reg{A,B,C}_predictions.parquet` | per regime |
 

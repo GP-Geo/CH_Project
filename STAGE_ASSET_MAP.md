@@ -108,10 +108,15 @@ _Last updated: 2026-06-04_
 | Data | `data/results/_rasters_reg{A,B,C}/` — **archived** to `data/_stage7_archive_*/` |
 | Manifests | `data/results/raster_manifest_reg{A,B,C}.csv` — **restored** as stale compatibility artifacts (pre-rewrite data) |
 
-**Status:** Rasters archived to `data/_stage7_archive_*/`; manifests restored as
-stale compatibility artifacts (not fresh Stage 7B outputs). Regenerate rasters and
-manifests when final regime is chosen. All downstream model artifacts are stale but
-usable for testing. See `AGENT_STATE.md` for regeneration commands.
+**Status (NEEDS REVIEW — interrupted state, 2026-06-04):** The live manifests
+`raster_manifest_reg{A,B,C}.csv` list 17 basins each but reference
+`data/results/_rasters_reg{A,B,C}/` directories that are **archived, not on disk
+in `data/results/`** — most `raster_path` entries resolve to MISSING. **regA** is
+mid-rebuild: an interrupted regen left 5 basins in `data/results/_rasters_regA/`
+and 12 in `data/_stage7_archive_20260603_231506/results/_rasters_regA_partial_rerun/`;
+the clean full 17-basin set is the **pre-rewrite (stale)** archive copy. Do not
+feed these manifests to Stage 8 training. Regenerate rasters + manifests cleanly
+when a final regime is chosen. See `AGENT_STATE.md`.
 
 ---
 
