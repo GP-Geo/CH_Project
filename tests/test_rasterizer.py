@@ -515,13 +515,13 @@ class TestConstants:
         assert NUM_CLASSES == 5
 
     def test_rasterization_public_surfaces_reexport_same_objects(self):
+        import channel_heads.models.cnn as cnn
         import channel_heads.rasterization as rasterization
         import channel_heads.rasterization.earth_batch as earth_batch
         import channel_heads.rasterization.earth_patches as earth_patches
         import channel_heads.rasterization.manifest as manifest
         import channel_heads.rasterization.patches as patches
         import channel_heads.rasterization.schema as schema
-        import channel_heads.models.cnn as cnn
 
         assert patches.rasterize_outlet_pair is earth_patches.rasterize_outlet_pair
         assert rasterization.rasterize_outlet_pair is earth_patches.rasterize_outlet_pair
