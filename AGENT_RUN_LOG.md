@@ -4,6 +4,33 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Stage 4/5 planning + housekeeping
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit:** `caaec26` (data cleanup dry-run)
+- **Task:** Four housekeeping items following the dry-run report.
+- **Actions taken:**
+  1. Restored `models/xgb_touching_classifier.json` from
+     `data/_rebuild_backup_20260531/models/` — this is the production model
+     expected by `channel_heads/io/paths.py:228` (`XGB_PRODUCTION`).
+  2. Updated `docs/DATA_STATUS.md` — added `REPORT` entries for
+     `data/results/experiments/` (threshold sweeps + pruning sweep) and
+     `data/results/drainage_density_calibration/` (DD/complexity calibration),
+     and a "safe to delete" entry for the 12 `.sr.lock` files in `data/final_valleys/`.
+  3. Created `STAGE_ASSET_MAP.md` — maps all 15 `PIPELINE_DESIGN.md` stages
+     to existing scripts, notebooks, package modules, and data artifacts.
+     Key finding: Stage 5 (Earth network QA) is the only fully missing stage
+     (❌); Stages 4, 12, 13, 14 are partial (🔶).
+  4. Created `STAGE_45_PLANNING.md` — concrete implementation plan for Stage
+     4 (calibration audit + rationale doc) and Stage 5 (new QA notebook).
+- **Not touched:** `data/`, any rasters, generated outputs, trained artifacts
+  (except restoring the missing production model from the project's own backup).
+- **Validation:** none required (doc + model-restore only). The model was
+  verified to load as valid JSON with the expected XGBoost learner structure.
+- **Next step:** Start Stage 4/5 work per `STAGE_45_PLANNING.md`: audit
+  `00_calibration_overview.ipynb`, write `docs/REGIME_SELECTION.md`, then
+  write `notebooks/analysis/05_earth_network_qa.ipynb`.
+
 ## 2026-06-03 — Data cleanup dry-run (report-only)
 
 - **Branch:** `refactor/package-first-architecture`

@@ -404,19 +404,23 @@ _Last updated: 2026-06-03_
 
 ## Next recommended task
 
-Data cleanup dry-run is **DONE** (see `AGENT_DATA_CLEANUP_DRYRUN.md`). The
-remaining structured backlog item is notebook import updates (explicit request
-only). The next meaningful work items are from `PIPELINE_DESIGN.md`:
+See `STAGE_45_PLANNING.md` for the full plan. Immediate sequence:
 
-1. **Restore or resolve `models/xgb_touching_classifier.json`** — the
-   production model expected by `channel_heads/io/paths.py` is missing from
-   `models/`; it exists in `data/_rebuild_backup_20260531/models/`. Confirm
-   whether to restore from backup or update the CLAUDE.md/paths.py reference.
-2. **Update `docs/DATA_STATUS.md`** — add entries for
-   `data/results/experiments/`, `data/results/drainage_density_calibration/`,
-   and the stale `.sr.lock` files in `data/final_valleys/`.
-3. **Stage-to-asset map** — bridge `PIPELINE_DESIGN.md` stages to existing
-   scripts, notebooks, and package functions.
+1. **Audit `notebooks/regime/00_calibration_overview.ipynb`** — check imports
+   resolve via canonical package paths; update if stale (Slice 10 scope).
+2. **Write `docs/REGIME_SELECTION.md`** — freeze the Stage 4 regime-choice
+   rationale in prose.
+3. **Write `notebooks/analysis/05_earth_network_qa.ipynb`** — Stage 5 QA
+   gate: per-basin outlet counts, touching ratios, DEM overlays for flagged
+   basins. Reads tabular data only; safe to write and run now (rasters not
+   needed).
+
+Other completed housekeeping (this session):
+- `models/xgb_touching_classifier.json` restored from backup.
+- `docs/DATA_STATUS.md` updated with experiments, dd_calibration, and
+  `.sr.lock` classifications.
+- `STAGE_ASSET_MAP.md` created (full stage-to-asset coverage map).
+- `STAGE_45_PLANNING.md` created (Stage 4/5 implementation plan).
 
 > Note: the user-issued geometric_analysis split slices are numbered 9–13 in the
 > prompts; the backlog's original Slice 9 was the data cleanup dry-run, retained
