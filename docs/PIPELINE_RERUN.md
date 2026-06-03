@@ -55,9 +55,15 @@ Earth-trained CNN.
 ## 3. Regime calibration (regA / regB / regC)
 
 ```bash
-scripts/run_regime_pipeline.sh regA   # build_earth_features_regime -> build_cnn_patches_regime
-scripts/run_regime_pipeline.sh regB   #   -> train_cnn_regime -> train_combined_xgb_regime
-scripts/run_regime_pipeline.sh regC   #   -> run_mars_combined_regime
+# Step-by-step (recommended — allows inspection between steps):
+python scripts/cli/build_earth_features_regime.py --regime regA -v
+python scripts/cli/build_cnn_patches_regime.py    --regime regA -v
+python scripts/cli/train_cnn_regime.py            --regime regA -v
+python scripts/cli/train_combined_xgb_regime.py   --regime regA
+python scripts/cli/run_mars_combined_regime.py    --regime regA
+
+# Or via the shell orchestrator (runs all steps for one regime):
+scripts/run_regime_pipeline.sh regA   # repeats above for regA; also runs regB, regC
 ```
 Then optionally re-tune a regime threshold: `python scripts/cli/retune_threshold_regime.py --regime regB`
 (inspect first read-only in `notebooks/regime/02_threshold_retune`).

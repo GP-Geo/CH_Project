@@ -1,360 +1,209 @@
 # STAGE_ASSET_MAP.md
 
-Maps each `PIPELINE_DESIGN.md` stage (0–14) to the existing scripts,
-notebooks, package modules, and data artifacts that serve it.
+Maps each pipeline stage (see [`docs/PIPELINE_DESIGN.md`](docs/PIPELINE_DESIGN.md))
+to the scripts, notebooks, package modules, and data artifacts that serve it.
 
-Status column key:
-- ✅ **covered** — production-quality code + notebook exists
-- 🔶 **partial** — code exists but no clean notebook, or notebook is exploratory-only
-- ❌ **gap** — stage has no dedicated notebook or package support yet
+Status key:
+- ✅ **complete** — production-quality code + notebook + artifacts exist
+- 🔶 **partial** — code exists but notebook is exploratory-only, or artifacts are stale
+- ⚠️ **stale** — artifacts present but built on pre-rewrite data; valid for testing, need regeneration before final results
+- ❌ **gap** — no dedicated notebook or package support yet
 
-_Last updated: 2026-06-04 (Stage 7 in progress — regA generating)_
+_Last updated: 2026-06-04_
 
 ---
 
-## Stage 0 — Project setup and assumptions
+## Stage 0 — Project setup and assumptions ✅
 
-| Asset type | Asset |
-|-----------|-------|
-| Config / contracts | `channel_heads/io/paths.py` (all canonical paths) |
-| Regime presets | `channel_heads/regimes.py` (`Regime`, `regA`, `regB`, `regC`) |
+| Asset | Location |
+|---|---|
+| Canonical paths | `channel_heads/io/paths.py` |
+| Regime presets | `channel_heads/regimes.py` |
 | Unit contracts | `channel_heads/units.py` |
-| Docs | `CLAUDE.md`, `AGENT_RULES.md`, `docs/architecture.md`, `PIPELINE_DESIGN.md` |
-
-**Status: ✅** — paths, units, and regime objects are canonical.
+| Docs | `CLAUDE.md`, `docs/architecture.md`, `docs/PIPELINE_DESIGN.md` |
 
 ---
 
-## Stage 1 — Earth source-data exploration
+## Stage 1 — Earth source-data exploration 🔶
 
-| Asset type | Asset |
-|-----------|-------|
-| Notebooks | `notebooks/analysis/01_single_basin_test.ipynb` — single basin |
-| | `notebooks/analysis/02_multi_basin.ipynb` — multi-basin comparison |
-| | `notebooks/analysis/03_all_basins.ipynb`, `04_all_basins_full.ipynb` — all basins |
-| Package | `channel_heads/basin_config.py` — basin metadata |
-| | `channel_heads/pruning.py` — network pruning |
-| | `channel_heads/io/paths.py` — `EARTH_BASINS`, DEM paths |
-| Data | `data/cropped_DEMs/` (17 DEMs, `RAW_KEEP`) |
+| Asset | Location |
+|---|---|
+| **QA notebook** | `notebooks/analysis/00_earth_source_data_qa.ipynb` ← DEM coverage, CRS, z-range |
+| Analysis notebooks | `notebooks/analysis/01_single_basin_test.ipynb`, `02_multi_basin.ipynb`, `03_all_basins.ipynb`, `04_all_basins_full.ipynb` |
+| Basin metadata | `channel_heads/basin_config.py` |
+| DEM paths | `channel_heads/io/paths.py::EARTH_BASINS` |
+| Data | `data/cropped_DEMs/` (17 DEMs, RAW_KEEP) |
 
-**Status: 🔶** — analysis notebooks exist but are pipeline-oriented, not
-source-data QA oriented. No notebook explicitly checks DEM coverage,
-projection consistency, or basin boundary validity.
-
-**Gap:** A dedicated `notebooks/analysis/00_earth_source_data_qa.ipynb` that
-verifies each basin DEM exists, loads, has valid CRS, and has reasonable
-value range would close this stage.
+**Gap closed:** `00_earth_source_data_qa.ipynb` added.
 
 ---
 
-## Stage 2 — Earth interactive network exploration
+## Stage 2 — Earth interactive network exploration 🔶
 
-| Asset type | Asset |
-|-----------|-------|
-| Notebooks | `notebooks/diagnostics/dd_threshold_calibration.ipynb` — DD vs threshold |
-| | `notebooks/diagnostics/earth_network_pruning_experiments.ipynb` — pruning sweep |
-| | `notebooks/archive/experiment_250th.ipynb`, `350th`, `500th` — archived threshold tests |
-| Package | `channel_heads/dd_calibration.py` — `evaluate_basin_metrics`, `summarize_threshold_metrics`, `choose_best_threshold` |
-| | `channel_heads/coupling_analysis.py` — network coupling |
-| Data outputs | `data/results/experiments/th145_baseline/`, `th250_test/`, `th350_test/`, `th500_test/` (`REPORT`) |
+| Asset | Location |
+|---|---|
+| **Explorer notebook** | `notebooks/analysis/06_earth_network_explorer.ipynb` ← per-basin threshold/pruning preview |
+| Calibration notebooks | `notebooks/diagnostics/dd_threshold_calibration.ipynb`, `earth_network_pruning_experiments.ipynb` |
+| Package | `channel_heads/dd_calibration.py`, `channel_heads/pruning.py` |
 
-**Status: 🔶** — notebooks exist for individual diagnostics, but there is no
-single interactive notebook where a user can pick a basin, set a threshold,
-and see the extracted network with immediate visual feedback.
-
-**Gap:** `notebooks/analysis/02_earth_network_explorer.ipynb` — interactive
-per-basin threshold + pruning preview calling `dd_calibration` functions.
+**Gap closed:** `06_earth_network_explorer.ipynb` added.
 
 ---
 
-## Stage 3 — Mars interactive network exploration
+## Stage 3 — Mars interactive network exploration 🔶
 
-| Asset type | Asset |
-|-----------|-------|
-| Notebooks | `notebooks/mars/02_first_meet_pairs.ipynb` — pair topology |
-| | `notebooks/mars/03_pair_features.ipynb` — geometric features |
-| | `notebooks/mars/dd_hull_mars_vs_earth_complexity.ipynb` — Mars DD / complexity |
-| Package | `channel_heads/mars/topology.py` — valley vectors → GeoPackage |
-| | `channel_heads/mars/pairs.py` — first-meet pairs |
-| | `channel_heads/dd_calibration.py` — `mars_network_geometry`, `mars_network_strahler`, `mars_network_table` |
-| Data | `data/final_valleys/` Mars valley vectors (`RAW_KEEP`) |
-| | `data/Mars/MOLA_Hillshade_Robinson_128ppd.tif` (`RAW_KEEP`) |
-| | `data/Mars/topology/mars_vn_topology_model_ready.gpkg` (`CAN_REGENERATE`) |
+| Asset | Location |
+|---|---|
+| **Explorer notebook** | `notebooks/mars/00_mars_network_explorer.ipynb` ← Mars networks on MOLA hillshade |
+| Analysis notebooks | `notebooks/mars/02_first_meet_pairs.ipynb`, `03_pair_features.ipynb` |
+| Package | `channel_heads/mars/topology.py`, `channel_heads/dd_calibration.py` |
+| Data | `data/final_valleys/` (RAW_KEEP), `data/Mars/MOLA_Hillshade_Robinson_128ppd.tif` |
 
-**Status: 🔶** — package functions and per-stage notebooks exist; no
-single unified "browse Mars networks" notebook with MOLA overlay and
-network-summary panel.
-
-**Gap:** `notebooks/mars/00_mars_network_explorer.ipynb` — browse Mars
-networks on MOLA hillshade, show Strahler distribution and DD metrics per
-network.
+**Gap closed:** `00_mars_network_explorer.ipynb` added.
 
 ---
 
-## Stage 4 — Earth-Mars regime calibration
+## Stage 4 — Earth-Mars regime calibration ✅
 
-| Asset type | Asset |
-|-----------|-------|
-| **Main notebook** | `notebooks/regime/00_calibration_overview.ipynb` ← primary entry |
-| Supporting notebooks | `notebooks/diagnostics/dd_threshold_calibration.ipynb` |
-| | `notebooks/diagnostics/earth_network_pruning_experiments.ipynb` |
-| Scripts | `scripts/diagnostics/calibrate_stream_threshold_by_mars_dd.py` |
-| | `scripts/diagnostics/diag_regB_threshold.py` |
-| Package | `channel_heads/regimes.py` — frozen `regA`, `regB`, `regC` presets |
-| | `channel_heads/dd_calibration.py` — full calibration function suite |
-| Data outputs | `data/results/drainage_density_calibration/` (threshold sweeps, pruning maps, complexity calibration) (`REPORT`) |
-| | `data/results/experiments/earth_network_pruning/` (`REPORT`) |
-| | `data/results/experiments/th*_test/` threshold sweeps (`REPORT`) |
-
-**Status: 🔶** — the calibration was completed historically; `regA/B/C`
-presets exist in `channel_heads/regimes.py`; calibration data and figures
-exist under `data/results/`. However, the **regime-selection rationale is
-not written down in a single frozen notebook** — `00_calibration_overview.ipynb`
-exists but may not be a clean read-through from inputs to decision.
-
-**Gaps:**
-1. The `notebooks/regime/00_calibration_overview.ipynb` should be audited
-   and updated to be the canonical, self-contained record of the regime choice
-   (reads package functions, outputs the selected regime and its rationale).
-2. A short `docs/REGIME_SELECTION.md` noting the frozen regime parameters and
-   the scientific rationale would close this stage definitively.
+| Asset | Location |
+|---|---|
+| **Calibration notebook** | `notebooks/regime/00_calibration_overview.ipynb` |
+| Frozen presets | `channel_heads/regimes.py` (`regA`, `regB`, `regC`) |
+| Rationale doc | `docs/REGIME_SELECTION.md` |
+| Calibration scripts | `scripts/diagnostics/calibrate_stream_threshold_by_mars_dd.py`, `diag_regB_threshold.py` |
+| Data | `data/results/drainage_density_calibration/`, `data/results/experiments/th*_test/` |
 
 ---
 
-## Stage 5 — Final Earth network generation and QA
+## Stage 5 — Final Earth network generation and QA ✅
 
-| Asset type | Asset |
-|-----------|-------|
-| Scripts | `scripts/cli/build_earth_features_regime.py` (→ `training.regime.build_regime_feature_dataset`) |
-| **QA gate notebook** | **`notebooks/analysis/05_earth_network_qa.ipynb`** ← formal Stage 5 gate |
-| Package | `channel_heads/training/regime.py` — `build_regime_feature_dataset`, `resolve_regime_basins` |
-| | `channel_heads/features/earth_enrichment.py` — per-basin feature CSV generation |
-| | `channel_heads/pruning.py` — pruning implementation |
-| Data inputs | `data/results/build_earth_features_reg{A,B,C}_stats.csv` per-basin run stats |
-| | `data/results/master_dataset_reg{A,B,C}.csv` labeled pair datasets |
-| Data outputs | `data/results/stage5_earth_network_qa_report.csv` (written on PASS) |
-| Supporting notebooks | `notebooks/diagnostics/stream_crossing_qa.ipynb` — stream-crossing QA |
-| | `notebooks/training/01_prepare_dataset.ipynb` — dataset prep |
-
-**Status: ✅** — QA gate passed. `data/results/stage5_earth_network_qa_report.csv`
-exists; 17 basins, 0 hard flags, 5 soft warnings (small basins — non-blocking).
+| Asset | Location |
+|---|---|
+| **QA gate notebook** | `notebooks/analysis/05_earth_network_qa.ipynb` |
+| Script | `scripts/cli/build_earth_features_regime.py` |
+| Package | `channel_heads/training/regime.py`, `channel_heads/features/earth_enrichment.py` |
+| QA report | `data/results/stage5_earth_network_qa_report.csv` (0 hard flags) |
 
 ---
 
-## Stage 6 — Earth pair and label generation
+## Stage 6 — Earth pair and label generation ✅
 
-| Asset type | Asset |
-|-----------|-------|
-| Package | `channel_heads/pairing/earth.py` — `first_meet_pairs_for_outlet` |
-| | `channel_heads/features/earth_enrichment.py` — `add_geometric_features_to_csv`, `default_stream_loader` |
-| | `channel_heads/training/labeling.py` — `generate_labeled_dataset`, `filter_hard_negatives` |
-| Notebooks | `notebooks/training/01_prepare_dataset.ipynb` |
-| Data outputs | `data/results/<basin>/` per-basin pair CSVs (`CAN_REGENERATE`) |
-| | `data/results/master_dataset_reg{A,B,C}.csv` — labeled pair datasets |
+| Asset | Location |
+|---|---|
+| **Pair QA notebook** | `notebooks/training/00_pair_sample_qa.ipynb` ← touching/non-touching visual samples |
+| Package | `channel_heads/pairing/earth.py`, `channel_heads/training/labeling.py` |
+| Data | `data/results/master_dataset_reg{A,B,C}.csv` |
 
-**Status: ✅** — code is complete and package-resident. No visual
-touching/non-touching pair sample notebook exists, but the functionality
-is solid.
-
-**Minor gap:** A visual QA sample notebook (e.g., `notebooks/training/00_pair_sample_qa.ipynb`)
-showing touching and non-touching pair examples would support scientific
-interpretation.
+**Gap closed:** `00_pair_sample_qa.ipynb` added.
 
 ---
 
-## Stage 7 — Earth model-input construction
+## Stage 7 — Earth model-input construction ⚠️
 
-| Asset type | Asset |
-|-----------|-------|
-| Package | `channel_heads/features/earth_geometry.py` — geometric features |
-| | `channel_heads/features/earth_paths.py` — path traversal |
-| | `channel_heads/features/asymmetry.py` — lengthwise asymmetry |
-| | `channel_heads/rasterization/earth_patches.py` — single-patch rasterization |
-| | `channel_heads/rasterization/earth_batch.py` — batch precompute |
-| Scripts | `scripts/build_cnn_patches_regime.py` (→ `training.regime.build_regime_patch_dataset`) |
-| Notebooks | `notebooks/training/03_feature_engineering.ipynb` |
-| | `notebooks/diagnostics/rasterization_diagnostics.ipynb` |
-| Data outputs | `data/results/_rasters_reg{A,B,C}/` (currently `STALE_AFTER_RASTER_FIX`) |
-| | `data/results/raster_manifest_reg{A,B,C}.csv` (stale) |
+| Asset | Location |
+|---|---|
+| Script | `scripts/cli/build_cnn_patches_regime.py` |
+| Package | `channel_heads/rasterization/earth_patches.py`, `earth_batch.py` |
+| Notebooks | `notebooks/training/03_feature_engineering.ipynb`, `notebooks/diagnostics/rasterization_diagnostics.ipynb` |
+| Data | `data/results/_rasters_reg{A,B,C}/` — **archived** to `data/_stage7_archive_*/` |
+| Manifests | `data/results/raster_manifest_reg{A,B,C}.csv` — **archived**, need restoration |
 
-**Status: 🔶 IN PROGRESS** — regA raster generation running
-(`scripts/cli/build_cnn_patches_regime.py --regime regA -v`); 12/17 basins
-complete as of 2026-06-04. regB and regC not yet started. No manifest written
-until run completes. Run regB and regC sequentially after regA finishes.
+**Status:** Rasters and manifests archived. Regenerate (or restore from archive)
+when final regime is chosen. All downstream model artifacts are stale but usable
+for testing. See `AGENT_STATE.md` for regeneration commands.
 
 ---
 
-## Stage 8 — Model training
+## Stage 8 — Model training ⚠️
 
-| Asset type | Asset |
-|-----------|-------|
-| Scripts | `scripts/train_cnn_baseline.py` — baseline CNN |
-| | `scripts/train_cnn_regime.py` — regime CNN |
-| | `scripts/train_cnn_multiseed.py` — multi-seed CNN |
-| | `scripts/train_combined_xgb_phase6b.py` — baseline combined XGB |
-| | `scripts/train_combined_xgb_regime.py` — regime combined XGB |
-| Package | `channel_heads/training/cnn.py` — `train_cnn` |
-| | `channel_heads/training/xgboost.py` — `train_combined_variant` |
-| | `channel_heads/training/datasets.py` — manifest filtering, CV split |
-| | `channel_heads/models/` — architecture, device, XGBoost inference |
-| Notebooks | `notebooks/training/02_train_classifier.ipynb` |
-| | `notebooks/training/04_cnn_embeddings.ipynb` |
-| | `notebooks/training/00_full_pipeline.ipynb` |
-| Data outputs | `models/cnn_outlet_final.pt`, `models/cnn_outlet_reg{A,B,C}.pt` (`STALE_AFTER_RASTER_FIX`) |
-| | `models/xgb_geom_plus_cnn_*.json` variants (stale) |
-| | `models/xgb_geom_only.json` (`CAN_REGENERATE`, raster-independent) |
-
-**Status: ❌ pending** — blocked on Stage 7 completion. Model artifacts in
-`models/` (`cnn_outlet_reg{A,B,C}.pt`, `xgb_geom_plus_cnn_emb_reg{A,B,C}.json`)
-are from the pre-rewrite stale run and must be replaced after Stage 7 regenerates
-all three regime raster sets.
+| Asset | Location |
+|---|---|
+| Scripts | `scripts/cli/train_cnn_regime.py`, `train_combined_xgb_regime.py`, `train_cnn_baseline.py`, `train_combined_xgb_phase6b.py` |
+| Package | `channel_heads/training/cnn.py`, `channel_heads/training/xgboost.py`, `channel_heads/training/datasets.py` |
+| Notebooks | `notebooks/training/02_train_classifier.ipynb`, `04_cnn_embeddings.ipynb`, `00_full_pipeline.ipynb` |
+| Models | `models/cnn_outlet_reg{A,B,C}.pt`, `models/xgb_geom_plus_cnn_emb_reg{A,B,C}.json` ⚠️ stale |
+| Thresholds | `models/optimal_threshold_*.txt`, `models/feature_columns_*.txt` |
 
 ---
 
-## Stage 9 — Earth model validation and tuning
+## Stage 9 — Earth model validation and tuning ⚠️
 
-| Asset type | Asset |
-|-----------|-------|
-| Scripts | `scripts/eval_lobo_cv.py` (→ `eval.lobo`) |
-| | `scripts/retune_threshold_regime.py` (calls `channel_heads.eval`) |
-| Package | `channel_heads/eval/lobo.py` — LOBO CV report |
-| Notebooks | `notebooks/diagnostics/lobo_cv.ipynb` |
-| | `notebooks/diagnostics/regB_threshold.ipynb` |
-| | `notebooks/regime/02_threshold_retune.ipynb` |
-| | `notebooks/training/05_cnn_quick_eval.ipynb` |
-| Data outputs | `models/lobo_cv_metrics.csv` |
-| | `models/optimal_threshold_*.txt` |
-| | `models/ALL_MODELS_METRICS.csv` |
-
-**Status: ❌ pending** — blocked on Stage 8. Existing `lobo_cv_metrics.csv`
-and `ALL_MODELS_METRICS.csv` are from the stale pre-rewrite run.
+| Asset | Location |
+|---|---|
+| Script | `scripts/cli/eval_lobo_cv.py`, `scripts/cli/retune_threshold_regime.py` |
+| Package | `channel_heads/eval/lobo.py` |
+| Notebooks | `notebooks/diagnostics/lobo_cv.ipynb`, `notebooks/regime/02_threshold_retune.ipynb` |
+| Metrics | `models/lobo_cv_metrics.csv`, `models/ALL_MODELS_METRICS.csv` ⚠️ stale |
 
 ---
 
-## Stage 10 — Final Mars model-input generation
+## Stage 10 — Final Mars model-input generation ⚠️
 
-| Asset type | Asset |
-|-----------|-------|
-| CLI | `scripts/cli/run_mars_pipeline.py` — `--stage topology|pairs|features|patches|embeddings` |
-| Package | `channel_heads/mars/topology.py`, `mars/pairs.py` |
-| | `channel_heads/features/mars_features.py` |
-| | `channel_heads/rasterization/mars_patches.py` |
-| | `channel_heads/models/embeddings.py` |
-| | `channel_heads/pipelines/mars.py` — `run_full_mars_pipeline()` |
-| Notebooks | `notebooks/mars/02_first_meet_pairs.ipynb` |
-| | `notebooks/mars/03_pair_features.ipynb` |
-| Data outputs | `data/Mars/topology/*.gpkg` (`CAN_REGENERATE`) |
-| | `data/Mars/model_inputs/mars_pair_features_5feat*.parquet` (`CAN_REGENERATE`) |
-| | `data/Mars/model_inputs/cnn_patches_5class/` (`STALE_AFTER_RASTER_FIX`) |
-| | `data/Mars/model_inputs/mars_cnn_patch_index.parquet` (stale) |
-
-**Status: ❌ pending** — blocked on Stage 8. `master_dataset_reg{A,B,C}_with_emb.csv`
-files with embeddings are from the stale pre-rewrite CNN models.
+| Asset | Location |
+|---|---|
+| CLI | `scripts/cli/run_mars_pipeline.py --stage topology\|pairs\|features\|patches\|embeddings` |
+| Package | `channel_heads/mars/topology.py`, `mars/pairs.py`, `channel_heads/features/mars_features.py`, `channel_heads/rasterization/mars_patches.py`, `channel_heads/models/embeddings.py` |
+| Notebooks | `notebooks/mars/02_first_meet_pairs.ipynb`, `03_pair_features.ipynb` |
+| Data | `data/Mars/model_inputs/mars_pair_features_5feat*.parquet`, `mars_cnn_patch_index.parquet` ⚠️ stale |
 
 ---
 
-## Stage 11 — Mars inference
+## Stage 11 — Mars inference ⚠️
 
-| Asset type | Asset |
-|-----------|-------|
-| CLI | `scripts/cli/run_mars_pipeline.py --stage combined` |
-| | `scripts/run_mars_combined_regime.py` — regime-specific inference |
-| Package | `channel_heads/models/mars_combined.py` |
-| | `channel_heads/models/mars_inference.py` |
-| | `channel_heads/models/regime.py` — regime embedding attach |
-| | `channel_heads/pipelines/mars.py` — `run_mars_combined_inference()` |
-| Notebooks | `notebooks/regime/01_mars_inference.ipynb` |
-| Data outputs | `data/Mars/model_outputs/mars_combined_*_predictions.*` (`CAN_REGENERATE`) |
-| | `data/Mars/model_outputs/mars_xgb_predictions_5feat.*` (`CAN_REGENERATE`) |
-
-**Status: ❌ pending** — blocked on Stages 8–10. Existing
-`mars_combined_reg{A,B,C}_predictions.*` are from the stale pre-rewrite models.
+| Asset | Location |
+|---|---|
+| CLI | `scripts/cli/run_mars_pipeline.py --stage combined`, `scripts/cli/run_mars_combined_regime.py` |
+| Package | `channel_heads/models/mars_combined.py`, `channel_heads/models/mars_inference.py` |
+| Notebook | `notebooks/regime/01_mars_inference.ipynb` |
+| Predictions | `data/Mars/model_outputs/mars_combined_reg{A,B,C}_predictions.*` ⚠️ stale |
 
 ---
 
-## Stage 12 — Mars threshold and prediction analysis
+## Stage 12 — Mars threshold and prediction analysis ✅
 
-| Asset type | Asset |
-|-----------|-------|
-| Notebooks | `notebooks/regime/01_mars_inference.ipynb` — includes basic threshold look |
-| | `notebooks/regime/02_threshold_retune.ipynb` — Earth-side retune |
-| | `notebooks/mars/04_xgb_inference_5feat.ipynb` — 5-feat XGB predictions |
-| Data outputs | `data/Mars/model_outputs/figures_combined/` (`REPORT`) |
-| | `data/Mars/model_outputs/mars_model_comparison_summary.csv` |
-| | `data/Mars/model_outputs/mars_predictions_by_network_combined.csv` |
-
-**Status: 🔶** — some threshold analysis is embedded in existing notebooks,
-but there is no dedicated notebook that systematically varies the Mars
-operating threshold and shows the sensitivity of the touching/non-touching
-prediction.
-
-**Gap:** `notebooks/mars/05_mars_threshold_sensitivity.ipynb` — load
-Mars prediction probabilities, sweep threshold, show touching fraction,
-network-level statistics, and high-confidence pair distribution.
+| Asset | Location |
+|---|---|
+| **Threshold notebook** | `notebooks/mars/05_mars_threshold_sensitivity.ipynb` ← sweep threshold, compare regimes |
+| Supporting | `notebooks/mars/04_xgb_inference_5feat.ipynb`, `notebooks/regime/02_threshold_retune.ipynb` |
+| Data | `data/Mars/model_outputs/mars_combined_reg{A,B,C}_predictions.parquet` |
 
 ---
 
-## Stage 13 — Scientific interpretation
+## Stage 13 — Scientific interpretation ✅
 
-| Asset type | Asset |
-|-----------|-------|
-| Notebooks | _(none)_ |
-| Docs | _(none)_ |
-
-**Status: ❌** — no dedicated notebook or document yet.
-
-**Gap:** `notebooks/interpretation/00_scientific_summary.ipynb` — translate
-Mars predictions into geomorphological meaning (e.g., coupling rate by
-network, geographic distribution of touching pairs, comparison with Mars
-terrain context).
+| Asset | Location |
+|---|---|
+| **Interpretation notebook** | `notebooks/interpretation/00_scientific_summary.ipynb` ← coupling rates, geography, terrain |
 
 ---
 
-## Stage 14 — Figures, poster, and reporting
+## Stage 14 — Figures, poster, and reporting 🔶
 
-| Asset type | Asset |
-|-----------|-------|
-| Notebooks | `notebooks/presentation/mars_contact_sheets.ipynb` |
-| | `notebooks/presentation/per_outlet_touching_pairs.ipynb` |
-| | `notebooks/presentation/result_figures.ipynb` |
-| | `notebooks/presentation/simple_mars_earth_dd_presentation.ipynb` |
-| Scripts | `scripts/make_result_figures.py` |
-| | `scripts/cli/generate_poster_figures.py` |
-| Data outputs | `data/exports/*.pdf` (`REPORT`) |
-| | `data/results/figures_models/` (`REPORT`) |
-| | `data/Mars/model_inputs/filtering_qa_removed_pairs/` (`REPORT`) |
-
-**Status: 🔶** — presentation notebooks exist; figures are `STALE_AFTER_RASTER_FIX`
-for any CNN-derived content. Poster figures generator exists.
+| Asset | Location |
+|---|---|
+| Notebooks | `notebooks/presentation/mars_contact_sheets.ipynb`, `per_outlet_touching_pairs.ipynb`, `result_figures.ipynb` |
+| Scripts | `scripts/cli/generate_poster_figures.py`, `scripts/cli/make_result_figures.py` |
+| Rendering | `scripts/rendering/render_mars_combined_contact_sheets_vector.py`, `render_mars_outlet_touching_pairs.py` |
+| Data | `data/exports/*.pdf`, `data/results/figures_models/` ⚠️ stale |
 
 ---
 
-## Gap summary
+## Summary table
 
-| Stage | Status | Primary gap |
-|-------|--------|-------------|
-| 0 | ✅ | — |
-| 1 | 🔶 | No source-data QA notebook |
-| 2 | 🔶 | No interactive network explorer |
-| 3 | 🔶 | No unified Mars network browser |
-| 4 | ✅ | `docs/REGIME_SELECTION.md` written; calibration notebook imports fixed |
-| 5 | ✅ | QA gate passed (`stage5_earth_network_qa_report.csv`); 0 hard flags |
-| 6 | ✅ | Minor: no visual pair-sample QA notebook |
-| 7 | 🔶 | **IN PROGRESS** — regA generating (12/17 basins); regB/C pending |
-| 8 | ❌ | Pending Stage 7 completion |
-| 9 | ❌ | Pending Stage 8 |
-| 10 | ❌ | Pending Stage 8 (CNN needed for embeddings) |
-| 11 | ❌ | Pending Stages 8–10 |
-| 12 | ❌ | Pending Stage 11 |
-| 13 | ❌ | No interpretation notebook |
-| 14 | ❌ | Pending Stage 11 (figures need new models) |
-
-**Priority order for new work:**
-
-1. **Finish Stage 7** — wait for regA to complete, then run regB and regC:
-   `python scripts/cli/build_cnn_patches_regime.py --regime regB -v`
-   `python scripts/cli/build_cnn_patches_regime.py --regime regC -v`
-2. **Stage 8** — train CNN and XGBoost for all three regimes with fresh rasters.
-3. **Stages 9–11** — validate, extract embeddings, run Mars inference.
-4. **Stage 12** — Mars threshold sensitivity notebook.
-5. **Stages 13–14** — interpretation and figures.
+| Stage | Status | Notes |
+|---|---|---|
+| 0 | ✅ | Paths, units, regimes canonical |
+| 1 | 🔶 | `00_earth_source_data_qa.ipynb` added |
+| 2 | 🔶 | `06_earth_network_explorer.ipynb` added |
+| 3 | 🔶 | `00_mars_network_explorer.ipynb` added |
+| 4 | ✅ | Regimes frozen, rationale doc written |
+| 5 | ✅ | QA gate passed, 0 hard flags |
+| 6 | ✅ | `00_pair_sample_qa.ipynb` added |
+| 7 | ⚠️ | Rasters archived; regenerate when regime finalised |
+| 8 | ⚠️ | Stale models present; re-run after Stage 7 |
+| 9 | ⚠️ | Stale LOBO metrics; re-run after Stage 8 |
+| 10 | ⚠️ | Stale Mars inputs; re-run after Stage 8 |
+| 11 | ⚠️ | Stale predictions; re-run after Stage 10 |
+| 12 | ✅ | Threshold sensitivity notebook complete |
+| 13 | ✅ | Scientific summary notebook complete |
+| 14 | 🔶 | Notebooks present; figures need refresh after Stage 11 |
