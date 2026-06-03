@@ -898,6 +898,106 @@ class TestPrecomputeQAGating:
         assert pd.isna(row["raster_debug_path"]) or row["raster_debug_path"] is None
 
 
+# Module-level helpers for the worker-equivalence test: must be importable
+# (picklable) under the 'spawn' start method the parallel rasterizer uses.
+class _EquivDem:
+    shape = (16, 16)
+
+
+def _equiv_loader(_basin, _lat, _z_th, _threshold):
+    # The fake rasterizer ignores `s`; only `dem.shape` is read downstream.
+    return None, _EquivDem()
+
+
+def _equiv_rasterize(_s, outlet, head_1, head_2, _conf, _grid, *, target_size):
+    seed = (outlet * 131 + head_1 * 17 + head_2) % 251
+    return np.full((target_size, target_size), seed, dtype=np.uint8)
+
+
+def _equiv_quality(raster):
+    ok = bool(int(raster.flat[0]) % 2 == 0)
+    return {
+        "has_branch_a": True,
+        "has_branch_b": True,
+        "has_confluence": ok,
+        "branch_a_connected": True,
+        "branch_b_connected": True,
+        "branches_connected": ok,
+    }
+
+
+class TestPrecomputeWorkerEquivalence:
+    """Process-parallel rasterization (n_workers > 1) must produce output
+    identical to the serial path (n_workers == 1): same manifest rows in the
+    same order and byte-identical .npy patches. Guards the 'no silent numeric
+    change' rule. Uses module-level loader/rasterize/quality helpers so they
+    are picklable under the spawn start method the parallel path uses."""
+
+    def _multi_pair_master(self, tmp_path):
+        # Enough pairs per basin to exercise within-basin chunking across
+        # workers; distinct (outlet,h1,h2) so each writes a separate filename.
+        rows = []
+        for basin in ("inyo", "taiwan"):
+            for k in range(600):
+                rows.append(
+                    {
+                        "basin": basin,
+                        "outlet": k,
+                        "confluence": 100 + k,
+                        "head_1": 2 * k,
+                        "head_2": 2 * k + 1,
+                        "y": k % 2,
+                    }
+                )
+        master_csv = tmp_path / "master.csv"
+        pd.DataFrame(rows).to_csv(master_csv, index=False)
+        return master_csv
+
+    def test_serial_and_parallel_outputs_match(self, tmp_path):
+        from channel_heads.rasterization.earth_batch import _precompute_raster_dataset
+
+        master_csv = self._multi_pair_master(tmp_path)
+
+        def run(out_dir, n_workers):
+            return _precompute_raster_dataset(
+                master_csv=master_csv,
+                output_dir=out_dir,
+                dem_loader=_equiv_loader,
+                target_size=16,
+                n_workers=n_workers,
+                rasterize_func=_equiv_rasterize,
+                quality_func=_equiv_quality,
+            )
+
+        serial = run(tmp_path / "serial", 1)
+        threaded = run(tmp_path / "parallel", 4)
+
+        # Manifest rows identical in order, ignoring only the output-dir prefix
+        # baked into the path columns.
+        compare_cols = [
+            "basin", "outlet", "confluence", "head_1", "head_2", "y",
+            "raster_status", "raster_error",
+            "has_branch_a", "has_branch_b", "has_confluence",
+            "branch_a_connected", "branch_b_connected", "branches_connected",
+        ]
+        pd.testing.assert_frame_equal(serial[compare_cols], threaded[compare_cols])
+
+        # Same set of relative file paths, and byte-identical patch contents.
+        def rel_paths(df, root):
+            return sorted(
+                str(Path(p).relative_to(root))
+                for p in df["raster_debug_path"].dropna()
+            )
+
+        rels = rel_paths(serial, tmp_path / "serial")
+        assert rels == rel_paths(threaded, tmp_path / "parallel")
+        assert rels, "expected at least one saved patch"
+        for rel in rels:
+            a = np.load(tmp_path / "serial" / rel)
+            b = np.load(tmp_path / "parallel" / rel)
+            assert np.array_equal(a, b)
+
+
 # =============================================================================
 # Mars rasterization smoke test (shared semantics with Earth)
 # =============================================================================

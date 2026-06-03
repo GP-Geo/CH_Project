@@ -545,15 +545,21 @@ def build_regime_feature_dataset(
 # ---------------------------------------------------------------------------
 # Regime patch stream loader (Step 3)
 # ---------------------------------------------------------------------------
-def make_regime_stream_loader(regime: Regime):
-    """Return a ``precompute_raster_dataset`` compatible loader for a regime.
+class RegimeStreamLoader:
+    """Picklable ``precompute_raster_dataset``-compatible stream loader.
 
-    Signature matches ``default_stream_loader(basin, lat, z_th, threshold)``
-    — the trailing ``threshold`` arg is ignored because the regime supplies
-    its own km^2 threshold and pruning recipe.
+    Implemented as a class (not a closure) so it can be sent to worker
+    processes under the ``spawn`` start method used by the parallel rasterizer.
+    Signature matches ``default_stream_loader(basin, lat, z_th, threshold)`` —
+    the trailing ``threshold`` arg is ignored because the regime supplies its
+    own km^2 threshold and pruning recipe.
     """
 
-    def loader(basin: str, lat: float, z_th: float, threshold: int):
+    def __init__(self, regime: Regime):
+        self.regime = regime
+
+    def __call__(self, basin: str, lat: float, z_th: float, threshold: int):
+        regime = self.regime
         dem_path = resolve_dem_path(basin)
         if dem_path is None or not Path(dem_path).exists():
             log.warning("DEM not found for basin '%s'", basin)
@@ -585,7 +591,10 @@ def make_regime_stream_loader(regime: Regime):
             log.exception("[%s] regime %s loader failed", basin, regime.name)
             return None
 
-    return loader
+
+def make_regime_stream_loader(regime: Regime) -> RegimeStreamLoader:
+    """Return a picklable regime stream loader (see :class:`RegimeStreamLoader`)."""
+    return RegimeStreamLoader(regime)
 
 
 def regime_patch_paths(
@@ -606,18 +615,25 @@ def build_regime_patch_dataset(
     *,
     results_dir: Path,
     target_size: int = 128,
+    n_workers: int = 1,
     stream_loader=None,
     precompute_func=precompute_raster_dataset,
     log_override=None,
 ) -> tuple[pd.DataFrame, Path]:
-    """Rasterize CNN patches for a regime master dataset and write the manifest."""
+    """Rasterize CNN patches for a regime master dataset and write the manifest.
+
+    ``n_workers`` controls per-basin pair-level threading in the rasterizer:
+    ``1`` (default) is serial and bit-identical to the prior behavior; ``> 1``
+    parallelizes the render/QA/save of pairs within each basin (helps the dense
+    basins such as Taiwan most).
+    """
     master_csv, output_root, manifest_path = regime_patch_paths(
         regime,
         results_dir=results_dir,
     )
     output_root.mkdir(parents=True, exist_ok=True)
     active_log = log if log_override is None else log_override
-    active_log.info("Rasters output root: %s", output_root)
+    active_log.info("Rasters output root: %s (workers=%d)", output_root, n_workers)
 
     loader = (
         make_regime_stream_loader(regime)
@@ -629,6 +645,7 @@ def build_regime_patch_dataset(
         output_dir=output_root,
         dem_loader=loader,
         target_size=target_size,
+        n_workers=n_workers,
         # threshold is forwarded to loader but ignored there; kept to satisfy signature.
         threshold=0,
     )
@@ -676,6 +693,7 @@ __all__ = [
     "regime_basin_feature_cache_path",
     "assemble_regime_master_dataset",
     "build_regime_feature_dataset",
+    "RegimeStreamLoader",
     "make_regime_stream_loader",
     "regime_patch_paths",
     "build_regime_patch_dataset",

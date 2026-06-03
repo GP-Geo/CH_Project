@@ -53,6 +53,16 @@ def main(argv: list[str] | None = None) -> int:
         default=128,
         help="Patch H x W in pixels (default: 128).",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help=(
+            "Threads for per-basin pair rasterization (default: 1 = serial, "
+            "bit-identical to prior behavior). >1 parallelizes pairs within "
+            "each basin."
+        ),
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
 
@@ -83,6 +93,7 @@ def main(argv: list[str] | None = None) -> int:
         regime,
         results_dir=RESULTS_DIR,
         target_size=args.target_size,
+        n_workers=args.workers,
         log_override=log,
     )
     return 0
