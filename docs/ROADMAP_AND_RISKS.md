@@ -16,7 +16,7 @@ the highest priority** and is the motivation for centralizing unit logic in
 
 | # | File | Issue | Severity | Status |
 |---|------|-------|----------|--------|
-| **S1** | `geometric_analysis.py` / `units.py` | **`upstream_distance()` unit assumption.** ΔL assumes `s.upstream_distance()` returns map units (arc-degrees for SRTM). If TopoToolbox returns pixel/edge counts, the meters conversion is wrong by ~`cellsize_deg` (≈1/3600), making ΔL ~3600× off. Verify against TopoToolbox docs/source. | **Critical** | Open |
+| **S1** | `features/asymmetry.py` / `units.py` | **`upstream_distance()` unit assumption.** ΔL assumes `s.upstream_distance()` returns map units (arc-degrees for SRTM). If TopoToolbox returns pixel/edge counts, the meters conversion is wrong by ~`cellsize_deg` (≈1/3600), making ΔL ~3600× off. Verify against TopoToolbox docs/source. | **Critical** | **Verified 2026-06-04 — arc-degrees confirmed.** CalnAlpine: `s.upstream_distance().max() = 0.2404` (arc-degrees); `LengthwiseAsymmetryAnalyzer.meters_per_unit = 97309 m/deg` (= `compute_meters_per_degree(39.69°)`, cellsize 0.000833 < 1 branch taken). ΔL conversion is correct. Not a bug. |
 | S2 | `geometric_analysis.py` | Geometric mean in `compute_meters_per_degree` biases near-E–W / N–S paths. Acceptable for elongated ranges; document. | Low | Documented |
 | S3 | `geometric_analysis.py` | `_trace_path_downstream` greedy child choice could follow wrong branch on unexpected topology. | Low | Manual |
 | S4 | `coupling_analysis.py` | Pre-filter distance threshold (`multiplier·√threshold`) is geometrically optimistic for elongated basins — may skip real touching pairs. | Medium | Manual |
