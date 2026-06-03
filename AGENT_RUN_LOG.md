@@ -4,6 +4,45 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Slice 12: extract labeling and hard-negative filters
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `ce54016`
+- **Task:** Move the labeled-dataset assembly and hard-negative filtering out of
+  `geometric_analysis.py` into `channel_heads/training/labeling.py`, preserving
+  behavior exactly. Fourth slice of the `geometric_analysis.py` split.
+- **Files created:**
+  - `channel_heads/training/labeling.py` — `generate_labeled_dataset`,
+    `filter_hard_negatives`, and the private stream-crossing helpers
+    `_line_crosses_stream` / `_build_stream_mask` (moved verbatim). Imports
+    `GEOM_FEATURE_COLS` from `features.earth_geometry` and `line_pixels` from
+    `stream_utils`. No logging in these functions.
+- **Files updated:**
+  - `channel_heads/geometric_analysis.py` — removed the moved definitions;
+    imports the four symbols from `channel_heads.training.labeling` and
+    re-exports them (privates via `# noqa: F401`). Dropped the now-unused
+    `import numpy.typing as npt` and `from .stream_utils import line_pixels`.
+  - `tests/test_geometric_analysis.py` — added `TestLabelingExtraction`
+    (public symbols identical across `geometric_analysis` / `training.labeling`
+    / top-level `channel_heads`; private helpers re-exported from the canonical
+    module).
+  - `AGENT_STATE.md`, `AGENT_BACKLOG.md`, `AGENT_RUN_LOG.md`.
+- **Not touched:** CSV enrichment, scripts (`build_earth_features_regime.py`
+  still imports `generate_labeled_dataset` / `filter_hard_negatives` via the
+  geometric_analysis re-export), notebooks, `data/`, root `/models/`, generated
+  outputs, trained artifacts.
+- **Validation:** targeted pytest → **152 passed, 1 warning**; full pytest →
+  **528 passed, 7 warnings**. `ruff check` clean on `training/labeling.py` and
+  `geometric_analysis.py` (ruff `--fix` organized labeling's import block).
+  `git diff --check` clean.
+- **Risks:** Low. Functions moved verbatim — per-group recursion, NaN-keep
+  semantics, positive-median L / distance thresholds, optional stream-crossing
+  filter (negatives only), conservative keep-on-error, and final sort keys all
+  unchanged.
+- **Next step:** Slice 13 — extract CSV enrichment / Earth stream loading into
+  `channel_heads/features/earth_enrichment.py`; `geometric_analysis.py` becomes
+  a pure re-export shim.
+
 ## 2026-06-03 — Slice 11: extract Earth geometry analyzer
 
 - **Branch:** `refactor/package-first-architecture`

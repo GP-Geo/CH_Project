@@ -60,6 +60,7 @@ _Last updated: 2026-06-03_
 | Earth/TopoToolbox path helpers (`_build_children_from_parents`, `_trace_path_downstream`, `_compute_direction_vector`, `_trace_full_path`, `_sample_path_coords`, `_detect_cellsize`, `_euclidean_2d`, `_normalize_vector`, `EPSILON`, `MIN_EDGES_FOR_DIRECTION`) | `channel_heads/features/earth_paths.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
 | Earth lengthwise asymmetry (`PairAsymmetryResult`, `compute_delta_L`, `LengthwiseAsymmetryAnalyzer`, `compute_asymmetry_statistics`, `merge_coupling_and_asymmetry`) | `channel_heads/features/asymmetry.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
 | Earth geometry analyzer (`GEOM_FEATURE_COLS`, `DEFAULT_DIRECTION_SAMPLE_DISTANCE_M`, `PairGeometricResult`, `GeometricFeaturesAnalyzer`, `merge_geometric_features`) | `channel_heads/features/earth_geometry.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
+| Earth labeling / hard-negative filtering (`generate_labeled_dataset`, `filter_hard_negatives`, `_line_crosses_stream`, `_build_stream_mask`) | `channel_heads/training/labeling.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
 | Mars projected path helpers | `channel_heads/features/paths.py` | none |
 | Mars feature table generation | `channel_heads/features/mars_features.py` | Mars script wrappers |
 | Unit conversions | `channel_heads/units.py` | `geometric_analysis.py` and `dd_calibration.py` re-export selected helpers |
@@ -189,6 +190,17 @@ _Last updated: 2026-06-03_
   promoted `rasterization/patches.py` or `earth_patches.py` for Earth
   rasterization/precompute, `rasterizer.py` as a shim, and regime patch
   orchestration under future `training/regime.py`.
+- **Labeling / hard-negative extraction (Slice 12): DONE.**
+  `generate_labeled_dataset`, `filter_hard_negatives`, and the private
+  stream-crossing helpers (`_line_crosses_stream`, `_build_stream_mask`) now
+  live canonically in `channel_heads/training/labeling.py` (moved verbatim;
+  imports `GEOM_FEATURE_COLS` from `features.earth_geometry` and `line_pixels`
+  from `stream_utils`). `geometric_analysis.py` imports and re-exports them
+  (privates via `# noqa: F401`), and dropped its now-unused `numpy.typing` /
+  `stream_utils.line_pixels` imports. Per-group recursion, NaN-keep semantics,
+  positive-median thresholds, the optional stream-crossing filter (negatives
+  only), conservative keep-on-error, and final sort keys are unchanged. Pinned
+  by `tests/test_geometric_analysis.py::TestLabelingExtraction`.
 - **Earth geometry analyzer extraction (Slice 11): DONE.** `GEOM_FEATURE_COLS`,
   `DEFAULT_DIRECTION_SAMPLE_DISTANCE_M`, `PairGeometricResult`,
   `GeometricFeaturesAnalyzer`, and `merge_geometric_features` now live
@@ -262,12 +274,12 @@ _Last updated: 2026-06-03_
 - `geometric_analysis.py` — audited in Slice 6, behavior-pinned in Slice 8.
   Earth path helpers extracted to `features/earth_paths.py` (Slice 9); asymmetry
   to `features/asymmetry.py` (Slice 10); the Earth geometry analyzer to
-  `features/earth_geometry.py` (Slice 11). Still owns the stream-crossing helpers
-  (`_line_crosses_stream`, `_build_stream_mask`), labeling / hard-negative
-  filtering (`generate_labeled_dataset`, `filter_hard_negatives`), and CSV
-  enrichment (`default_stream_loader`, `add_geometric_features_to_csv`, helpers,
-  CLI). Remaining recommendation is to split labeling into
-  `training/labeling.py` (Slice 12) and enrichment into
+  `features/earth_geometry.py` (Slice 11); labeling / hard-negative filtering to
+  `training/labeling.py` (Slice 12). Still owns the CSV enrichment surface
+  (`default_stream_loader`, `_build_pairs_at_confluence`, `_build_asymmetry_df`,
+  `_add_missing_stream_qc`, `add_geometric_features_to_csv`,
+  `_add_geometric_features_cli`, `StreamLoaderFunc`, the `__main__` CLI).
+  Remaining recommendation is to split enrichment into
   `features/earth_enrichment.py` (Slice 13), then leave `geometric_analysis.py`
   as a pure re-export shim.
 - `rasterizer.py` — audited in Slice 7 and behavior-pinned in Slice 8. Keep
@@ -280,12 +292,15 @@ _Last updated: 2026-06-03_
 
 ## Next recommended task
 
-**Slice 12 — extract labeling / hard-negative filters** (`generate_labeled_dataset`,
-`filter_hard_negatives`, `_line_crosses_stream`, `_build_stream_mask`) into
-`channel_heads/training/labeling.py`, with `geometric_analysis.py` re-exporting
-for compatibility. Preserve per-group recursion, NaN-keep semantics, the
-positive-median thresholds, the optional stream-crossing filter (negatives
-only), conservative keep-on-error, and the final sort keys.
+**Slice 13 — extract CSV enrichment / Earth stream loading**
+(`default_stream_loader`, `_build_pairs_at_confluence`, `_build_asymmetry_df`,
+`_add_missing_stream_qc`, `add_geometric_features_to_csv`,
+`_add_geometric_features_cli`) into `channel_heads/features/earth_enrichment.py`,
+with `geometric_analysis.py` re-exporting and keeping its `__main__` CLI
+working. Preserve the CSV schema: `overlap_px` drop, head/L swapping, missing
+basin/lat(36.0)/z_th(0.0) defaults, `missing_stream` flags, default stream
+threshold 300, and output-path write behavior. After Slice 13,
+`geometric_analysis.py` becomes a pure re-export shim.
 
 The backlog's standalone **data cleanup dry-run (report-only)** item remains
 open as a later task; do not delete, move, or mutate any data/model/generated

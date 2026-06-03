@@ -222,13 +222,16 @@ Standard tests:
 > flags, and skip-warning logging unchanged.
 > Commit: `refactor(features): extract Earth geometry analyzer`.
 
-## Slice 12 — Extract labeling / hard-negative filters (next)
+## Slice 12 — Extract labeling / hard-negative filters (DONE)
 
-- **Goal:** Move `generate_labeled_dataset`, `filter_hard_negatives`,
-  `_line_crosses_stream`, `_build_stream_mask` into
-  `channel_heads/training/labeling.py`; `geometric_analysis.py` re-exports.
+> Completed — see `AGENT_RUN_LOG.md`. Moved `generate_labeled_dataset`,
+> `filter_hard_negatives`, `_line_crosses_stream`, `_build_stream_mask` into
+> `channel_heads/training/labeling.py`; `geometric_analysis.py` re-exports.
+> Per-group recursion, NaN-keep semantics, thresholds, stream-crossing filter,
+> and sort keys unchanged.
+> Commit: `refactor(training): extract labeling and hard-negative filters`.
 
-## Slice 13 — Extract Earth enrichment helpers (later)
+## Slice 13 — Extract Earth enrichment helpers (next)
 
 - **Goal:** Move `default_stream_loader`, `_build_pairs_at_confluence`,
   `_build_asymmetry_df`, `_add_missing_stream_qc`,

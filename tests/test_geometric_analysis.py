@@ -1645,3 +1645,39 @@ class TestEarthGeometryExtraction:
             is earth_geometry.DEFAULT_DIRECTION_SAMPLE_DISTANCE_M
         )
         assert earth_geometry.DEFAULT_DIRECTION_SAMPLE_DISTANCE_M == 500.0
+
+
+class TestLabelingExtraction:
+    """Pin the Slice 12 extraction of labeling / hard-negative filters.
+
+    ``generate_labeled_dataset``, ``filter_hard_negatives`` and the private
+    stream-crossing helpers now live canonically in
+    ``channel_heads.training.labeling`` and are re-exported from
+    ``channel_heads.geometric_analysis`` for backward compatibility.
+    """
+
+    PUBLIC_SYMBOLS = ["generate_labeled_dataset", "filter_hard_negatives"]
+    PRIVATE_SYMBOLS = ["_line_crosses_stream", "_build_stream_mask"]
+
+    def test_public_symbols_identical_across_paths(self):
+        import channel_heads
+        from channel_heads import geometric_analysis
+        from channel_heads.training import labeling
+
+        for name in self.PUBLIC_SYMBOLS:
+            canonical = getattr(labeling, name)
+            assert getattr(geometric_analysis, name) is canonical, (
+                f"{name} legacy alias diverged from canonical"
+            )
+            assert getattr(channel_heads, name) is canonical, (
+                f"{name} top-level alias diverged from canonical"
+            )
+
+    def test_private_helpers_re_exported_from_canonical(self):
+        from channel_heads import geometric_analysis
+        from channel_heads.training import labeling
+
+        for name in self.PRIVATE_SYMBOLS:
+            assert getattr(geometric_analysis, name) is getattr(labeling, name), (
+                f"{name} legacy alias diverged from canonical"
+            )
