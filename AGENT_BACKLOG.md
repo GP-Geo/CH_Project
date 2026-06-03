@@ -212,16 +212,17 @@ Standard tests:
 > them. S1 upstream-distance unit policy unchanged.
 > Commit: `refactor(features): extract asymmetry helpers`.
 
-## Slice 11 — Extract Earth geometry analyzer (next)
+## Slice 11 — Extract Earth geometry analyzer (DONE)
 
-- **Goal:** Move `GEOM_FEATURE_COLS`, `PairGeometricResult`,
-  `GeometricFeaturesAnalyzer`, `merge_geometric_features` into
-  `channel_heads/features/earth_geometry.py`; `geometric_analysis.py`
-  re-exports.
-- **Stop condition:** Stop if feature-column order, y-axis convention,
-  branch-parent Strahler behavior, QC flags, or skip-warning logging change.
+> Completed — see `AGENT_RUN_LOG.md`. Moved `GEOM_FEATURE_COLS`,
+> `DEFAULT_DIRECTION_SAMPLE_DISTANCE_M`, `PairGeometricResult`,
+> `GeometricFeaturesAnalyzer`, and `merge_geometric_features` into
+> `channel_heads/features/earth_geometry.py`; `geometric_analysis.py`
+> re-exports. Feature-column order, y-axis convention, Strahler behavior, QC
+> flags, and skip-warning logging unchanged.
+> Commit: `refactor(features): extract Earth geometry analyzer`.
 
-## Slice 12 — Extract labeling / hard-negative filters (later)
+## Slice 12 — Extract labeling / hard-negative filters (next)
 
 - **Goal:** Move `generate_labeled_dataset`, `filter_hard_negatives`,
   `_line_crosses_stream`, `_build_stream_mask` into

@@ -4,6 +4,49 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Slice 11: extract Earth geometry analyzer
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `19dcdcc`
+- **Task:** Move the Earth geometric-feature analyzer out of
+  `geometric_analysis.py` into `channel_heads/features/earth_geometry.py`,
+  preserving behavior exactly. Third slice of the `geometric_analysis.py` split.
+- **Files created:**
+  - `channel_heads/features/earth_geometry.py` — `GEOM_FEATURE_COLS`,
+    `DEFAULT_DIRECTION_SAMPLE_DISTANCE_M`, `PairGeometricResult`,
+    `GeometricFeaturesAnalyzer`, `merge_geometric_features` (moved verbatim).
+    Imports path helpers from `features.earth_paths`, pure math from
+    `features.geometry`, `_build_parents_from_stream` / `_normalize_pair` from
+    `pairing.earth`, and `compute_pixel_size_meters` from `units`. Per-module
+    `get_logger(__name__)`.
+- **Files updated:**
+  - `channel_heads/geometric_analysis.py` — removed the moved definitions and
+    the now-redundant `dataclass` import; imports the five symbols from
+    `features.earth_geometry` and re-exports them. The path-helper / geometry
+    imports it keeps for the historical import surface are now re-export-only
+    (redundant-alias `X as X` / `# noqa: F401`); `GEOM_FEATURE_COLS` and
+    `GeometricFeaturesAnalyzer` are still used internally by the labeling /
+    enrichment helpers that remain. `_build_parents_from_stream` import dropped
+    (only the analyzer used it; tests import it from `pairing.earth` directly).
+  - `tests/test_geometric_analysis.py` — repointed the skip-warning test to
+    `patch("channel_heads.features.earth_geometry.logger")` (the analyzer's new
+    home), and added `TestEarthGeometryExtraction` (old/new/top-level identity,
+    `GEOM_FEATURE_COLS` order, `DEFAULT_DIRECTION_SAMPLE_DISTANCE_M` re-export).
+  - `AGENT_STATE.md`, `AGENT_BACKLOG.md`, `AGENT_RUN_LOG.md`.
+- **Not touched:** labeling / hard-negative filtering, CSV enrichment,
+  stream-crossing helpers, scripts, notebooks, `data/`, root `/models/`,
+  generated outputs, trained artifacts.
+- **Validation:** targeted pytest → **150 passed, 1 warning**; full pytest →
+  **526 passed, 7 warnings**. `ruff check` clean on `features/earth_geometry.py`
+  and `geometric_analysis.py` (ruff `--fix` organized the re-export import
+  block). `git diff --check` clean.
+- **Risks:** Low. Analyzer moved verbatim — feature-column order, x=col / y=-row
+  convention, branch-parent Strahler logic, proximity profile, QC flag strings,
+  and `evaluate_pairs_for_outlet` skip-warning all unchanged. Only the logger
+  name differs (test repointed accordingly).
+- **Next step:** Slice 12 — extract labeling / hard-negative filters into
+  `channel_heads/training/labeling.py`.
+
 ## 2026-06-03 — Slice 10: extract asymmetry helpers
 
 - **Branch:** `refactor/package-first-architecture`

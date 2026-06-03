@@ -953,7 +953,7 @@ class TestSkipLogging:
         # Create pairs with invalid node IDs that will cause computation errors
         invalid_pairs = {999: {(9998, 9999)}}
 
-        with patch("channel_heads.geometric_analysis.logger") as mock_logger:
+        with patch("channel_heads.features.earth_geometry.logger") as mock_logger:
             df = analyzer.evaluate_pairs_for_outlet(1, invalid_pairs)
 
         assert len(df) == 0
@@ -1588,3 +1588,60 @@ class TestAsymmetryExtraction:
             assert getattr(channel_heads, name) is canonical, (
                 f"{name} top-level alias diverged from canonical"
             )
+
+
+class TestEarthGeometryExtraction:
+    """Pin the Slice 11 extraction of the Earth geometry analyzer.
+
+    The geometry symbols now live canonically in
+    ``channel_heads.features.earth_geometry`` and are re-exported from
+    ``channel_heads.geometric_analysis`` for backward compatibility. Both
+    import paths (and the top-level ``channel_heads`` API) must resolve to the
+    *same* object, and ``GEOM_FEATURE_COLS`` order must be unchanged.
+    """
+
+    MOVED_SYMBOLS = [
+        "GEOM_FEATURE_COLS",
+        "PairGeometricResult",
+        "GeometricFeaturesAnalyzer",
+        "merge_geometric_features",
+    ]
+
+    def test_old_and_new_import_paths_are_identical(self):
+        import channel_heads
+        from channel_heads import geometric_analysis
+        from channel_heads.features import earth_geometry
+
+        for name in self.MOVED_SYMBOLS:
+            canonical = getattr(earth_geometry, name)
+            assert getattr(geometric_analysis, name) is canonical, (
+                f"{name} legacy alias diverged from canonical"
+            )
+            assert getattr(channel_heads, name) is canonical, (
+                f"{name} top-level alias diverged from canonical"
+            )
+
+    def test_geom_feature_cols_order_unchanged(self):
+        from channel_heads.features import earth_geometry
+
+        assert earth_geometry.GEOM_FEATURE_COLS == [
+            "orientation_diff_deg",
+            "headhead_dist_m",
+            "headhead_dist_norm",
+            "apex_angle_deg",
+            "strahler_order_diff",
+            "proximity_mean_m",
+            "proximity_max_m",
+            "proximity_profile_norm",
+            "qc_flags",
+        ]
+
+    def test_default_direction_sample_distance_re_exported(self):
+        from channel_heads import geometric_analysis
+        from channel_heads.features import earth_geometry
+
+        assert (
+            geometric_analysis.DEFAULT_DIRECTION_SAMPLE_DISTANCE_M
+            is earth_geometry.DEFAULT_DIRECTION_SAMPLE_DISTANCE_M
+        )
+        assert earth_geometry.DEFAULT_DIRECTION_SAMPLE_DISTANCE_M == 500.0
