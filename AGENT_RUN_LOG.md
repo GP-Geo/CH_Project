@@ -4,6 +4,61 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Regime inference: move into models/regime.py (inference/regime.py → shim)
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `3a84cdc`
+- **Task:** Make `channel_heads.models.regime` the canonical home for the
+  regime-specific Mars embedding-attach / inference helpers; reduce
+  `channel_heads/inference/regime.py` to a compatibility shim. Behavior-preserving.
+- **Files created:**
+  - `channel_heads/models/regime.py` — `extract_regime_embeddings`,
+    `attach_regime_embeddings`, `DEFAULT_BATCH_SIZE` (moved verbatim). Imports
+    `DEFAULT_EMBEDDING_DIM` / `OutletCNN` / `OutletPairDataset` from the canonical
+    `channel_heads.models.cnn` (was the `cnn_model` shim). Strict
+    `load_state_dict(strict=True)`, eval/no-augment forward pass, patch-index
+    `patch_status == "ok"` filtering, absolute/project-relative patch path
+    resolution, missing-patch dropping, `emb_0..emb_N` overwrite, finite checks,
+    and the returned schema (drops `patch_path_abs`) are unchanged.
+- **Files updated:**
+  - `channel_heads/inference/regime.py` — reduced to a pure re-export shim
+    (`extract_regime_embeddings`, `attach_regime_embeddings`,
+    `DEFAULT_BATCH_SIZE`, `DEFAULT_EMBEDDING_DIM`).
+  - `channel_heads/models/__init__.py` — added `regime` to the torch-optional
+    block, re-exported `attach_regime_embeddings` / `extract_regime_embeddings`,
+    and updated the docstring + `__all__`.
+  - `scripts/run_mars_combined_regime.py` — repointed the import to
+    `channel_heads.models.regime` (clearly safe; ruff reordered the import
+    block); updated the inline comment.
+  - `tests/test_inference_regime.py` — behavior tests now monkeypatch the
+    canonical `models.regime.extract_regime_embeddings`; added
+    `TestRegimeShimIdentity` (old path is new path; `models` package exposes the
+    canonical objects) and a torch-guarded `TestStrictStateDictLoad` (valid
+    state dict → finite (n, dim) matrix; mismatched embedding-head state dict →
+    `RuntimeError` under `strict=True`), using synthetic `.npy` patches + temp
+    paths only.
+  - `AGENT_STATE.md`, `AGENT_BACKLOG.md`, `AGENT_RUN_LOG.md`.
+- **Not changed:** strict-vs-lenient CNN load split (the lenient
+  `models.cnn_features.extract_embeddings` is untouched and NOT merged), Mars/
+  regime scientific behavior, feature order, thresholds, model/patch paths,
+  output schema, Earth/regime training scripts, `train_*` scripts, `rasterizer.py`,
+  `geometric_analysis.py`, `data/`, root `/models/`, notebooks, generated
+  outputs, trained artifacts.
+- **Validation:** `tests/test_inference_regime.py` → **6 passed**;
+  `tests/test_mars_combined.py tests/test_mars_embeddings.py` → **10 passed**;
+  full pytest → **534 passed, 7 warnings** (was 530; +4 regime tests). Import
+  smoke confirms shim objects are identical to canonical and the script imports
+  cleanly. `git diff --check` clean. `ruff check` clean on all touched files
+  (the script import block was auto-reordered by `ruff --fix`).
+- **Risks:** Low. Implementation moved byte-for-byte; only the import source for
+  the CNN classes (shim → canonical, identical objects) and the logger name
+  (`__name__`, cosmetic) changed. The four divergent forward-pass extractors
+  were deliberately NOT merged.
+- **Next step:** Per `AGENT_AUDIT_EARTH_REGIME.md`, the remaining regime/training
+  consolidation (`training/regime.py`, `training/xgboost.py`, `eval/lobo.py`,
+  etc.) is still future work behind behavior-pinning tests; or the backlog data
+  cleanup dry-run (report-only).
+
 ## 2026-06-03 — Raster R3: move Earth raster batch precompute
 
 - **Branch:** `refactor/package-first-architecture`

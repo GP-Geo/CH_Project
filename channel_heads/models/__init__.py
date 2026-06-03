@@ -10,6 +10,7 @@ Curated public surface over the historical implementation modules:
 * :mod:`channel_heads.models.cnn`        — CNN architecture/dataset; lazily re-exports the training core from ``training.cnn`` (torch)
 * :mod:`channel_heads.models.cnn_features` — generic/Earth CNN embedding helpers (``cnn_features`` is a shim) (torch)
 * :mod:`channel_heads.models.embeddings` — Mars Phase-5 embedding orchestration (torch)
+* :mod:`channel_heads.models.regime`     — regime Mars-inference embedding attach (``inference.regime`` is a shim) (torch)
 
 The CNN/embedding submodules require PyTorch and are imported lazily so this
 package imports cleanly without it.
@@ -44,12 +45,16 @@ from channel_heads.models.xgboost import (
 
 # Torch-dependent submodules (optional).
 try:
-    from channel_heads.models import cnn, embeddings  # noqa: F401
+    from channel_heads.models import cnn, embeddings, regime  # noqa: F401
     from channel_heads.models.embeddings import (
         extract_mars_cnn_embeddings,
         load_cnn_model_for_embeddings,
         merge_embeddings_with_tabular_features,
         validate_embedding_table,
+    )
+    from channel_heads.models.regime import (
+        attach_regime_embeddings,
+        extract_regime_embeddings,
     )
 
     _HAS_TORCH = True
@@ -83,4 +88,6 @@ if _HAS_TORCH:
         "load_cnn_model_for_embeddings",
         "merge_embeddings_with_tabular_features",
         "validate_embedding_table",
+        "attach_regime_embeddings",
+        "extract_regime_embeddings",
     ]

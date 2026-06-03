@@ -46,9 +46,9 @@ import pandas as pd
 from shapely.geometry import LineString
 from xgboost import XGBClassifier
 
-from channel_heads.inference.regime import attach_regime_embeddings
 from channel_heads.io.paths import PROJECT_ROOT
 from channel_heads.models.device import pick_device
+from channel_heads.models.regime import attach_regime_embeddings
 from channel_heads.models.xgboost import load_feature_columns, load_threshold
 from channel_heads.regimes import REGIMES
 
@@ -67,7 +67,8 @@ OUTPUT_DIR = PROJECT_ROOT / "data/Mars/model_outputs"
 HIGH_CONF_PROB_MIN = 0.80
 
 # Regime CNN embedding extraction + patch-index merge live in
-# channel_heads.inference.regime (shared with notebooks/regime/).
+# channel_heads.models.regime (shared with notebooks/regime/;
+# channel_heads.inference.regime remains a compatibility shim).
 
 
 def per_network_summary(df: pd.DataFrame) -> pd.DataFrame:

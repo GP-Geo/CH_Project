@@ -62,6 +62,7 @@ _Last updated: 2026-06-03_
 | Path/config surface | `channel_heads/io/paths.py` | `channel_heads/config.py` (shim) |
 | XGBoost model load / validate / predict / threshold | `channel_heads/models/xgboost.py` | `channel_heads/inference/xgb.py` (shim) |
 | Torch device selection (`pick_device`) | `channel_heads/models/device.py` | `channel_heads/inference/device.py` (shim) |
+| Regime Mars-inference embedding attach (`extract_regime_embeddings`, `attach_regime_embeddings`, `DEFAULT_BATCH_SIZE`) | `channel_heads/models/regime.py` | `channel_heads/inference/regime.py` (shim) |
 | CNN architecture / dataset / one-hot (`OutletCNN`, `OutletPairDataset`, `encode_raster_onehot`, `DEFAULT_EMBEDDING_DIM`, `DEFAULT_TARGET_SIZE`) | `channel_heads/models/cnn.py` | `channel_heads/cnn_model.py` (shim) |
 | Generic/Earth CNN embedding helpers (`extract_embeddings`, `merge_cnn_features`, `CNN_FEATURE_COLS`) | `channel_heads/models/cnn_features.py` | `channel_heads/cnn_features.py` (shim) |
 | CNN training core (`train_cnn`, `DEFAULT_*`, `HOLDOUT_BASIN`, `RANDOM_STATE`) | `channel_heads/training/cnn.py` | `channel_heads/cnn_training.py` (shim) |
@@ -95,9 +96,21 @@ _Last updated: 2026-06-03_
   object. As of Slice 3b the **CNN training module no longer has its own copy** —
   `cnn_training.py` imports `pick_device` from `channel_heads.models.device`, so
   there is now a single canonical implementation across the package.
-- **`inference/regime.py`: TRANSITIONAL.** Holds regime-CNN embedding /
-  patch-index merge glue. Leave untouched until the Earth/regime training
-  audit. Do not change regime behavior now.
+- **Regime inference consolidation: DONE.** The regime-CNN embedding /
+  patch-index merge glue (`extract_regime_embeddings`,
+  `attach_regime_embeddings`, `DEFAULT_BATCH_SIZE`) now lives canonically in
+  `channel_heads/models/regime.py` (moved verbatim; imports the CNN classes from
+  `channel_heads.models.cnn`). `channel_heads/inference/regime.py` is a pure
+  re-export shim. Strict `load_state_dict(strict=True)`, `patch_status == "ok"`
+  filtering, dropping pairs without a patch, absolute/project-relative patch
+  path resolution, `emb_0..emb_N` overwrite, finite-value checks, and the
+  returned schema (drops `patch_path_abs`) are all unchanged.
+  `scripts/run_mars_combined_regime.py` imports from the canonical module; old
+  imports (`channel_heads.inference.regime`) still resolve to the same objects.
+  `channel_heads.models` re-exports `attach_regime_embeddings` /
+  `extract_regime_embeddings` (torch-optional). Pinned by
+  `tests/test_inference_regime.py` (identity + strict-load + drop/override/finite).
+  The four divergent forward-pass extractors remain deliberately **not** merged.
 - **CNN audit (Slice 2): DONE.** See `AGENT_AUDIT_CNN.md`. Recommended canonical
   homes: architecture/dataset → `channel_heads/models/cnn.py` (promote the
   current re-export to real); Earth embeddings (`cnn_features.py`) → models
@@ -279,6 +292,7 @@ _Last updated: 2026-06-03_
 
 - `channel_heads/inference/xgb.py` → `channel_heads/models/xgboost.py`
 - `channel_heads/inference/device.py` → `channel_heads/models/device.py`
+- `channel_heads/inference/regime.py` → `channel_heads/models/regime.py`
 - `channel_heads/first_meet_pairs_for_outlet.py` → `channel_heads/pairing/earth.py`
 - `channel_heads/plotting_utils.py` → `channel_heads/viz/earth.py`
 - `channel_heads/config.py` → `channel_heads/io/paths.py`
@@ -289,10 +303,11 @@ _Last updated: 2026-06-03_
 
 ## Known transitional / not-yet-audited areas
 
-- `channel_heads/inference/regime.py` — audited in Slice 5. Keep untouched for
-  now; future recommendation is to move it to `channel_heads/models/regime.py`
-  and leave `inference/regime.py` as a shim after tests pin strict load,
-  patch-index filtering, embedding overwrite, and finite checks.
+- `channel_heads/inference/regime.py` — **DONE** (moved to
+  `channel_heads/models/regime.py`; `inference/regime.py` is now a pure
+  re-export shim). Strict load, patch-index `ok` filtering, missing-patch
+  dropping, embedding overwrite, finite checks, and the returned schema are
+  pinned by `tests/test_inference_regime.py`.
 - CNN modules: **all three flat `cnn_*` modules are now shims** —
   `cnn_model.py` → `models/cnn.py` (3a), `cnn_features.py` →
   `models/cnn_features.py` (3c), `cnn_training.py` → `training/cnn.py` (3d);
@@ -340,9 +355,10 @@ _Last updated: 2026-06-03_
   a partial shim plus the Earth batch precompute implementation. Future
   recommendation is to move `precompute_raster_dataset` into
   `channel_heads/rasterization/`, then leave `rasterizer.py` as a pure shim.
-- `scripts/` — cleanup pass complete as of Slice 4. Scripts may still import
-  transitional modules directly when that is the canonical current surface
-  (notably `channel_heads.inference.regime`); no dead scripts were archived.
+- `scripts/` — cleanup pass complete as of Slice 4. Scripts import canonical
+  package modules where safe; `scripts/run_mars_combined_regime.py` now imports
+  `attach_regime_embeddings` from `channel_heads.models.regime` (the
+  `inference.regime` shim still works). No dead scripts were archived.
 
 ## Next recommended task
 

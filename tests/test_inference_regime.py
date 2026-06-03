@@ -1,9 +1,10 @@
-"""Tests for channel_heads.inference.regime — regime embedding-attach glue.
+"""Tests for the regime embedding-attach glue.
 
-The CNN forward pass (``extract_regime_embeddings``) needs a trained model, so
-it is monkeypatched here; these tests pin the *merge / drop / column-assignment*
-logic of ``attach_regime_embeddings`` that was extracted from
-``scripts/run_mars_combined_regime.py``.
+The implementation is canonical in :mod:`channel_heads.models.regime`;
+:mod:`channel_heads.inference.regime` is a compatibility shim. The CNN forward
+pass (``extract_regime_embeddings``) needs a trained model, so for the
+merge/drop/column-assignment tests it is monkeypatched on the canonical module;
+a separate torch-guarded test exercises the real strict state-dict load.
 """
 
 from __future__ import annotations
@@ -12,7 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import channel_heads.inference.regime as regime
+import channel_heads.models.regime as regime
 
 
 def _write_patch_index(tmp_path):
@@ -76,3 +77,76 @@ def test_attach_raises_on_nonfinite_embeddings(tmp_path, monkeypatch):
             device="cpu",
             embedding_dim=4,
         )
+
+
+class TestRegimeShimIdentity:
+    """The old ``inference.regime`` path must resolve to the canonical objects."""
+
+    SYMBOLS = [
+        "extract_regime_embeddings",
+        "attach_regime_embeddings",
+        "DEFAULT_BATCH_SIZE",
+        "DEFAULT_EMBEDDING_DIM",
+    ]
+
+    def test_old_and_new_paths_are_identical(self):
+        import channel_heads.inference.regime as shim
+        import channel_heads.models.regime as canonical
+
+        for name in self.SYMBOLS:
+            assert getattr(shim, name) is getattr(canonical, name), (
+                f"{name} shim alias diverged from canonical"
+            )
+
+    def test_models_package_exposes_canonical(self):
+        import channel_heads.models as models
+        import channel_heads.models.regime as canonical
+
+        # importorskip torch indirectly: models.regime requires torch
+        assert models.attach_regime_embeddings is canonical.attach_regime_embeddings
+        assert models.extract_regime_embeddings is canonical.extract_regime_embeddings
+
+
+class TestStrictStateDictLoad:
+    """Pin the strict ``load_state_dict(strict=True)`` forward-pass behavior."""
+
+    def _write_rasters(self, tmp_path, n=2):
+        paths = []
+        rng = np.random.default_rng(0)
+        for i in range(n):
+            raster = rng.integers(0, 5, size=(64, 64), dtype=np.uint8)
+            p = tmp_path / f"patch_{i}.npy"
+            np.save(p, raster)
+            paths.append(p)
+        return paths
+
+    def test_strict_load_succeeds_and_returns_finite_matrix(self, tmp_path):
+        torch = pytest.importorskip("torch")
+        from channel_heads.models.cnn import OutletCNN
+
+        model = OutletCNN(embedding_dim=4)
+        model_path = tmp_path / "regime_cnn.pt"
+        torch.save(model.state_dict(), model_path)
+
+        patch_paths = self._write_rasters(tmp_path, n=3)
+        emb = regime.extract_regime_embeddings(
+            model_path, patch_paths, device="cpu", embedding_dim=4
+        )
+
+        assert emb.shape == (3, 4)
+        assert np.isfinite(emb).all()
+
+    def test_strict_load_rejects_mismatched_state_dict(self, tmp_path):
+        torch = pytest.importorskip("torch")
+        from channel_heads.models.cnn import OutletCNN
+
+        # A state dict for a different embedding head must not load under strict=True.
+        mismatched = OutletCNN(embedding_dim=8)
+        model_path = tmp_path / "mismatched_cnn.pt"
+        torch.save(mismatched.state_dict(), model_path)
+
+        patch_paths = self._write_rasters(tmp_path, n=1)
+        with pytest.raises(RuntimeError):
+            regime.extract_regime_embeddings(
+                model_path, patch_paths, device="cpu", embedding_dim=4
+            )

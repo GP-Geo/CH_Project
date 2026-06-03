@@ -320,6 +320,18 @@ Standard tests:
 - **Stop condition:** Stop if batch precompute output columns/status/error
   behavior would change.
 
+## Slice 15 — Move regime inference helpers into models/regime.py (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. Moved `extract_regime_embeddings`,
+> `attach_regime_embeddings`, and `DEFAULT_BATCH_SIZE` into
+> `channel_heads/models/regime.py`; `channel_heads/inference/regime.py` is now a
+> pure re-export shim. Strict `load_state_dict(strict=True)`, `patch_status ==
+> "ok"` filtering, missing-patch dropping, abs/relative patch path resolution,
+> `emb_*` overwrite, finite checks, and the returned schema are unchanged.
+> `scripts/run_mars_combined_regime.py` imports from the canonical module; the
+> lenient `models.cnn_features.extract_embeddings` was NOT merged.
+> Commit: `refactor(models): move regime inference helpers into models`.
+
 ## Slice 9 (original) — Data cleanup dry-run (later)
 
 - **Goal:** Produce a **dry-run only** report of candidate stale/generated data
