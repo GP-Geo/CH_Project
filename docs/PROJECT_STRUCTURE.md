@@ -69,23 +69,25 @@ Public API is re-exported from each subpackage's `__init__.py`.
 
 ## 3. `scripts/` inventory
 
-Partially organized: `rendering/` and `diagnostics/` are subfolders; the rest is
-still flat. Mars stage scripts are thin compatibility wrappers over
-`channel_heads.pipelines`; Earth/regime training scripts remain transitional.
-Categories: MARS = Mars cross-planet ·
+Partially organized: `rendering/` and `diagnostics/` are subfolders. The
+maintained Mars CLI is `scripts/cli/run_mars_pipeline.py`; old root-level Mars
+wrappers are archived under `scripts/_archive/`. Earth/regime training scripts
+remain root-level compatibility entry points.
+Categories: CLI = maintained command entry point · MARS = Mars cross-planet ·
 REGIME = regime calibration · TRAIN = Earth training · RENDER = visualization ·
 QA = diagnostics · MAINT = maintenance.
 
 | Script | Category | Phase/Step | Purpose |
 |--------|----------|-----------|---------|
-| `extract_mars_outlet_candidates.py` | MARS | pre-1 | Archived outlet-candidate prototype; superseded by package topology logic. |
-| `build_mars_network_topology.py` | MARS | 1 | Thin wrapper for Mars topology build. |
-| `extract_mars_first_meet_pairs.py` | MARS | 2B | Thin wrapper for first-meet pair extraction. |
-| `build_mars_pair_features_5feat.py` | MARS | 3A | Thin wrapper for Mars 5-feature table + filtering. |
-| `run_mars_xgb_inference_5feat.py` | MARS | 3B | Thin wrapper for production XGBoost Mars inference. |
-| `build_mars_cnn_patches_5class.py` | MARS | 4 | Thin wrapper for Mars 5-class 128×128 patches. |
-| `extract_mars_cnn_embeddings.py` | MARS | 5 | Thin wrapper for CNN embeddings via `cnn_outlet_final.pt`. |
-| `run_mars_combined_xgb_inference.py` | MARS | 6C | Thin wrapper for combined XGBoost variants on Mars. |
+| `cli/run_mars_pipeline.py` | CLI | 1-6C | Maintained Mars stage/all runner over `channel_heads.pipelines`. |
+| `_archive/extract_mars_outlet_candidates.py` | MARS | pre-1 | Archived outlet-candidate prototype; superseded by package topology logic. |
+| `_archive/build_mars_network_topology.py` | MARS | 1 | Archived root wrapper; use `cli/run_mars_pipeline.py --stage topology`. |
+| `_archive/extract_mars_first_meet_pairs.py` | MARS | 2B | Archived root wrapper; use `cli/run_mars_pipeline.py --stage pairs`. |
+| `_archive/build_mars_pair_features_5feat.py` | MARS | 3A | Archived root wrapper; use `cli/run_mars_pipeline.py --stage features`. |
+| `_archive/run_mars_xgb_inference_5feat.py` | MARS | 3B | Archived root wrapper; use `cli/run_mars_pipeline.py --stage xgb`. |
+| `_archive/build_mars_cnn_patches_5class.py` | MARS | 4 | Archived root wrapper; use `cli/run_mars_pipeline.py --stage patches`. |
+| `_archive/extract_mars_cnn_embeddings.py` | MARS | 5 | Archived root wrapper; use `cli/run_mars_pipeline.py --stage embeddings`. |
+| `_archive/run_mars_combined_xgb_inference.py` | MARS | 6C | Archived root wrapper; use `cli/run_mars_pipeline.py --stage combined`. |
 | `train_combined_xgb_phase6b.py` | TRAIN | 6B | Train+persist 3 Earth XGBoost variants. |
 | `build_earth_features_regime.py` | REGIME | 2 | Per-basin Earth features under a regime; consumes `channel_heads.regimes`. |
 | `build_cnn_patches_regime.py` | REGIME | 3 | Regime CNN patches; consumes `channel_heads.regimes`. |
@@ -104,9 +106,10 @@ QA = diagnostics · MAINT = maintenance.
 
 ### Run order — Mars cross-planet (Phases 1–6C)
 ```
-build_mars_network_topology → extract_mars_first_meet_pairs → build_mars_pair_features_5feat
-→ run_mars_xgb_inference_5feat → build_mars_cnn_patches_5class → extract_mars_cnn_embeddings
-→ train_combined_xgb_phase6b (Earth) → run_mars_combined_xgb_inference
+scripts/cli/run_mars_pipeline.py --stage all
+
+# Per-stage equivalents:
+topology -> pairs -> features -> xgb -> patches -> embeddings -> combined
 ```
 ### Run order — regime calibration
 ```
@@ -150,9 +153,9 @@ absent.
 
 | Notebook (primary) | Wrapper script | Package modules called |
 |--------------------|----------------|------------------------|
-| `mars/02_first_meet_pairs` | `extract_mars_first_meet_pairs.py` | `pairing` |
-| `mars/03_pair_features` | `build_mars_pair_features_5feat.py` | `features` |
-| `mars/04_xgb_inference_5feat` | `run_mars_xgb_inference_5feat.py` | `inference` |
+| `mars/02_first_meet_pairs` | `cli/run_mars_pipeline.py --stage pairs` | `pairing` |
+| `mars/03_pair_features` | `cli/run_mars_pipeline.py --stage features` | `features` |
+| `mars/04_xgb_inference_5feat` | `cli/run_mars_pipeline.py --stage xgb` | `inference` |
 | `regime/01_mars_inference` | `run_mars_combined_regime.py` | `inference`, `inference.regime` |
 | `regime/02_threshold_retune` | `retune_threshold_regime.py` | `eval`, `inference` |
 | `diagnostics/lobo_cv` | `eval_lobo_cv.py` | `eval` |
@@ -163,12 +166,11 @@ absent.
 | `presentation/per_outlet_touching_pairs` | `rendering/render_mars_outlet_touching_pairs.py` | `viz` |
 | `presentation/result_figures` | `make_result_figures.py` | `viz`, `eval`, `inference` |
 
-**A-class (kept CLI-only — heavy compute / model-producing / orchestration / test-coupled):**
-`build_mars_network_topology`, `build_mars_cnn_patches_5class` (⚠ imported by tests),
-`extract_mars_cnn_embeddings`, `extract_mars_outlet_candidates`,
-`build_earth_features_regime`, `build_cnn_patches_regime`, `train_cnn_*`,
-`train_combined_xgb_*`, `run_*_pipeline.sh`, `run_full_rebuild.sh`,
-`clean-cache.sh`, `setup-hooks.sh`.
+**A-class (kept CLI-only — heavy compute / model-producing / orchestration):**
+`scripts/cli/run_mars_pipeline.py`, `build_earth_features_regime`,
+`build_cnn_patches_regime`, `train_cnn_*`, `train_combined_xgb_*`,
+`run_*_pipeline.sh`, `run_full_rebuild.sh`, `clean-cache.sh`,
+`setup-hooks.sh`.
 
 **C-class (deletion candidate):** `exp_calibration_standardize.py` (dropped per-basin
 standardization experiment; no inbound refs).

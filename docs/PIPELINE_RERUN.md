@@ -67,8 +67,9 @@ Then optionally re-tune a regime threshold: `python scripts/retune_threshold_reg
 ```bash
 scripts/run_full_rebuild.sh           # baseline CNN + combined XGB + Mars embeddings + Mars combined
 ```
-Drives: `train_cnn_baseline` → `train_combined_xgb_phase6b` →
-`extract_mars_cnn_embeddings` → `run_mars_combined_inference`, then the per-regime steps.
+Drives: `train_cnn_baseline` -> `train_combined_xgb_phase6b` ->
+`scripts/cli/run_mars_pipeline.py --stage embeddings` ->
+`scripts/cli/run_mars_pipeline.py --stage combined`, then the per-regime steps.
 
 ## 5. Diagnostics & figures (after a rebuild)
 

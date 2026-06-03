@@ -5,11 +5,10 @@ lives in `channel_heads/`. The `scripts/` tree is retained as a stable command
 surface for rebuilds, diagnostics, rendering, maintenance, and historical
 provenance.
 
-This cleanup pass intentionally keeps documented root script paths stable.
-`docs/PIPELINE_RERUN.md`, `docs/PROJECT_STRUCTURE.md`, `scripts/run_full_rebuild.sh`,
-and `scripts/run_regime_pipeline.sh` still call several root scripts by path.
-Moving those files would break documented commands, so organization is recorded
-here rather than forced through path changes.
+Mars package wrappers have been archived because the maintained
+`scripts/cli/run_mars_pipeline.py` entry point now covers Phases 1-6C. Earth,
+regime, training, diagnostics, and shell entry points remain at their documented
+paths.
 
 ## Categories
 
@@ -38,13 +37,6 @@ listed package module.
 
 | Script | Category | Canonical package alternative |
 |--------|----------|-------------------------------|
-| `build_mars_network_topology.py` | wrapper over package API | `channel_heads.pipelines.build_mars_topology`; implementation in `channel_heads.mars.topology` |
-| `extract_mars_first_meet_pairs.py` | wrapper over package API | `channel_heads.pipelines.extract_mars_pairs`; implementation in `channel_heads.mars.pairs` |
-| `build_mars_pair_features_5feat.py` | wrapper over package API | `channel_heads.pipelines.build_mars_features`; implementation in `channel_heads.features.mars_features` |
-| `run_mars_xgb_inference_5feat.py` | wrapper over package API | `channel_heads.pipelines.run_mars_xgb_inference`; implementation in `channel_heads.models.mars_inference` |
-| `build_mars_cnn_patches_5class.py` | wrapper over package API | `channel_heads.pipelines.build_mars_cnn_patches`; implementation in `channel_heads.rasterization.mars_patches` |
-| `extract_mars_cnn_embeddings.py` | wrapper over package API | `channel_heads.pipelines.extract_mars_cnn_embeddings`; implementation in `channel_heads.models.embeddings` |
-| `run_mars_combined_xgb_inference.py` | wrapper over package API | `channel_heads.pipelines.run_mars_combined_inference`; implementation in `channel_heads.models.mars_combined` |
 | `build_earth_features_regime.py` | wrapper over package API | `channel_heads.training.regime.build_regime_feature_dataset` |
 | `build_cnn_patches_regime.py` | wrapper over package API | `channel_heads.training.regime.build_regime_patch_dataset` |
 | `train_cnn_baseline.py` | wrapper over package API | `channel_heads.training.cnn.train_cnn` plus dataset helpers in `channel_heads.training.datasets` |
@@ -88,6 +80,13 @@ surfaces and should not be used for new workflows.
 
 | Script | Category | Reason |
 |--------|----------|--------|
+| `_archive/build_mars_network_topology.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage topology` and `channel_heads.pipelines.build_mars_topology`. |
+| `_archive/extract_mars_first_meet_pairs.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage pairs` and `channel_heads.pipelines.extract_mars_pairs`. |
+| `_archive/build_mars_pair_features_5feat.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage features` and `channel_heads.pipelines.build_mars_features`. |
+| `_archive/run_mars_xgb_inference_5feat.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage xgb` and `channel_heads.pipelines.run_mars_xgb_inference`. |
+| `_archive/build_mars_cnn_patches_5class.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage patches` and `channel_heads.pipelines.build_mars_cnn_patches`. |
+| `_archive/extract_mars_cnn_embeddings.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage embeddings` and `channel_heads.pipelines.extract_mars_cnn_embeddings`. |
+| `_archive/run_mars_combined_xgb_inference.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage combined` and `channel_heads.pipelines.run_mars_combined_inference`. |
 | `_archive/extract_mars_outlet_candidates.py` | historical/archive candidate | Superseded by `channel_heads.mars.topology`; standalone output is no longer consumed. |
 | `_archive/old_experiments/exp_calibration_standardize.py` | historical/archive candidate | Dropped per-basin standardization experiment retained for provenance. |
 

@@ -44,8 +44,8 @@ done
 # ========================= BASELINE (production) ==========================
 step "baseline:train_cnn"        "$LOG_DIR/b1_cnn.log"        -- python scripts/train_cnn_baseline.py -v
 step "baseline:combined_xgb"     "$LOG_DIR/b2_xgb.log"        -- python scripts/train_combined_xgb_phase6b.py
-step "baseline:mars_embeddings"  "$LOG_DIR/b3_mars_emb.log"   -- python scripts/extract_mars_cnn_embeddings.py
-step "baseline:mars_combined"    "$LOG_DIR/b4_mars_comb.log"  -- python scripts/run_mars_combined_xgb_inference.py
+step "baseline:mars_embeddings"  "$LOG_DIR/b3_mars_emb.log"   -- python scripts/cli/run_mars_pipeline.py --stage embeddings
+step "baseline:mars_combined"    "$LOG_DIR/b4_mars_comb.log"  -- python scripts/cli/run_mars_pipeline.py --stage combined
 
 # ============================= REGIMES ====================================
 for R in regA regB regC; do

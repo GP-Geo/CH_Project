@@ -8,10 +8,10 @@ _Last updated: 2026-06-03_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** Scripts/CLI organization pass classified the
-  `scripts/` tree in `scripts/README.md`; no script paths were moved because
-  root wrappers remain referenced by docs and shell orchestrators.
-- **Working tree:** clean at time of writing after the scripts/CLI organization
+- **Latest stable commit:** Mars root wrapper archive slice moved the old
+  Phases 1-6C Mars root wrappers into `scripts/_archive/` after repointing live
+  docs and `scripts/run_full_rebuild.sh` to `scripts/cli/run_mars_pipeline.py`.
+- **Working tree:** clean at time of writing after the Mars root wrapper archive
   commit.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
@@ -31,12 +31,11 @@ _Last updated: 2026-06-03_
 - **Visualization:** Earth plotting → `channel_heads/viz/earth.py`.
 - **Paths/config:** canonical path ownership → `channel_heads/io/paths.py`.
 - **XGBoost inference:** implementation → `channel_heads/models/xgboost.py`.
-- **Scripts cleanup / organization:** thin scripts import canonical package
-  modules directly where safe. `scripts/README.md` now classifies maintained
-  CLI, wrappers, diagnostics/rendering utilities, shell/orchestration entry
-  points, and archive entries. No scripts were moved, deleted, or newly archived
-  in the organization pass because root paths remain path-coupled to docs and
-  shell runners.
+- **Scripts cleanup / organization:** Mars root wrappers for Phases 1-6C are
+  archived under `scripts/_archive/`; use `scripts/cli/run_mars_pipeline.py`
+  for Mars stage/all runs. Earth/regime/training/diagnostic root scripts remain
+  documented compatibility entry points where no dedicated CLI replacement has
+  taken over the command surface.
 - **Earth/regime training audit:** ownership plan recorded in
   `AGENT_AUDIT_EARTH_REGIME.md` (audit-only; no implementation moved).
 - **Earth/regime package foundations:** reusable helpers now live in
@@ -116,10 +115,10 @@ _Last updated: 2026-06-03_
 | Earth CSV enrichment / stream loading (`default_stream_loader`, `add_geometric_features_to_csv`, `StreamLoaderFunc`, `_build_pairs_at_confluence`, `_build_asymmetry_df`, `_add_missing_stream_qc`, `_add_geometric_features_cli`) | `channel_heads/features/earth_enrichment.py` | `channel_heads/geometric_analysis.py` re-exports + keeps the `__main__` CLI |
 | `channel_heads/geometric_analysis.py` | **Pure re-export shim** (no implementation left) | n/a — this *is* the compatibility surface |
 | Mars projected path helpers | `channel_heads/features/paths.py` | none |
-| Mars feature table generation | `channel_heads/features/mars_features.py` | Mars script wrappers |
+| Mars feature table generation | `channel_heads/features/mars_features.py` | `scripts/cli/run_mars_pipeline.py --stage features`; old root wrapper archived |
 | Unit conversions | `channel_heads/units.py` | `geometric_analysis.py` and `dd_calibration.py` re-export selected helpers |
 | Shared raster patch schema (`BACKGROUND`, `BRANCH_A`, `BRANCH_B`, `OTHER_STREAMS`, `CONFLUENCE_MARKER`, `NUM_CLASSES`, `CLASS_LABELS`, `PATCH_FLAG_COLUMNS`) | `channel_heads/rasterization/schema.py` | `channel_heads/rasterizer.py`, `channel_heads/rasterization/patches.py`, and `channel_heads/rasterization` re-export compatibility values |
-| Mars CNN patch generation | `channel_heads/rasterization/mars_patches.py` | `scripts/build_mars_cnn_patches_5class.py` wrapper |
+| Mars CNN patch generation | `channel_heads/rasterization/mars_patches.py` | `scripts/cli/run_mars_pipeline.py --stage patches`; old root wrapper archived |
 | Earth 5-class single-patch rasterization (`bresenham_line`, direct final-grid helpers, `raster_quality_flags`, `rasterize_outlet_pair`) | `channel_heads/rasterization/earth_patches.py` | `channel_heads/rasterizer.py`, `channel_heads/rasterization/patches.py`, and `channel_heads/rasterization` re-export compatibility surfaces |
 | Earth raster batch precompute (`precompute_raster_dataset`) | `channel_heads/rasterization/earth_batch.py` | `channel_heads/rasterizer.py` delegates as a legacy wrapper; `channel_heads/rasterization/patches.py` and `channel_heads/rasterization` re-export the canonical package function |
 

@@ -4,6 +4,41 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Archive Mars root wrappers
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `fd789dc`
+- **Task:** Execute the archive-readiness report for the low-risk Mars root
+  wrappers only, while preserving behavior and leaving Earth/regime/training
+  root scripts in place.
+- **Archived:** `scripts/build_mars_network_topology.py`,
+  `scripts/extract_mars_first_meet_pairs.py`,
+  `scripts/build_mars_pair_features_5feat.py`,
+  `scripts/run_mars_xgb_inference_5feat.py`,
+  `scripts/build_mars_cnn_patches_5class.py`,
+  `scripts/extract_mars_cnn_embeddings.py`, and
+  `scripts/run_mars_combined_xgb_inference.py` moved to `scripts/_archive/`.
+- **Command surface updated:** `scripts/run_full_rebuild.sh` now calls
+  `scripts/cli/run_mars_pipeline.py --stage embeddings` and `--stage combined`.
+  `docs/PIPELINE_RERUN.md`, `docs/PROJECT_STRUCTURE.md`,
+  `docs/DATA_STATUS.md`, `scripts/README.md`, and
+  `AGENT_SCRIPT_ARCHIVE_READINESS.md` now point at the maintained Mars CLI or
+  package pipeline functions.
+- **Left in place:** Earth/regime/training/diagnostic root scripts,
+  `scripts/run_mars_combined_regime.py`, `scripts/run_regime_pipeline.sh`, and
+  maintenance shell scripts.
+- **Not touched:** `data/`, root `/models/`, notebooks, generated outputs,
+  trained artifacts, DEMs, shapefiles, GeoPackages, parquet/csv outputs, and
+  figures.
+- **Validation:** stale-reference `rg` showed no live root-path references
+  outside historical audit/run-log entries and archived files. Maintained Mars
+  CLI import smoke passed. Focused pytest
+  (`tests/test_pipelines.py tests/test_inference.py tests/test_mars_patches.py`)
+  -> 40 passed, 6 warnings. Full pytest -> 583 passed, 7 warnings. `git diff
+  --check` clean. Targeted ruff on the changed Python rendering script passed.
+- **Next step:** A later bounded slice can add dedicated package-backed CLIs for
+  Earth/regime/training scripts before considering any further archive moves.
+
 ## 2026-06-03 — Scripts CLI organization cleanup
 
 - **Branch:** `refactor/package-first-architecture`

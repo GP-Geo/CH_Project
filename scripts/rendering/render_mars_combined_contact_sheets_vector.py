@@ -4,7 +4,7 @@ network style (matching the QA filter contact sheets), replacing the
 raster-patch versions in ``data/Mars/model_outputs/figures_combined/``.
 
 Picks the same 20 high-confidence-both pairs and 20 strongest
-disagreement pairs as ``run_mars_combined_xgb_inference.py``. Reads
+disagreement pairs as the Mars combined-inference package stage. Reads
 Phase 1 topology + Phase 2B pair paths for geometry. Does NOT re-run
 inference and does not touch any parquet/CSV.
 
