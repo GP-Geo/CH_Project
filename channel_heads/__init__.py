@@ -84,7 +84,7 @@ from .features.earth_geometry import (
     merge_geometric_features,
 )
 from .training.labeling import filter_hard_negatives, generate_labeled_dataset
-from .units import compute_meters_per_degree, compute_pixel_size_meters
+from .units import compute_meters_per_degree, compute_pixel_size_meters, km2_to_cells
 from .logging_config import get_logger, setup_logging
 from .pruning import apply_strategy, build_stream_graph, prune_by_order_gap
 from .rasterization.schema import (

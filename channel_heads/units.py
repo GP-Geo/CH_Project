@@ -184,6 +184,16 @@ def compute_threshold_cells(threshold_km2: float, pixel_size_m: float) -> int:
     return max(1, int(round(cells)))
 
 
+def km2_to_cells(threshold_km2: float, lat_deg: float, cellsize_deg: float = 1 / 3600) -> int:
+    """Convenience wrapper: km² threshold → pixel count for a geographic DEM.
+
+    Assumes 1 arc-second SRTM cellsize by default; pass ``cellsize_deg`` to
+    override for other resolutions.
+    """
+    pixel_size_m = compute_pixel_size_meters(lat_deg, cellsize_deg)
+    return compute_threshold_cells(threshold_km2, pixel_size_m)
+
+
 def compute_stream_length_km(s: Any, pixel_size_m: float) -> float:
     """Sum Euclidean edge lengths of a StreamObject and return km.
 
