@@ -3,16 +3,17 @@
 Snapshot for resuming the package-first refactor without chat history.
 Update this file after every completed slice.
 
-_Last updated: 2026-06-03_
+_Last updated: 2026-06-03 (post-cleanup)_
 
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** Mars root wrapper archive slice moved the old
-  Phases 1-6C Mars root wrappers into `scripts/_archive/` after repointing live
-  docs and `scripts/run_full_rebuild.sh` to `scripts/cli/run_mars_pipeline.py`.
-- **Working tree:** clean at time of writing after the Mars root wrapper archive
-  commit.
+- **Latest stable commit:** `77a80c1` — package-first cleanup: deleted all 11
+  shim modules from `channel_heads/`, moved all 11 Python scripts from `scripts/`
+  root to `scripts/cli/`, updated all 25 notebooks to canonical imports, removed
+  `pipelines/_delegate.py`, rewrote `inference/__init__.py` to import from
+  canonical modules. 569 tests pass.
+- **Working tree:** clean.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
 
@@ -33,9 +34,17 @@ _Last updated: 2026-06-03_
 - **XGBoost inference:** implementation → `channel_heads/models/xgboost.py`.
 - **Scripts cleanup / organization:** Mars root wrappers for Phases 1-6C are
   archived under `scripts/_archive/`; use `scripts/cli/run_mars_pipeline.py`
-  for Mars stage/all runs. Earth/regime/training/diagnostic root scripts remain
-  documented compatibility entry points where no dedicated CLI replacement has
-  taken over the command surface.
+  for Mars stage/all runs. All remaining Python scripts moved from `scripts/`
+  root to `scripts/cli/`; `scripts/` root now contains only `.sh` files.
+- **Full shim deletion (commit 77a80c1):** All 11 shim modules deleted from
+  `channel_heads/`. All internal package code, notebooks, and scripts now import
+  directly from canonical modules. `inference/__init__.py` rewritten to import
+  from `channel_heads.models.{device,xgboost,regime}`. `pipelines/_delegate.py`
+  deleted; `pipelines/earth.py` and `pipelines/poster.py` use inline `runpy`
+  to invoke `scripts/cli/` scripts. All 25 notebooks updated to canonical imports
+  via a batch rewrite script.
+- **Notebook canonical imports (commit 77a80c1):** All 25 notebooks updated in
+  the same cleanup pass — no shim import strings remain in any notebook.
 - **Earth/regime training audit:** ownership plan recorded in
   `AGENT_AUDIT_EARTH_REGIME.md` (audit-only; no implementation moved).
 - **Earth/regime package foundations:** reusable helpers now live in
@@ -91,36 +100,36 @@ _Last updated: 2026-06-03_
 
 ## Canonical ownership (current truth)
 
-| Concern | Canonical module | Shim / legacy path |
-|---------|------------------|--------------------|
-| Mars pipeline | `channel_heads.pipelines.mars` + `channel_heads.models.*` | Mars scripts are thin wrappers |
-| Earth first-meet pairing | `channel_heads/pairing/earth.py` | `channel_heads/first_meet_pairs_for_outlet.py` (shim) |
-| Earth plotting | `channel_heads/viz/earth.py` | `channel_heads/plotting_utils.py` (shim) |
-| Path/config surface | `channel_heads/io/paths.py` | `channel_heads/config.py` (shim) |
-| XGBoost model load / validate / predict / threshold | `channel_heads/models/xgboost.py` | `channel_heads/inference/xgb.py` (shim) |
-| Torch device selection (`pick_device`) | `channel_heads/models/device.py` | `channel_heads/inference/device.py` (shim) |
-| Regime Mars-inference embedding attach (`extract_regime_embeddings`, `attach_regime_embeddings`, `DEFAULT_BATCH_SIZE`) | `channel_heads/models/regime.py` | `channel_heads/inference/regime.py` (shim) |
-| CNN architecture / dataset / one-hot (`OutletCNN`, `OutletPairDataset`, `encode_raster_onehot`, `DEFAULT_EMBEDDING_DIM`, `DEFAULT_TARGET_SIZE`) | `channel_heads/models/cnn.py` | `channel_heads/cnn_model.py` (shim) |
-| Generic/Earth CNN embedding helpers (`extract_embeddings`, `merge_cnn_features`, `CNN_FEATURE_COLS`) | `channel_heads/models/cnn_features.py` | `channel_heads/cnn_features.py` (shim) |
-| CNN training core (`train_cnn`, `DEFAULT_*`, `HOLDOUT_BASIN`, `RANDOM_STATE`) | `channel_heads/training/cnn.py` | `channel_heads/cnn_training.py` (shim) |
-| Earth/regime raster-manifest, CV-pool, split, and combined feature constants | `channel_heads/training/datasets.py` | `scripts/train_cnn_baseline.py`, `scripts/train_cnn_regime.py`, `scripts/train_cnn_multiseed.py`, `scripts/train_combined_xgb_phase6b.py`, and `scripts/train_combined_xgb_regime.py` call package helpers where applicable |
-| Earth combined-XGBoost training helpers: strict CNN extraction, frozen XGB config, PR-threshold policy, metrics schema, feature/threshold writers | `channel_heads/training/xgboost.py` | `scripts/train_combined_xgb_phase6b.py` and `scripts/train_combined_xgb_regime.py` are wrappers around the package helpers |
-| Earth/regime feature-build, negative subsampling, DEM resolution, regime stream-loader, Earth feature-build orchestration, and regime CNN patch-build orchestration helpers | `channel_heads/training/regime.py` | `scripts/build_earth_features_regime.py` and `scripts/build_cnn_patches_regime.py` are wrappers |
-| LOBO geom+CNN-embedding XGBoost diagnostic report | `channel_heads/eval/lobo.py` | `scripts/eval_lobo_cv.py` is a thin wrapper preserving script constants/output path |
-| Pure feature math | `channel_heads/features/geometry.py` | `channel_heads/geometric_analysis.py` aliases for compatibility |
-| Earth/TopoToolbox path helpers (`_build_children_from_parents`, `_trace_path_downstream`, `_compute_direction_vector`, `_trace_full_path`, `_sample_path_coords`, `_detect_cellsize`, `_euclidean_2d`, `_normalize_vector`, `EPSILON`, `MIN_EDGES_FOR_DIRECTION`) | `channel_heads/features/earth_paths.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
-| Earth lengthwise asymmetry (`PairAsymmetryResult`, `compute_delta_L`, `LengthwiseAsymmetryAnalyzer`, `compute_asymmetry_statistics`, `merge_coupling_and_asymmetry`) | `channel_heads/features/asymmetry.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
-| Earth geometry analyzer (`GEOM_FEATURE_COLS`, `DEFAULT_DIRECTION_SAMPLE_DISTANCE_M`, `PairGeometricResult`, `GeometricFeaturesAnalyzer`, `merge_geometric_features`) | `channel_heads/features/earth_geometry.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
-| Earth labeling / hard-negative filtering (`generate_labeled_dataset`, `filter_hard_negatives`, `_line_crosses_stream`, `_build_stream_mask`) | `channel_heads/training/labeling.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
-| Earth CSV enrichment / stream loading (`default_stream_loader`, `add_geometric_features_to_csv`, `StreamLoaderFunc`, `_build_pairs_at_confluence`, `_build_asymmetry_df`, `_add_missing_stream_qc`, `_add_geometric_features_cli`) | `channel_heads/features/earth_enrichment.py` | `channel_heads/geometric_analysis.py` re-exports + keeps the `__main__` CLI |
-| `channel_heads/geometric_analysis.py` | **Pure re-export shim** (no implementation left) | n/a — this *is* the compatibility surface |
-| Mars projected path helpers | `channel_heads/features/paths.py` | none |
-| Mars feature table generation | `channel_heads/features/mars_features.py` | `scripts/cli/run_mars_pipeline.py --stage features`; old root wrapper archived |
+| Concern | Canonical module | Notes |
+|---------|------------------|-------|
+| Mars pipeline | `channel_heads.pipelines.mars` + `channel_heads.models.*` | `scripts/cli/` are thin wrappers |
+| Earth first-meet pairing | `channel_heads/pairing/earth.py` | shim deleted |
+| Earth plotting | `channel_heads/viz/earth.py` | shim deleted |
+| Path/config surface | `channel_heads/io/paths.py` | shim deleted |
+| XGBoost model load / validate / predict / threshold | `channel_heads/models/xgboost.py` | shim deleted; `inference/__init__.py` re-exports from here |
+| Torch device selection (`pick_device`) | `channel_heads/models/device.py` | shim deleted; `inference/__init__.py` re-exports from here |
+| Regime embedding helpers (`extract_regime_embeddings`, `attach_regime_embeddings`) | `channel_heads/models/regime.py` | shim deleted; `inference/__init__.py` re-exports from here |
+| CNN architecture / dataset / one-hot | `channel_heads/models/cnn.py` | shim deleted |
+| Generic/Earth CNN embedding helpers | `channel_heads/models/cnn_features.py` | shim deleted |
+| CNN training core (`train_cnn`) | `channel_heads/training/cnn.py` | shim deleted |
+| Earth/regime raster-manifest, CV-pool, split, combined feature constants | `channel_heads/training/datasets.py` | `scripts/cli/train_*.py` are wrappers |
+| Earth combined-XGBoost training helpers | `channel_heads/training/xgboost.py` | `scripts/cli/train_combined_xgb_*.py` are wrappers |
+| Earth/regime feature-build, negative subsampling, regime patch orchestration | `channel_heads/training/regime.py` | `scripts/cli/build_*_regime.py` are wrappers |
+| LOBO diagnostic report | `channel_heads/eval/lobo.py` | `scripts/cli/eval_lobo_cv.py` is a thin wrapper |
+| Pure feature math | `channel_heads/features/geometry.py` | `geometric_analysis.py` still re-exports for compatibility |
+| Earth/TopoToolbox path helpers | `channel_heads/features/earth_paths.py` | `geometric_analysis.py` re-exports |
+| Earth lengthwise asymmetry | `channel_heads/features/asymmetry.py` | `geometric_analysis.py` re-exports |
+| Earth geometry analyzer (`GEOM_FEATURE_COLS`, `GeometricFeaturesAnalyzer`, …) | `channel_heads/features/earth_geometry.py` | `geometric_analysis.py` re-exports |
+| Earth labeling / hard-negative filtering | `channel_heads/training/labeling.py` | `geometric_analysis.py` re-exports |
+| Earth CSV enrichment / stream loading | `channel_heads/features/earth_enrichment.py` | `geometric_analysis.py` re-exports; keeps `__main__` CLI |
+| `channel_heads/geometric_analysis.py` | pure re-export shim (no implementation) | retained for backward compat |
+| Mars projected path helpers | `channel_heads/features/paths.py` | — |
+| Mars feature table generation | `channel_heads/features/mars_features.py` | `scripts/cli/run_mars_pipeline.py --stage features` |
 | Unit conversions | `channel_heads/units.py` | `geometric_analysis.py` and `dd_calibration.py` re-export selected helpers |
-| Shared raster patch schema (`BACKGROUND`, `BRANCH_A`, `BRANCH_B`, `OTHER_STREAMS`, `CONFLUENCE_MARKER`, `NUM_CLASSES`, `CLASS_LABELS`, `PATCH_FLAG_COLUMNS`) | `channel_heads/rasterization/schema.py` | `channel_heads/rasterizer.py`, `channel_heads/rasterization/patches.py`, and `channel_heads/rasterization` re-export compatibility values |
-| Mars CNN patch generation | `channel_heads/rasterization/mars_patches.py` | `scripts/cli/run_mars_pipeline.py --stage patches`; old root wrapper archived |
-| Earth 5-class single-patch rasterization (`bresenham_line`, direct final-grid helpers, `raster_quality_flags`, `rasterize_outlet_pair`) | `channel_heads/rasterization/earth_patches.py` | `channel_heads/rasterizer.py`, `channel_heads/rasterization/patches.py`, and `channel_heads/rasterization` re-export compatibility surfaces |
-| Earth raster batch precompute (`precompute_raster_dataset`) | `channel_heads/rasterization/earth_batch.py` | `channel_heads/rasterizer.py` delegates as a legacy wrapper; `channel_heads/rasterization/patches.py` and `channel_heads/rasterization` re-export the canonical package function |
+| Shared raster patch schema | `channel_heads/rasterization/schema.py` | `rasterization/patches.py` and `rasterization/__init__.py` re-export for compat |
+| Mars CNN patch generation | `channel_heads/rasterization/mars_patches.py` | `scripts/cli/run_mars_pipeline.py --stage patches` |
+| Earth 5-class single-patch rasterization | `channel_heads/rasterization/earth_patches.py` | `rasterization/patches.py` and `rasterization/__init__.py` re-export for compat |
+| Earth raster batch precompute | `channel_heads/rasterization/earth_batch.py` | `rasterization/patches.py` and `rasterization/__init__.py` re-export; accepts `rasterize_func=` kwarg for testability |
 
 ## Model-layer status
 
@@ -329,99 +338,55 @@ _Last updated: 2026-06-03_
   and `precompute_raster_dataset` columns/status/error behavior. No
   implementation code was changed.
 
-## Known shims (keep working)
+## Known shims (still active — keep working)
 
-- `channel_heads/inference/xgb.py` → `channel_heads/models/xgboost.py`
-- `channel_heads/inference/device.py` → `channel_heads/models/device.py`
-- `channel_heads/inference/regime.py` → `channel_heads/models/regime.py`
-- `channel_heads/first_meet_pairs_for_outlet.py` → `channel_heads/pairing/earth.py`
-- `channel_heads/plotting_utils.py` → `channel_heads/viz/earth.py`
-- `channel_heads/config.py` → `channel_heads/io/paths.py`
-- `channel_heads/cnn_model.py` → `channel_heads/models/cnn.py`
-- `channel_heads/cnn_features.py` → `channel_heads/models/cnn_features.py`
-- `channel_heads/cnn_training.py` → `channel_heads/training/cnn.py`
-- `channel_heads/geometric_analysis.py` → `channel_heads/features/{earth_paths,asymmetry,earth_geometry,earth_enrichment}.py` + `channel_heads/training/labeling.py` (pure re-export shim; internal package code no longer imports from it as of Slice 14)
+Only two compatibility surfaces remain:
 
-## Known transitional / not-yet-audited areas
+- `channel_heads/geometric_analysis.py` — pure re-export shim for all
+  Earth feature / enrichment / labeling / asymmetry / path symbols. No
+  implementation. Retained because external callers (notebooks, legacy scripts)
+  may still import from it. Safe to delete once all callers confirmed.
+- `channel_heads/inference/__init__.py` — re-exports `pick_device`,
+  `load_xgb_model`, `load_threshold`, `predict_with_threshold`,
+  `verify_feature_matrix`, `verify_model_feature_order`,
+  `extract_regime_embeddings`, `attach_regime_embeddings` from canonical
+  `channel_heads.models.*`. Retained for any callers that do
+  `from channel_heads.inference import ...`.
 
-- `channel_heads/inference/regime.py` — **DONE** (moved to
-  `channel_heads/models/regime.py`; `inference/regime.py` is now a pure
-  re-export shim). Strict load, patch-index `ok` filtering, missing-patch
-  dropping, embedding overwrite, finite checks, and the returned schema are
-  pinned by `tests/test_inference_regime.py`.
-- CNN modules: **all three flat `cnn_*` modules are now shims** —
-  `cnn_model.py` → `models/cnn.py` (3a), `cnn_features.py` →
-  `models/cnn_features.py` (3c), `cnn_training.py` → `training/cnn.py` (3d);
-  `pick_device` deduped onto `models/device.py` (3b). Slice 3 (CNN consolidation)
-  is complete. The four divergent forward-pass extractors in `inference/regime.py`,
-  `models/mars_combined.py`, and `scripts/train_combined_xgb_*.py` were
-  deliberately **not** merged (see `AGENT_AUDIT_CNN.md` §3b/§5).
-- `geometric_analysis.py` — **fully reduced to a pure re-export shim** (Slices
-  9–13). All implementation now lives in `features/earth_paths.py`,
-  `features/asymmetry.py`, `features/earth_geometry.py`, `training/labeling.py`,
-  and `features/earth_enrichment.py`. The shim re-exports every historical
-  symbol (public + the underscored helpers used by tests/legacy callers), keeps
-  the type aliases, and keeps the `python -m channel_heads.geometric_analysis`
-  CLI working. No further extraction from this module is pending.
-- **Internal imports repointed off the shim (Slice 14): DONE.**
-  `channel_heads/__init__.py` now imports the asymmetry / geometry / enrichment
-  / labeling / unit symbols directly from the canonical modules
-  (`features.asymmetry`, `features.earth_geometry`, `features.earth_enrichment`,
-  `training.labeling`, `units`) instead of from `geometric_analysis`. The shim
-  is unchanged and still re-exports everything (no exports removed).
-  `scripts/build_earth_features_regime.py` now wraps
-  `channel_heads.training.regime` helpers, which import directly from the
-  canonical feature/labeling modules. Top-level, canonical, and shim objects
-  remain identical (pinned by the existing `Test*Extraction` parity tests).
-- **Shared raster schema extraction (Raster R1): DONE.**
-  `BACKGROUND`, `BRANCH_A`, `BRANCH_B`, `OTHER_STREAMS`, `CONFLUENCE_MARKER`,
-  `NUM_CLASSES`, `CLASS_LABELS`, and `PATCH_FLAG_COLUMNS` now live canonically
-  in `channel_heads/rasterization/schema.py`. `channel_heads.rasterizer`,
-  `channel_heads.rasterization.patches`, and `channel_heads.rasterization`
-  continue to expose the same values for compatibility. Constant-only internal
-  consumers (`models.cnn`, `training.cnn`, `models.mars_combined`,
-  `rasterization.mars_patches`, and `rasterization.manifest`) now import from
-  schema where safe. No raster drawing or precompute implementation moved.
-- **Earth single-patch rasterization move (Raster R2): DONE.**
-  `channel_heads/rasterization/earth_patches.py` now owns `bresenham_line`,
-  `_project_to_target_grid`, `_draw_path_on_target_grid`,
-  `_draw_edges_on_target_grid`, `_component_count`, `raster_quality_flags`,
-  `_get_rc`, `_compute_rotation_angle`, `_rotate_coordinates`, and
-  `rasterize_outlet_pair`. `channel_heads/rasterizer.py` re-exports all moved
-  names, including the pinned private `_trace_full_path` compatibility name, and
-  still owns `precompute_raster_dataset`. `channel_heads/rasterization/patches`
-  remains the curated public surface.
-- `rasterizer.py` — audited in Slice 7 and behavior-pinned in Slice 8. It is now
-  a partial shim plus the Earth batch precompute implementation. Future
-  recommendation is to move `precompute_raster_dataset` into
-  `channel_heads/rasterization/`, then leave `rasterizer.py` as a pure shim.
-- `scripts/` — CLI/diagnostics/archive organization pass complete. The current
-  inventory is classified in `scripts/README.md` as maintained CLI, wrapper over
-  package API, diagnostics/rendering utility, shell/orchestration entry point,
-  or archive. No scripts were moved in this pass because docs and shell
-  orchestrators still reference root script paths; keeping those paths stable
-  preserves documented commands.
+All other shims listed in earlier snapshots of this file have been **deleted**
+(commit `77a80c1`):
+  `cnn_model.py`, `cnn_features.py`, `cnn_training.py`, `config.py`,
+  `first_meet_pairs_for_outlet.py`, `plotting_utils.py`, `rasterizer.py` (was
+  partial shim — also deleted), `inference/xgb.py`, `inference/device.py`,
+  `inference/regime.py`, `pipelines/_delegate.py`.
+
+## Remaining compatibility surfaces (not transitional — intentional)
+
+- `channel_heads/geometric_analysis.py` — pure re-export shim. No
+  implementation. All consumers repointed internally; external callers still
+  work. See §Known shims above for deletion criteria.
+- `channel_heads/inference/__init__.py` — thin re-export surface over
+  `models.device`, `models.xgboost`, `models.regime`. Not a shim to delete soon.
+- `channel_heads/rasterization/patches.py` and `channel_heads/rasterization/__init__.py`
+  — curated re-export surfaces over `schema.py`, `earth_patches.py`,
+  `earth_batch.py`. No implementation. Maintained as the public rasterization API.
+
+The four divergent forward-pass CNN extractors (lenient vs strict load) in
+`models/mars_combined.py`, `models/embeddings.py`, and `models/regime.py`
+were deliberately **not** merged — they encode different loading contracts.
 
 ## Next recommended task
 
+The package-first refactor is **complete**. No shims remain except the two
+intentional compatibility surfaces listed above. Scientific pipeline work is next.
+
 See `STAGE_45_PLANNING.md` for the full plan. Immediate sequence:
 
-1. **Audit `notebooks/regime/00_calibration_overview.ipynb`** — check imports
-   resolve via canonical package paths; update if stale (Slice 10 scope).
+1. **Audit `notebooks/regime/00_calibration_overview.ipynb`** — verify imports
+   work after the canonical-import rewrite; confirm the notebook is the
+   canonical record for Stage 4 regime selection.
 2. **Write `docs/REGIME_SELECTION.md`** — freeze the Stage 4 regime-choice
    rationale in prose.
 3. **Write `notebooks/analysis/05_earth_network_qa.ipynb`** — Stage 5 QA
    gate: per-basin outlet counts, touching ratios, DEM overlays for flagged
-   basins. Reads tabular data only; safe to write and run now (rasters not
-   needed).
-
-Other completed housekeeping (this session):
-- `models/xgb_touching_classifier.json` restored from backup.
-- `docs/DATA_STATUS.md` updated with experiments, dd_calibration, and
-  `.sr.lock` classifications.
-- `STAGE_ASSET_MAP.md` created (full stage-to-asset coverage map).
-- `STAGE_45_PLANNING.md` created (Stage 4/5 implementation plan).
-
-> Note: the user-issued geometric_analysis split slices are numbered 9–13 in the
-> prompts; the backlog's original Slice 9 was the data cleanup dry-run, retained
-> as a separate later task.
+   basins. Reads tabular data only; safe to write now (rasters not needed).

@@ -4,6 +4,27 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Agent doc update post-cleanup
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit:** `77a80c1` (full shim deletion + scripts CLI move)
+- **Task:** Update `AGENT_STATE.md` and `AGENT_BACKLOG.md` to reflect the
+  completed package-first refactor.
+- **Actions taken:**
+  1. `AGENT_STATE.md`: updated latest commit, completed-migrations list, canonical
+     ownership table (removed shim column entries for deleted modules), replaced
+     "Known shims (keep working)" with accurate list of the two remaining
+     compatibility surfaces, removed stale "transitional" entries, updated
+     next-task section.
+  2. `AGENT_BACKLOG.md`: marked Slice 10 (notebook rebuild) as DONE; added
+     "Full shim deletion + scripts CLI move" entry as DONE; added Stage 4 and
+     Stage 5 as the next bounded slices.
+- **Validation:** no code changed.
+- **Next step:** Stage 4 — audit `notebooks/regime/00_calibration_overview.ipynb`
+  and write `docs/REGIME_SELECTION.md`.
+
+---
+
 ## 2026-06-03 — Stage 4/5 planning + housekeeping
 
 - **Branch:** `refactor/package-first-architecture`

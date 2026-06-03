@@ -419,11 +419,44 @@ Standard tests:
 - **Suggested commit:** `docs(agents): data cleanup dry-run report`
 - **Stop condition:** Never delete or move data in this slice. Report only.
 
-## Slice 10 — Notebook rebuild (later, explicit request only)
+## Slice 10 — Notebook rebuild (DONE)
 
-- **Goal:** Update notebooks to canonical imports once shims are stable.
-- **Allowed files:** `notebooks/` — only when the user explicitly requests it.
-- **Forbidden files:** everything else unless specified.
-- **Tests to run:** notebook execution / nbmake if configured.
-- **Suggested commit:** `refactor(notebooks): move to canonical package imports`
-- **Stop condition:** Do not touch notebooks unless explicitly requested.
+> Completed in the same pass as the full shim deletion (commit `77a80c1`).
+> All 25 notebooks updated to canonical imports via a batch Python rewrite
+> script. No shim import strings remain in any notebook. A targeted fix was
+> applied to `notebooks/regime/01_mars_inference.ipynb` to split `pick_device`
+> out of the `models.xgboost` import block (it lives in `models.device`).
+
+## Full shim deletion + scripts CLI move (DONE — commit 77a80c1)
+
+> Completed 2026-06-03. All 11 shim modules deleted from `channel_heads/`.
+> All 11 Python scripts moved from `scripts/` root to `scripts/cli/`.
+> `pipelines/_delegate.py` deleted. `inference/__init__.py` rewritten to
+> import from `channel_heads.models.*`. `pipelines/earth.py` and
+> `pipelines/poster.py` use inline `runpy` to invoke `scripts/cli/` scripts.
+> `run_full_rebuild.sh` and `run_regime_pipeline.sh` updated to `scripts/cli/`
+> paths. `docs/architecture.md` and `scripts/README.md` updated. 15 test files
+> updated; 569 tests pass.
+
+## Stage 4 — Regime calibration audit and rationale doc
+
+- **Goal:** Confirm `notebooks/regime/00_calibration_overview.ipynb` imports
+  work; write `docs/REGIME_SELECTION.md` to freeze the regime-choice rationale.
+- **Allowed files:** `notebooks/regime/00_calibration_overview.ipynb`,
+  `docs/REGIME_SELECTION.md` (new).
+- **Forbidden files:** `data/`, root `/models/`, trained artifacts.
+- **Tests to run:** none (doc + notebook audit only).
+- **Suggested commit:** `docs: freeze regime calibration rationale`
+- **Stop condition:** Do not change regime thresholds or retrain. Audit only.
+
+## Stage 5 — Earth network QA notebook
+
+- **Goal:** Write `notebooks/analysis/05_earth_network_qa.ipynb` — per-basin
+  outlet counts, touching ratios, DEM overlays for flagged basins.
+- **Allowed files:** `notebooks/analysis/05_earth_network_qa.ipynb` (new),
+  package read-only helpers only.
+- **Forbidden files:** `data/`, root `/models/`, trained artifacts, any write
+  to `data/results/`.
+- **Tests to run:** notebook execution (read-only).
+- **Suggested commit:** `feat(notebooks): add Stage 5 Earth network QA notebook`
+- **Stop condition:** Do not write data outputs. Exploratory notebook only.
