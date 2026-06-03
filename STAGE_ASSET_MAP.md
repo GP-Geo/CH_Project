@@ -106,11 +106,12 @@ _Last updated: 2026-06-04_
 | Package | `channel_heads/rasterization/earth_patches.py`, `earth_batch.py` |
 | Notebooks | `notebooks/training/03_feature_engineering.ipynb`, `notebooks/diagnostics/rasterization_diagnostics.ipynb` |
 | Data | `data/results/_rasters_reg{A,B,C}/` — **archived** to `data/_stage7_archive_*/` |
-| Manifests | `data/results/raster_manifest_reg{A,B,C}.csv` — **archived**, need restoration |
+| Manifests | `data/results/raster_manifest_reg{A,B,C}.csv` — **restored** as stale compatibility artifacts (pre-rewrite data) |
 
-**Status:** Rasters and manifests archived. Regenerate (or restore from archive)
-when final regime is chosen. All downstream model artifacts are stale but usable
-for testing. See `AGENT_STATE.md` for regeneration commands.
+**Status:** Rasters archived to `data/_stage7_archive_*/`; manifests restored as
+stale compatibility artifacts (not fresh Stage 7B outputs). Regenerate rasters and
+manifests when final regime is chosen. All downstream model artifacts are stale but
+usable for testing. See `AGENT_STATE.md` for regeneration commands.
 
 ---
 

@@ -22,8 +22,10 @@ See [`STAGE_ASSET_MAP.md`](STAGE_ASSET_MAP.md) for per-stage coverage.
 
 Key facts:
 - **Stages 0–6:** ✅ complete; Earth feature datasets in `data/results/`.
-- **Stage 7:** ⚠️ Rasters archived to `data/_stage7_archive_*/`; manifests need
-  restoration or regeneration when a final regime is chosen.
+- **Stage 7:** ⚠️ Rasters archived to `data/_stage7_archive_*/`; manifests
+  restored to `data/results/raster_manifest_reg{A,B,C}.csv` as stale compatibility
+  artifacts (pre-rewrite data, not fresh Stage 7B outputs). Regenerate both when
+  a final regime is chosen.
 - **Stages 8–11:** ✅ model artifacts and Mars predictions exist in `models/` and
   `data/Mars/model_outputs/` — built on pre-rewrite data, adequate for structural
   testing and scientific review.
