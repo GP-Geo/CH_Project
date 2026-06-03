@@ -106,25 +106,26 @@ _Last updated: 2026-06-04_
 
 ---
 
-## Stage 7 — Earth model-input construction ⚠️
+## Stage 7 — Earth model-input construction ✅
 
 | Asset | Location |
 |---|---|
-| Script | `scripts/cli/build_cnn_patches_regime.py` |
-| Package | `channel_heads/rasterization/earth_patches.py`, `earth_batch.py` |
+| Script | `scripts/cli/build_cnn_patches_regime.py` (now supports `--workers` N) |
+| Package | `channel_heads/rasterization/earth_patches.py`, `earth_batch.py` (multiprocess per-basin/chunk render, `n_workers`) |
 | Notebooks | `notebooks/training/03_feature_engineering.ipynb`, `notebooks/diagnostics/rasterization_diagnostics.ipynb` |
-| Data | `data/results/_rasters_reg{A,B,C}/` — **archived** to `data/_stage7_archive_*/` |
-| Manifests | `data/results/raster_manifest_reg{A,B,C}.csv` — **restored** as stale compatibility artifacts (pre-rewrite data) |
+| Data | `data/results/_rasters_reg{A,B,C}/` — on disk, manifests resolve 0-missing (backup retained in `data/_stage7_archive_20260603_231506/`) |
+| Manifests | `data/results/raster_manifest_reg{A,B,C}.csv` — valid (regA 23,742 ok / 0 failed; regB 10,612 ok; regC 28,954 ok) |
 
-**Status (NEEDS REVIEW — interrupted state, 2026-06-04):** The live manifests
-`raster_manifest_reg{A,B,C}.csv` list 17 basins each but reference
-`data/results/_rasters_reg{A,B,C}/` directories that are **archived, not on disk
-in `data/results/`** — most `raster_path` entries resolve to MISSING. **regA** is
-mid-rebuild: an interrupted regen left 5 basins in `data/results/_rasters_regA/`
-and 12 in `data/_stage7_archive_20260603_231506/results/_rasters_regA_partial_rerun/`;
-the clean full 17-basin set is the **pre-rewrite (stale)** archive copy. Do not
-feed these manifests to Stage 8 training. Regenerate rasters + manifests cleanly
-when a final regime is chosen. See `AGENT_STATE.md`.
+**Status (RECONCILED 2026-06-04):** All three regime raster sets are on disk in
+`data/results/_rasters_reg{A,B,C}/` and their manifests resolve with **0 missing**.
+**regA** was freshly regenerated with the current rasterizer (17/17 basins;
+23,742 ok / 2,174 invalid / 0 failed — the old interrupted manifest had 7,607
+failed). **regB/regC** were restored from `data/_stage7_archive_20260603_231506/`
+(rasterizer-compatible per user; regB 10,612 ok, regC 28,954 ok), archive retained
+as backup. The rasterizer now supports optional **multiprocess** per-basin/chunk
+rendering (`n_workers` / CLI `--workers`); default 1 is bit-identical to the serial
+path (verified output-identical on real data; ~2.4× at 4 workers). Stage 8
+training can now consume these manifests. See `AGENT_STATE.md`.
 
 ---
 
@@ -213,7 +214,7 @@ when a final regime is chosen. See `AGENT_STATE.md`.
 | 4 | ✅ | Regimes frozen, rationale doc written |
 | 5 | ✅ | QA gate passed, 0 hard flags |
 | 6 | ✅ | `00_pair_sample_qa.ipynb` added |
-| 7 | ⚠️ | Rasters archived; regenerate when regime finalised |
+| 7 | ✅ | Reconciled 2026-06-04: regA regenerated, regB/regC restored; manifests resolve 0-missing |
 | 8 | ⚠️ | Stale models present; re-run after Stage 7 |
 | 9 | ⚠️ | Stale LOBO metrics; re-run after Stage 8 |
 | 10 | ⚠️ | Stale Mars inputs; re-run after Stage 8 |

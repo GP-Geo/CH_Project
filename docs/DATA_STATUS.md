@@ -7,14 +7,13 @@ a clean rebuild knows what to keep, what to regenerate, and what is stale.
 > `CAN_REGENERATE` / `STALE_*` artifacts, and [PROJECT_STRUCTURE.md §4](PROJECT_STRUCTURE.md)
 > for the raw inventory.
 >
-> Last classified: 2026-06-02. **Update 2026-06-04:** the `_rasters_reg{A,B,C}/`
-> raster sets were archived to `data/_stage7_archive_20260603_231506/`, so the
-> live `raster_manifest_reg*.csv` files now reference raster paths that are
-> **missing from `data/results/`**. A regA raster regen was started and
-> interrupted (output split between `data/results/_rasters_regA/` = 5 basins and
-> the archive's `_rasters_regA_partial_rerun/` = 12 basins). See `AGENT_STATE.md`
-> Stage 7. Treat all three raster manifests as **NEEDS REVIEW**, not trustworthy
-> indexes, until a clean regen.
+> Last classified: 2026-06-02. **Update 2026-06-04 (RECONCILED):** the Stage-7
+> raster chain is restored. `data/results/_rasters_reg{A,B,C}/` are on disk and
+> their `raster_manifest_reg*.csv` resolve with **0 missing** (regA freshly
+> regenerated with the current rasterizer: 23,742 ok / 0 failed; regB/regC
+> restored from `data/_stage7_archive_20260603_231506/`, which is retained as
+> backup). These manifests are now valid inputs for Stage 8. See `AGENT_STATE.md`
+> Stage 7.
 
 ## Legend
 

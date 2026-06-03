@@ -23,21 +23,21 @@ See [`STAGE_ASSET_MAP.md`](STAGE_ASSET_MAP.md) for per-stage coverage.
 Key facts:
 - **Stages 0–3:** ✅ foundation-verified 2026-06-04. S1 (critical ΔL unit risk) resolved — `s.upstream_distance()` confirmed to return arc-degrees (CalnAlpine max=0.2404°); `LengthwiseAsymmetryAnalyzer` correctly applies `compute_meters_per_degree()` from `units.py`. Minor: `basin_config.py` lists 18 basins (includes `piedepalo`) but no `piedepalo` DEM exists on disk; `EXAMPLE_DEMS` in `paths.py` correctly has 17 entries. Does not affect training.
 - **Stages 0–6:** ✅ complete; Earth feature datasets in `data/results/`.
-- **Stage 7:** ⚠️ **NEEDS REVIEW — inconsistent/interrupted raster state.**
-  The live manifests `data/results/raster_manifest_reg{A,B,C}.csv` (17 basins each)
-  reference `data/results/_rasters_reg{A,B,C}/` paths, but those raster directories
-  are **not present on disk** in `data/results/` — they were archived to
-  `data/_stage7_archive_20260603_231506/`. Do **not** trust these manifests for
-  downstream training: most `raster_path` entries resolve to MISSING files.
-  - **regA is mid-rebuild (interrupted, 2026-06-04).** A regA raster regen was
-    started and stopped; the output is fragmented:
-    `data/results/_rasters_regA/` = 5 basins (toano→yoro);
-    `…/_stage7_archive_…/_rasters_regA_partial_rerun/` = 12 basins (calnalpine→taiwan).
-    The clean **pre-rewrite** full 17-basin set is archived at
-    `…/_stage7_archive_…/_rasters_regA/` (May 31, STALE — pre-rasterizer-rewrite).
-  - Before any regime is finalised, **reconcile this state**: regenerate rasters
-    + manifests cleanly with the current rasterizer (preferred), rather than
-    relying on the fragmented/archived sets.
+- **Stage 7:** ✅ **RECONCILED 2026-06-04.** All three regime raster sets are on
+  disk in `data/results/_rasters_reg{A,B,C}/` and their manifests resolve with
+  **0 missing**:
+  - **regA** — freshly regenerated with the current rasterizer (17/17 basins,
+    Taiwan included): manifest `raster_status` = 23,742 ok / 2,174 invalid / **0
+    failed** (the old interrupted manifest had 7,607 failed). Verified 0 missing.
+  - **regB / regC** — restored from `data/_stage7_archive_20260603_231506/` (user
+    confirmed rasterizer-compatible). Manifests resolve 0 missing (regB 10,612 ok;
+    regC 28,954 ok).
+  - The `data/_stage7_archive_20260603_231506/` copies are retained as backup.
+  - Rasterizer now supports optional **multiprocess** per-basin/chunk rendering
+    (`n_workers` / CLI `--workers`); default 1 is bit-identical to the prior
+    serial path. Verified output-identical on real data (regA `inyo`, and
+    finisterre 900-pair byte-for-byte), with ~2.4× speedup at 4 workers
+    (process-based to sidestep the GIL; threads gave no gain).
 - **Stages 8–11:** ✅ model artifacts and Mars predictions exist in `models/` and
   `data/Mars/model_outputs/` — built on pre-rewrite data, adequate for structural
   testing and scientific review.
