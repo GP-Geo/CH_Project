@@ -14,6 +14,7 @@ from .dag import (
     topological_sort,
 )
 from .earth import first_meet_pairs_for_outlet
+from .filtering import stratified_sample_removed_pairs
 
 # Mars graph helpers require geopandas/shapely. Keep them optional so the
 # pure-Python DAG core (and its tests) import without the geo stack installed.
@@ -32,6 +33,7 @@ except ImportError:
 
 __all__ = [
     "build_children_from_parents",
+    "stratified_sample_removed_pairs",
     "build_directed_adjacency",
     "chain_segment_geometries",
     "detect_crossed_segments",

@@ -6,6 +6,7 @@ contact-sheet rendering lives in :mod:`channel_heads.viz.contact_sheet`.
 
 from __future__ import annotations
 
+from .calibration import plot_calibration_results
 from .contact_sheet import render_contact_sheet, render_pair_panel
 from .curves import roc_curve_panel
 from .earth import (
@@ -19,6 +20,7 @@ from .stream_crossing import plot_removed_pair, removed_pair_legend_handles
 
 __all__ = [
     "make_palette",
+    "plot_calibration_results",
     "plot_all_coupled_pairs_for_outlet",
     "plot_all_coupled_pairs_for_outlet_3d",
     "plot_coupled_pair",

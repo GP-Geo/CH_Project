@@ -11,6 +11,7 @@ from .metrics import (
     f1_optimal_threshold,
     max_precision_threshold,
 )
+from .diagnostics import holdout_split_predict, pr_curve_metrics
 from .splitting import (
     RANDOM_STATE,
     TEST_SIZE,
@@ -23,7 +24,9 @@ __all__ = [
     "TEST_SIZE",
     "classification_metrics",
     "f1_optimal_threshold",
+    "holdout_split_predict",
     "leave_one_group_out_oof",
     "max_precision_threshold",
     "outlet_group_holdout",
+    "pr_curve_metrics",
 ]

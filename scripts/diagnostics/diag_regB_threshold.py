@@ -27,62 +27,13 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.metrics import precision_recall_curve
 
-from channel_heads.eval import (
-    classification_metrics,
-    f1_optimal_threshold,
-    outlet_group_holdout,
-)
-from channel_heads.models.xgboost import load_feature_columns, load_xgb_model
+from channel_heads.eval.diagnostics import holdout_split_predict, pr_curve_metrics
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # scripts/diagnostics/ -> repo root
 RESULTS_DIR = PROJECT_ROOT / "data/results"
 MODELS_DIR = PROJECT_ROOT / "models"
 OUTPUT_DIR = RESULTS_DIR
-
-GEOM_FEATURES = [
-    "orientation_diff_deg", "headhead_dist_norm", "apex_angle_deg",
-    "strahler_order_diff", "proximity_profile_norm",
-]
-EMB_FEATURES = [f"emb_{i}" for i in range(4)]
-
-
-def split_and_predict(
-    csv: Path,
-    model_path: Path,
-    feature_cols_path: Path,
-) -> tuple[np.ndarray, np.ndarray, str]:
-    """Reproduce the train/test split + predict on test; return (y_test, proba, label)."""
-    df = pd.read_csv(csv)
-    feats = load_feature_columns(feature_cols_path)
-    missing = [c for c in feats + ["y", "basin", "outlet"] if c not in df.columns]
-    if missing:
-        raise RuntimeError(f"{csv.name}: missing columns {missing}")
-
-    _, test_idx = outlet_group_holdout(df)
-    y = df["y"].astype(int).to_numpy()
-    X = df[feats].to_numpy(dtype=float)
-    X_test, y_test = X[test_idx], y[test_idx]
-
-    model = load_xgb_model(model_path)
-    proba = model.predict_proba(X_test)[:, 1]
-    return y_test, proba, ",".join(feats)
-
-
-def pr_metrics(y_test: np.ndarray, proba: np.ndarray, threshold: float) -> dict:
-    # Scalar metrics via the shared eval primitives; PR-curve arrays kept here
-    # for plotting.
-    precisions, recalls, thresholds = precision_recall_curve(y_test, proba)
-    m = classification_metrics(y_test, proba, threshold)
-    f1_threshold, f1_max = f1_optimal_threshold(y_test, proba)
-    return {
-        "pr_auc": m["pr_auc"], "roc_auc": m["roc_auc"],
-        "P_at_thr": m["precision"], "R_at_thr": m["recall"], "F1_at_thr": m["f1"],
-        "F1_optimal_threshold": f1_threshold,
-        "F1_optimal_max": f1_max,
-        "precisions": precisions, "recalls": recalls, "thresholds": thresholds,
-    }
 
 
 def main() -> int:
@@ -94,8 +45,8 @@ def main() -> int:
         (MODELS_DIR / "optimal_threshold_geom_plus_cnn_emb_regB.txt")
         .read_text().strip().splitlines()[0]
     )
-    yB, pB, _ = split_and_predict(regB_csv, regB_model, regB_feats)
-    metB = pr_metrics(yB, pB, regB_thr)
+    yB, pB, _ = holdout_split_predict(regB_csv, regB_model, regB_feats)
+    metB = pr_curve_metrics(yB, pB, regB_thr)
 
     # ----- production combined-emb (Phase 6B) -----
     prod_csv = RESULTS_DIR / "master_dataset_v4_cnn_full.csv"
@@ -103,8 +54,8 @@ def main() -> int:
     prod_feats = MODELS_DIR / "feature_columns_geom_plus_cnn_emb.txt"
     prod_thr_path = MODELS_DIR / "optimal_threshold_geom_plus_cnn_emb.txt"
     prod_thr = float(prod_thr_path.read_text().strip().splitlines()[0])
-    yP, pP, _ = split_and_predict(prod_csv, prod_model, prod_feats)
-    metP = pr_metrics(yP, pP, prod_thr)
+    yP, pP, _ = holdout_split_predict(prod_csv, prod_model, prod_feats)
+    metP = pr_curve_metrics(yP, pP, prod_thr)
 
     print("=" * 70)
     print("Earth test set metrics (GroupShuffleSplit by basin__outlet, seed=42)")
@@ -126,7 +77,6 @@ def main() -> int:
         (axes[1], metP, prod_thr, f"production_emb (PR AUC={metP['pr_auc']:.3f})", "#b5533f"),
     ]:
         ax.plot(met["recalls"], met["precisions"], color=color, lw=2)
-        # Mark current threshold on the curve
         if thr is not None:
             mask = met["thresholds"] >= thr
             if mask.any():
@@ -136,7 +86,6 @@ def main() -> int:
                     s=80, c="black", zorder=5,
                     label=f"current thr={thr:.3f}\n(P={met['P_at_thr']:.2f}, R={met['R_at_thr']:.2f})",
                 )
-        # Mark F1-optimal
         f1_thr = met["F1_optimal_threshold"]
         mask = met["thresholds"] >= f1_thr
         if mask.any():
@@ -190,7 +139,6 @@ def main() -> int:
     plt.close(fig)
     print(f"Wrote Mars hist  -> {mars_out}")
 
-    # Quick stats on Mars prob distribution
     print("\nMars prob_touching distribution:")
     for label, probs in [("regB", mars_regB["prob_touching"]),
                           ("production_emb", mars_base["prob_touching_emb"])]:

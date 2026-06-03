@@ -9,9 +9,9 @@ uses `pathlib`; no `sys.path` hacks needed.
 ### `notebooks/analysis/` — Earth data QA and exploration
 | Notebook | Stage | Type | Purpose |
 |---|---|---|---|
-| `00_earth_source_data_qa` | 1 | QA gate | Verify all 17 DEMs exist, load, have valid CRS and z-range |
+| `01_earth_source_data_qa` | 1 | QA gate | Verify all 17 DEMs exist, load, have valid CRS and z-range |
+| `02_earth_network_explorer` | 2 | exploration | Per-basin threshold/pruning preview |
 | `05_earth_network_qa` | 5 | QA gate | Formal Stage 5 gate — zero hard flags required before Stage 7 |
-| `06_earth_network_explorer` | 2 | exploration | Per-basin threshold/pruning preview |
 
 ### `notebooks/mars/` — Mars pipeline
 | Notebook | Stage | Type | Purpose |
@@ -34,7 +34,6 @@ uses `pathlib`; no `sys.path` hacks needed.
 | Notebook | Stage | Type | Purpose |
 |---|---|---|---|
 | `00_pair_sample_qa` | 6 | QA | Visual touching/non-touching pair inspection |
-| `00_full_pipeline` | 8 | pipeline | End-to-end Earth training (CNN + XGBoost) |
 | `01_prepare_dataset` | 6 | pipeline | Dataset preparation |
 | `02_train_classifier` | 8 | pipeline | Train XGBoost classifier |
 | `03_feature_engineering` | 7 | pipeline | Geometric features + patch preview |
@@ -65,8 +64,10 @@ uses `pathlib`; no `sys.path` hacks needed.
 | `00_scientific_summary` | 13 | interpretation | Coupling rates, geographic distribution, scientific findings |
 
 ### `notebooks/archive/` — superseded (do not maintain)
-Historical threshold experiments (`experiment_250th/350th/500th/template`) and
-old analysis notebooks moved here. Keep for reference; do not import from.
+Historical threshold experiments, old exploratory analysis notebooks
+(`01_single_basin_test`, `02_multi_basin`, `03/04_all_basins`, `00_full_pipeline`),
+and one-off experiment templates. Keep for provenance; do not import from.
+See `notebooks/archive/README.md` for the full inventory.
 
 ## Rules
 

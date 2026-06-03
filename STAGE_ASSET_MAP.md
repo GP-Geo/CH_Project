@@ -28,13 +28,13 @@ _Last updated: 2026-06-04_
 
 | Asset | Location |
 |---|---|
-| **QA notebook** | `notebooks/analysis/00_earth_source_data_qa.ipynb` ← DEM coverage, CRS, z-range |
-| Analysis notebooks | `notebooks/analysis/01_single_basin_test.ipynb`, `02_multi_basin.ipynb`, `03_all_basins.ipynb`, `04_all_basins_full.ipynb` |
+| **QA notebook** | `notebooks/analysis/01_earth_source_data_qa.ipynb` ← DEM coverage, CRS, z-range |
+| Archived | `notebooks/archive/01_single_basin_test.ipynb`, `02_multi_basin.ipynb`, `03/04_all_basins.ipynb` (superseded exploratory) |
 | Basin metadata | `channel_heads/basin_config.py` |
 | DEM paths | `channel_heads/io/paths.py::EARTH_BASINS` |
 | Data | `data/cropped_DEMs/` (17 DEMs, RAW_KEEP) |
 
-**Gap closed:** `00_earth_source_data_qa.ipynb` added.
+**Gap closed:** `01_earth_source_data_qa.ipynb` added.
 
 ---
 
@@ -42,11 +42,11 @@ _Last updated: 2026-06-04_
 
 | Asset | Location |
 |---|---|
-| **Explorer notebook** | `notebooks/analysis/06_earth_network_explorer.ipynb` ← per-basin threshold/pruning preview |
+| **Explorer notebook** | `notebooks/analysis/02_earth_network_explorer.ipynb` ← per-basin threshold/pruning preview |
 | Calibration notebooks | `notebooks/diagnostics/dd_threshold_calibration.ipynb`, `earth_network_pruning_experiments.ipynb` |
 | Package | `channel_heads/dd_calibration.py`, `channel_heads/pruning.py` |
 
-**Gap closed:** `06_earth_network_explorer.ipynb` added.
+**Gap closed:** `02_earth_network_explorer.ipynb` added.
 
 ---
 
@@ -120,7 +120,7 @@ for testing. See `AGENT_STATE.md` for regeneration commands.
 |---|---|
 | Scripts | `scripts/cli/train_cnn_regime.py`, `train_combined_xgb_regime.py`, `train_cnn_baseline.py`, `train_combined_xgb_phase6b.py` |
 | Package | `channel_heads/training/cnn.py`, `channel_heads/training/xgboost.py`, `channel_heads/training/datasets.py` |
-| Notebooks | `notebooks/training/02_train_classifier.ipynb`, `04_cnn_embeddings.ipynb`, `00_full_pipeline.ipynb` |
+| Notebooks | `notebooks/training/02_train_classifier.ipynb`, `04_cnn_embeddings.ipynb`, `05_cnn_quick_eval.ipynb` |
 | Models | `models/cnn_outlet_reg{A,B,C}.pt`, `models/xgb_geom_plus_cnn_emb_reg{A,B,C}.json` ⚠️ stale |
 | Thresholds | `models/optimal_threshold_*.txt`, `models/feature_columns_*.txt` |
 
@@ -193,8 +193,8 @@ for testing. See `AGENT_STATE.md` for regeneration commands.
 | Stage | Status | Notes |
 |---|---|---|
 | 0 | ✅ | Paths, units, regimes canonical |
-| 1 | 🔶 | `00_earth_source_data_qa.ipynb` added |
-| 2 | 🔶 | `06_earth_network_explorer.ipynb` added |
+| 1 | 🔶 | `01_earth_source_data_qa.ipynb` added |
+| 2 | 🔶 | `02_earth_network_explorer.ipynb` added |
 | 3 | 🔶 | `00_mars_network_explorer.ipynb` added |
 | 4 | ✅ | Regimes frozen, rationale doc written |
 | 5 | ✅ | QA gate passed, 0 hard flags |

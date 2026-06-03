@@ -55,6 +55,7 @@ from channel_heads.dd_calibration import (
 )
 from channel_heads.io.paths import EXAMPLE_DEMS, RESULTS_DIR
 from channel_heads.logging_config import setup_logging
+from channel_heads.viz.calibration import plot_calibration_results
 
 # =============================================================================
 # Output handling
@@ -180,132 +181,6 @@ def write_geometries(
     print(
         f"  GeoPackages written: streams={len(stream_records)}, hulls={len(hull_records)}"
     )
-
-
-def make_diagnostic_plots(
-    per_basin_df: pd.DataFrame,
-    summary_df: pd.DataFrame,
-    output_dir: Path,
-    mars_stats: dict[str, float] | None = None,
-) -> None:
-    """Plot Earth Dd_true (primary) and Dd_hull (secondary) per threshold.
-
-    When `mars_stats` is provided, additional Mars-comparison plots are emitted
-    (`plot_threshold_vs_score.png`, `plot_threshold_vs_dd_hull_median.png` with
-    a Mars reference line, etc.).
-    """
-    import matplotlib.pyplot as plt
-
-    if summary_df.empty:
-        print("Summary is empty; skipping plots.")
-        return
-
-    # ---- Primary plots (Dd_true) ---------------------------------------------
-
-    # 1. Earth Dd_true: median + Q1/Q3 vs threshold
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax.plot(summary_df["threshold_km2"], summary_df["dd_true_median"], "o-", label="median")
-    ax.fill_between(
-        summary_df["threshold_km2"],
-        summary_df["dd_true_q1"],
-        summary_df["dd_true_q3"],
-        alpha=0.2,
-        label="Q1-Q3",
-    )
-    ax.set_xscale("log")
-    ax.set_xlabel("Threshold (km^2)")
-    ax.set_ylabel("Dd_true (km / km^2)")
-    ax.set_title("Earth Dd_true vs threshold (per-outlet basins)")
-    ax.legend()
-    ax.grid(True, which="both", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_dir / "plot_threshold_vs_dd_true.png", dpi=120)
-    plt.close(fig)
-
-    # 2. boxplot of Dd_true by threshold
-    valid = per_basin_df[per_basin_df["status"] == STATUS_OK]
-    if not valid.empty:
-        thresholds = sorted(valid["threshold_km2"].unique())
-        data = [
-            valid.loc[valid["threshold_km2"] == t, "dd_true_km_km2"].dropna()
-            for t in thresholds
-        ]
-        fig, ax = plt.subplots(figsize=(8, 5))
-        ax.boxplot(data, tick_labels=[f"{t:g}" for t in thresholds], showfliers=False)
-        ax.set_xlabel("Threshold (km^2)")
-        ax.set_ylabel("Dd_true (km / km^2)")
-        ax.set_title("Earth Dd_true distribution by threshold")
-        ax.grid(True, axis="y", alpha=0.3)
-        fig.tight_layout()
-        fig.savefig(output_dir / "plot_dd_true_boxplot.png", dpi=120)
-        plt.close(fig)
-
-    # 3. basin count vs threshold (sample size of distribution)
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax.plot(summary_df["threshold_km2"], summary_df["count"], "o-")
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlabel("Threshold (km^2)")
-    ax.set_ylabel("Number of valid basins")
-    ax.set_title("Sample size vs threshold")
-    ax.grid(True, which="both", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_dir / "plot_threshold_vs_count.png", dpi=120)
-    plt.close(fig)
-
-    # 4. Dd_hull as secondary diagnostic (no Mars line yet)
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax.plot(summary_df["threshold_km2"], summary_df["dd_hull_median"], "o-", label="Dd_hull")
-    ax.plot(
-        summary_df["threshold_km2"], summary_df["dd_true_median"], "s-", label="Dd_true"
-    )
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlabel("Threshold (km^2)")
-    ax.set_ylabel("Median (km / km^2)")
-    ax.set_title("Dd_true and Dd_hull medians vs threshold")
-    ax.legend()
-    ax.grid(True, which="both", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_dir / "plot_dd_true_vs_dd_hull_median.png", dpi=120)
-    plt.close(fig)
-
-    # ---- Optional Mars-comparison plots -------------------------------------
-
-    if mars_stats is None or "score_iqr" not in summary_df.columns:
-        return
-
-    best_thr = float(
-        summary_df.loc[summary_df["is_best_threshold"], "threshold_km2"].iloc[0]
-    )
-
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax.plot(
-        summary_df["threshold_km2"], summary_df["dd_hull_median"], "o-", label="Earth median"
-    )
-    ax.axhline(mars_stats["median"], color="red", linestyle="--", label="Mars median")
-    ax.set_xscale("log")
-    ax.set_xlabel("Threshold (km^2)")
-    ax.set_ylabel("Dd_hull (km / km^2)")
-    ax.set_title("Earth median Dd_hull vs threshold (Mars overlaid)")
-    ax.legend()
-    ax.grid(True, which="both", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_dir / "plot_threshold_vs_dd_hull_with_mars.png", dpi=120)
-    plt.close(fig)
-
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax.plot(summary_df["threshold_km2"], summary_df["score_iqr"], "o-")
-    ax.axvline(best_thr, color="green", linestyle=":", label=f"best = {best_thr:g} km^2")
-    ax.set_xscale("log")
-    ax.set_xlabel("Threshold (km^2)")
-    ax.set_ylabel("score_iqr (smaller = better)")
-    ax.set_title("Mars-match score vs threshold")
-    ax.legend()
-    ax.grid(True, which="both", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_dir / "plot_threshold_vs_score.png", dpi=120)
-    plt.close(fig)
 
 
 def _format_summary_table(summary_df: pd.DataFrame) -> str:
@@ -557,7 +432,7 @@ def main(argv: list[str] | None = None) -> int:
         f"and threshold_summary.csv ({len(summary_df)} rows)"
     )
 
-    make_diagnostic_plots(per_basin_df, summary_df, args.output, mars_stats=mars_stats)
+    plot_calibration_results(per_basin_df, summary_df, args.output, mars_stats=mars_stats)
     print("Wrote diagnostic plots.")
 
     if not summary_df.empty:
