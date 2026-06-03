@@ -32,7 +32,7 @@ from .pairing.earth import (
     _build_parents_from_stream,
     _collect_basin_nodes_from_outlet,
 )
-from .geometric_analysis import _trace_full_path
+from .features.earth_paths import _trace_full_path
 from .logging_config import get_logger
 
 logger = get_logger(__name__)

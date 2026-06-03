@@ -3,7 +3,7 @@
 Snapshot for resuming the package-first refactor without chat history.
 Update this file after every completed slice.
 
-_Last updated: 2026-06-02_
+_Last updated: 2026-06-03_
 
 ## Git
 
@@ -57,6 +57,7 @@ _Last updated: 2026-06-02_
 | Generic/Earth CNN embedding helpers (`extract_embeddings`, `merge_cnn_features`, `CNN_FEATURE_COLS`) | `channel_heads/models/cnn_features.py` | `channel_heads/cnn_features.py` (shim) |
 | CNN training core (`train_cnn`, `DEFAULT_*`, `HOLDOUT_BASIN`, `RANDOM_STATE`) | `channel_heads/training/cnn.py` | `channel_heads/cnn_training.py` (shim) |
 | Pure feature math | `channel_heads/features/geometry.py` | `channel_heads/geometric_analysis.py` aliases for compatibility |
+| Earth/TopoToolbox path helpers (`_build_children_from_parents`, `_trace_path_downstream`, `_compute_direction_vector`, `_trace_full_path`, `_sample_path_coords`, `_detect_cellsize`, `_euclidean_2d`, `_normalize_vector`, `EPSILON`, `MIN_EDGES_FOR_DIRECTION`) | `channel_heads/features/earth_paths.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
 | Mars projected path helpers | `channel_heads/features/paths.py` | none |
 | Mars feature table generation | `channel_heads/features/mars_features.py` | Mars script wrappers |
 | Unit conversions | `channel_heads/units.py` | `geometric_analysis.py` and `dd_calibration.py` re-export selected helpers |
@@ -186,6 +187,21 @@ _Last updated: 2026-06-02_
   promoted `rasterization/patches.py` or `earth_patches.py` for Earth
   rasterization/precompute, `rasterizer.py` as a shim, and regime patch
   orchestration under future `training/regime.py`.
+- **Earth path helper extraction (Slice 9): DONE.** The Earth/TopoToolbox path
+  helpers (`_build_children_from_parents`, `_trace_path_downstream`,
+  `_compute_direction_vector`, `_trace_full_path`, `_sample_path_coords`,
+  `_detect_cellsize`) plus their small private dependencies (`_euclidean_2d`,
+  `_normalize_vector`) and the `EPSILON` / `MIN_EDGES_FOR_DIRECTION` constants
+  now live canonically in `channel_heads/features/earth_paths.py` (moved
+  verbatim). `geometric_analysis.py` imports them and re-exports them, so old
+  imports (`from channel_heads.geometric_analysis import _trace_full_path`, the
+  underscored helpers used by tests, `EPSILON`, `MIN_EDGES_FOR_DIRECTION`) all
+  resolve to the *same* objects. `rasterizer.py` was repointed to import
+  `_trace_full_path` from `channel_heads.features.earth_paths` (its
+  `_build_children_from_parents` still comes from `pairing.earth` — a separate
+  variant, deliberately untouched). Asymmetry, `GeometricFeaturesAnalyzer`,
+  labeling, hard-negative filtering, and CSV enrichment were NOT moved. Pinned
+  by `tests/test_geometric_analysis.py::TestEarthPathsExtraction`.
 - **Behavior-pinning tests (Slice 8): DONE.** Focused tests now cover
   `geometric_analysis.py` contracts for feature-column order, `compute_delta_L`,
   head normalization / length swapping, `_trace_full_path`, `_sample_path_coords`,
@@ -219,12 +235,13 @@ _Last updated: 2026-06-02_
   is complete. The four divergent forward-pass extractors in `inference/regime.py`,
   `models/mars_combined.py`, and `scripts/train_combined_xgb_*.py` were
   deliberately **not** merged (see `AGENT_AUDIT_CNN.md` §3b/§5).
-- `geometric_analysis.py` — audited in Slice 6 and behavior-pinned in Slice 8.
-  Keep untouched for now; future
-  recommendation is to split into `features/earth_paths.py`,
-  `features/asymmetry.py`, `features/earth_geometry.py`,
-  `training/labeling.py`, and `features/earth_enrichment.py`, then leave
-  `geometric_analysis.py` as a shim.
+- `geometric_analysis.py` — audited in Slice 6, behavior-pinned in Slice 8, and
+  the Earth path helpers were extracted to `features/earth_paths.py` in Slice 9.
+  Still owns asymmetry, `GeometricFeaturesAnalyzer`, labeling, hard-negative
+  filtering, and CSV enrichment. Remaining recommendation is to split those into
+  `features/asymmetry.py`, `features/earth_geometry.py`, `training/labeling.py`,
+  and `features/earth_enrichment.py`, then leave `geometric_analysis.py` as a
+  shim.
 - `rasterizer.py` — audited in Slice 7 and behavior-pinned in Slice 8. Keep
   untouched for now; future
   recommendation is to move shared constants/schema and Earth rasterization into
@@ -235,6 +252,19 @@ _Last updated: 2026-06-02_
 
 ## Next recommended task
 
-**Slice 9 — data cleanup dry-run (report-only).** Produce a dry-run report of
-candidate stale/generated data per `docs/DATA_STATUS.md`; do not delete, move,
-or mutate any data/model/generated artifact. See `AGENT_BACKLOG.md` Slice 9.
+**Extract Earth asymmetry logic** (next step of the `geometric_analysis.py`
+split, per `AGENT_AUDIT_GEOMETRIC_ANALYSIS.md` §"Proposed Implementation
+Slices" step 3): move `PairAsymmetryResult`, `compute_delta_L`,
+`LengthwiseAsymmetryAnalyzer`, `compute_asymmetry_statistics`, and
+`merge_coupling_and_asymmetry` into `channel_heads/features/asymmetry.py`, with
+`geometric_analysis.py` re-exporting for compatibility. Preserve the S1
+upstream-distance unit policy exactly. The behavior-pinning tests from Slice 8
+already protect these contracts.
+
+The backlog's standalone **data cleanup dry-run (report-only)** item remains
+open as a later task; do not delete, move, or mutate any data/model/generated
+artifact when it is picked up.
+
+> Note: the user-issued task that completed the Earth path helper extraction was
+> labeled "Slice 9" in the prompt; the backlog's original Slice 9 was the data
+> cleanup dry-run. The extraction has been recorded as the Slice 9 entry above.

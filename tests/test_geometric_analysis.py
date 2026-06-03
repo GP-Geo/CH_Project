@@ -1504,3 +1504,54 @@ class TestAddGeometricFeaturesToCsvBehavior:
 
         assert output_csv.exists()
         pd.testing.assert_frame_equal(pd.read_csv(output_csv), written)
+
+
+class TestEarthPathsExtraction:
+    """Pin the Slice 9 extraction of Earth path helpers.
+
+    The helpers now live canonically in
+    ``channel_heads.features.earth_paths`` and are re-exported from
+    ``channel_heads.geometric_analysis`` for backward compatibility. Both
+    import paths must resolve to the *same* object, and the rasterizer must
+    use the same implementation it always did.
+    """
+
+    MOVED_HELPERS = [
+        "_build_children_from_parents",
+        "_trace_path_downstream",
+        "_compute_direction_vector",
+        "_trace_full_path",
+        "_sample_path_coords",
+        "_detect_cellsize",
+        "_euclidean_2d",
+        "_normalize_vector",
+    ]
+
+    def test_old_and_new_import_paths_are_identical(self):
+        from channel_heads import features, geometric_analysis
+        from channel_heads.features import earth_paths
+
+        for name in self.MOVED_HELPERS:
+            canonical = getattr(earth_paths, name)
+            legacy = getattr(geometric_analysis, name)
+            assert legacy is canonical, f"{name} legacy alias diverged from canonical"
+            # earth_paths is reachable via the features subpackage too
+            assert getattr(features.earth_paths, name) is canonical
+
+    def test_constants_re_exported_from_canonical_module(self):
+        from channel_heads import geometric_analysis
+        from channel_heads.features import earth_paths
+
+        assert geometric_analysis.EPSILON is earth_paths.EPSILON
+        assert (
+            geometric_analysis.MIN_EDGES_FOR_DIRECTION
+            is earth_paths.MIN_EDGES_FOR_DIRECTION
+        )
+        assert earth_paths.EPSILON == 1e-10
+        assert earth_paths.MIN_EDGES_FOR_DIRECTION == 3
+
+    def test_rasterizer_uses_canonical_trace_full_path(self):
+        from channel_heads import rasterizer
+        from channel_heads.features import earth_paths
+
+        assert rasterizer._trace_full_path is earth_paths._trace_full_path

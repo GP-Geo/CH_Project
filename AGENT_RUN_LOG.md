@@ -4,6 +4,65 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Slice 9: extract Earth path helpers
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `8200a9b`
+- **Task:** Move the Earth/TopoToolbox path helpers out of
+  `channel_heads/geometric_analysis.py` into a canonical feature submodule,
+  preserving behavior exactly (merge-and-consolidate, not a rewrite). First
+  implementation slice of the `geometric_analysis.py` split (audit step 2).
+- **Files created:**
+  - `channel_heads/features/earth_paths.py` — canonical home for
+    `_build_children_from_parents`, `_trace_path_downstream`,
+    `_compute_direction_vector`, `_trace_full_path`, `_sample_path_coords`,
+    `_detect_cellsize` (moved verbatim), plus the small private deps
+    `_euclidean_2d` / `_normalize_vector` they require and the `EPSILON` /
+    `MIN_EDGES_FOR_DIRECTION` constants. Self-contained (no
+    `geometric_analysis` import) to avoid an import cycle; owns the
+    `NodeId` / `ParentsList` / `ChildrenDict` / `Coord2D` type aliases it uses.
+- **Files updated:**
+  - `channel_heads/geometric_analysis.py` — removed the moved definitions and
+    the duplicate `EPSILON` / `MIN_EDGES_FOR_DIRECTION` constants; now imports
+    all of them from `channel_heads.features.earth_paths` and re-exports for
+    backward compatibility (two re-export-only names marked `# noqa: F401`).
+    Dropped the now-unused `import math` and `from collections import
+    defaultdict`. `DEFAULT_DIRECTION_SAMPLE_DISTANCE_M`, type aliases,
+    analyzers, asymmetry, labeling, hard-negative filtering, and CSV enrichment
+    are unchanged.
+  - `channel_heads/rasterizer.py` — repointed `from .geometric_analysis import
+    _trace_full_path` to `from .features.earth_paths import _trace_full_path`
+    (its `_build_children_from_parents` still comes from `pairing.earth`, a
+    separate variant left untouched).
+  - `tests/test_geometric_analysis.py` — added `TestEarthPathsExtraction`
+    proving old/new import-path identity for all moved helpers, that
+    `EPSILON` / `MIN_EDGES_FOR_DIRECTION` re-export from the canonical module
+    (values 1e-10 / 3), and that `rasterizer._trace_full_path` is the canonical
+    object.
+  - `AGENT_STATE.md`, `AGENT_BACKLOG.md`, `AGENT_RUN_LOG.md` — Slice 9 recorded;
+    next recommended task set to extracting Earth asymmetry.
+- **Not touched:** asymmetry logic, `GeometricFeaturesAnalyzer`, labeling /
+  hard-negative filtering, CSV enrichment, `pairing.earth`'s separate
+  `_build_children_from_parents`, scripts, notebooks, `data/`, root `/models/`,
+  generated outputs, trained artifacts.
+- **Validation:** targeted pytest
+  (`tests/test_geometric_analysis.py tests/test_rasterizer.py`) → **146 passed,
+  1 warning** (was 143; +3 extraction tests). Full pytest → **522 passed, 7
+  warnings**. `ruff check` clean on `features/earth_paths.py` and
+  `geometric_analysis.py`; pre-existing I001 import-sort findings in
+  `rasterizer.py` (1) and `tests/test_geometric_analysis.py` (3) were verified
+  to exist identically on HEAD and were left as-is per CLAUDE.md (repo-wide ruff
+  has known pre-existing errors; run targeted). `git diff --check` clean.
+- **Risks:** Low. Helpers moved byte-for-byte; greedy child choice, unreachable
+  → `[]`, sample-fraction exclusion of the confluence endpoint, weighted
+  direction QC flags, cellsize detection, and the x=col / y=-row convention are
+  unchanged. Old import paths and re-exported constants resolve to the same
+  objects (pinned). No circular import (earth_paths is self-contained; `features`
+  package was already imported by `geometric_analysis`).
+- **Next step:** Extract Earth asymmetry (`PairAsymmetryResult`,
+  `compute_delta_L`, `LengthwiseAsymmetryAnalyzer`, stats, asymmetry merge) into
+  `channel_heads/features/asymmetry.py`, preserving the S1 unit policy.
+
 ## 2026-06-02 — Slice 8: behavior-pinning tests for geometric analysis and rasterizer
 
 - **Branch:** `refactor/package-first-architecture`

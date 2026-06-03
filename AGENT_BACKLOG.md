@@ -173,7 +173,37 @@ Standard tests:
 - **Stop condition:** Do not move package ownership yet. Stop after tests or the
   test plan/checkpoint are in place.
 
-## Slice 9 — Data cleanup dry-run (later)
+## Slice 9 — Extract Earth path helpers (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. Moved the Earth/TopoToolbox path helpers
+> (`_build_children_from_parents`, `_trace_path_downstream`,
+> `_compute_direction_vector`, `_trace_full_path`, `_sample_path_coords`,
+> `_detect_cellsize`) plus the small private deps (`_euclidean_2d`,
+> `_normalize_vector`) and the `EPSILON` / `MIN_EDGES_FOR_DIRECTION` constants
+> into `channel_heads/features/earth_paths.py`. `geometric_analysis.py`
+> re-exports them; `rasterizer.py` repointed its `_trace_full_path` import to the
+> canonical module. Asymmetry, the geometry analyzer, labeling, hard-negative
+> filtering, and CSV enrichment were NOT moved.
+>
+> Note: this slice was issued by the user under the label "Slice 9", replacing
+> the original Slice 9 (data cleanup dry-run), which is retained below as a later
+> task.
+
+- **Goal:** Extract Earth/TopoToolbox path helpers from
+  `geometric_analysis.py` into a canonical `features/earth_paths.py` while
+  preserving behavior exactly (merge-and-consolidate).
+- **Allowed files:** `channel_heads/features/earth_paths.py` (new),
+  `channel_heads/geometric_analysis.py`, `channel_heads/rasterizer.py` (safe
+  import repoint only), `tests/test_geometric_analysis.py`, handoff docs.
+- **Forbidden files:** asymmetry/analyzer/labeling/enrichment moves, `data/`,
+  root `/models/`, notebooks, generated outputs.
+- **Tests to run:** `tests/test_geometric_analysis.py tests/test_rasterizer.py`,
+  then full pytest.
+- **Suggested commit:** `refactor(features): extract Earth path helpers`
+- **Stop condition:** Stop if any path-tracing branch choice, QC flag, or
+  coordinate convention would change.
+
+## Slice 9 (original) — Data cleanup dry-run (later)
 
 - **Goal:** Produce a **dry-run only** report of candidate stale/generated data
   per `docs/DATA_STATUS.md`. No deletion, no moves.
