@@ -342,7 +342,18 @@ Standard tests:
 > slice.
 > Commit: `refactor(training): add Earth regime package foundations`.
 
-## Slice 16 — Repoint Earth/regime scripts to package foundations (NEXT)
+## Slice 16a — Repoint low-risk Earth/regime scripts to package foundations (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. `scripts/train_cnn_baseline.py`,
+> `scripts/train_cnn_regime.py`, `scripts/train_cnn_multiseed.py`, and
+> `scripts/eval_lobo_cv.py` now wrap the package foundations added in
+> `442d04d`. Manifest filtering, Taiwan holdout/CV-pool selection,
+> deterministic validation splits, multi-seed split seeding, LOBO dataset map,
+> fold-AUC skip behavior, output schemas, output paths, CLI/defaults, and
+> logging/printing surfaces are preserved.
+> Commit: `refactor(scripts): wrap low-risk Earth regime training scripts`.
+
+## Slice 16b — Repoint remaining Earth/regime scripts to package foundations (NEXT)
 
 - **Goal:** Convert the transitional Earth/regime scripts to thin wrappers or
   direct callers of the new package foundations as a separate bounded slice.
@@ -350,10 +361,11 @@ Standard tests:
   threshold policy, strict/lenient CNN-loading behavior, metric schema, and
   numeric output.
 - **Transitional scripts:** `scripts/build_earth_features_regime.py`,
-  `scripts/build_cnn_patches_regime.py`, `scripts/eval_lobo_cv.py`,
-  `scripts/train_cnn_baseline.py`, `scripts/train_cnn_regime.py`,
-  `scripts/train_cnn_multiseed.py`, `scripts/train_combined_xgb_phase6b.py`,
-  and `scripts/train_combined_xgb_regime.py`.
+  `scripts/build_cnn_patches_regime.py`,
+  `scripts/train_combined_xgb_phase6b.py`, and
+  `scripts/train_combined_xgb_regime.py`. `scripts/run_mars_combined_regime.py`
+  and `scripts/run_regime_pipeline.sh` are intentionally out of scope unless
+  explicitly requested.
 - **Allowed files:** the transitional scripts above, package `__init__` files
   only if exposure is needed, focused tests/import checks, and handoff docs.
 - **Forbidden files:** `data/`, root `/models/`, notebooks, generated outputs,

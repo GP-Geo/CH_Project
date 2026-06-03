@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -32,9 +31,14 @@ from channel_heads.training.cnn import (
     DEFAULT_LR,
     DEFAULT_PATIENCE,
     DEFAULT_WEIGHT_DECAY,
-    HOLDOUT_BASIN,
     pick_device,
     train_cnn,
+)
+from channel_heads.training.datasets import (
+    HOLDOUT_BASIN,
+    cv_pool,
+    deterministic_val_split,
+    load_valid_raster_manifest,
 )
 
 log = logging.getLogger("train_cnn_multiseed")
@@ -48,13 +52,8 @@ CONFIGS = {
 }
 
 
-def load_cv_pool(manifest_csv: Path) -> pd.DataFrame:
-    df = pd.read_csv(manifest_csv)
-    valid = df["raster_path"].notna()
-    if "raster_status" in df.columns:
-        valid &= df["raster_status"].eq("ok")
-    df = df[valid].copy().reset_index(drop=True)
-    return df[df["basin"] != HOLDOUT_BASIN].copy().reset_index(drop=True)
+def load_cv_pool(manifest_csv) -> pd.DataFrame:
+    return cv_pool(load_valid_raster_manifest(manifest_csv))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -100,10 +99,9 @@ def main(argv: list[str] | None = None) -> int:
         torch.manual_seed(seed)
         np.random.seed(seed)
 
-        val_size = max(int(len(df_cv) * args.val_frac), 10)
-        perm = np.random.default_rng(seed).permutation(len(df_cv))
-        df_val = df_cv.iloc[perm[:val_size]].reset_index(drop=True)
-        df_train = df_cv.iloc[perm[val_size:]].reset_index(drop=True)
+        df_train, df_val = deterministic_val_split(
+            df_cv, val_frac=args.val_frac, seed=seed
+        )
 
         model, history = train_cnn(
             df_train,

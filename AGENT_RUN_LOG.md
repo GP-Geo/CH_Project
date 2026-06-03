@@ -4,6 +4,42 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Low-risk Earth/regime script wrappers
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `442d04d`
+- **Task:** Convert only the low-risk Earth/regime scripts to call the package
+  foundations added in `442d04d`; leave feature/patch builders and pipeline
+  scripts untouched.
+- **Scripts converted:**
+  - `scripts/train_cnn_baseline.py` — uses
+    `training.datasets.load_valid_raster_manifest`, `cv_pool`, and
+    `deterministic_val_split`.
+  - `scripts/train_cnn_regime.py` — same helper conversion for regime manifests
+    and Taiwan holdout validation split.
+  - `scripts/train_cnn_multiseed.py` — uses package manifest/CV helpers and the
+    per-seed deterministic split helper while preserving torch/numpy seeding and
+    best-seed selection.
+  - `scripts/eval_lobo_cv.py` — wraps `channel_heads.eval.lobo` for dataset
+    paths and LOBO report; retains script-level constants and the `lobo` alias.
+- **Left unchanged:** `scripts/build_earth_features_regime.py`,
+  `scripts/build_cnn_patches_regime.py`, `scripts/run_mars_combined_regime.py`,
+  `scripts/run_regime_pipeline.sh`, `scripts/train_combined_xgb_phase6b.py`,
+  and `scripts/train_combined_xgb_regime.py`.
+- **Preserved:** CLI arguments/defaults, CNN training defaults, Taiwan holdout
+  behavior, validation split formula/index order, manifest filtering,
+  artifact/model/history paths and filenames, multi-seed seed loop/best-model
+  selection, LOBO dataset map, fold-AUC skip behavior, LOBO output schema/path,
+  and logging/printed output.
+- **Validation:** import smoke for all four changed scripts passed. Focused
+  pytest (`tests/test_training_datasets.py tests/test_training_regime.py
+  tests/test_eval_lobo.py tests/test_cnn_consolidation.py`) -> 55 passed,
+  1 warning. Full pytest -> 571 passed, 7 warnings. `git diff --check` clean.
+  Targeted ruff on changed scripts -> clean.
+- **Next step:** Convert the remaining transitional scripts in a separate
+  slice, starting with the combined-XGB trainers or the regime patch/feature
+  builders only if behavior can be pinned without changing scientific output.
+
 ## 2026-06-03 — Earth/regime package foundations recovery
 
 - **Branch:** `refactor/package-first-architecture`

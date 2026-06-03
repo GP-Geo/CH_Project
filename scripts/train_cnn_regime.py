@@ -22,7 +22,6 @@ from __future__ import annotations
 import argparse
 import logging
 
-import numpy as np
 import pandas as pd
 import torch
 
@@ -38,10 +37,14 @@ from channel_heads.training.cnn import (
     DEFAULT_LR,
     DEFAULT_PATIENCE,
     DEFAULT_WEIGHT_DECAY,
-    HOLDOUT_BASIN,
-    RANDOM_STATE,
     pick_device,
     train_cnn,
+)
+from channel_heads.training.datasets import (
+    HOLDOUT_BASIN,
+    cv_pool,
+    deterministic_val_split,
+    load_valid_raster_manifest,
 )
 
 log = logging.getLogger("train_cnn_regime")
@@ -74,11 +77,7 @@ def main(argv: list[str] | None = None) -> int:
         log.error("Missing manifest: %s — run Step 3 first.", manifest_csv)
         return 1
 
-    df = pd.read_csv(manifest_csv)
-    valid_mask = df["raster_path"].notna()
-    if "raster_status" in df.columns:
-        valid_mask &= df["raster_status"].eq("ok")
-    df = df[valid_mask].copy().reset_index(drop=True)
+    df = load_valid_raster_manifest(manifest_csv)
     log.info(
         "Manifest: %d rows with rasters, %d basins; y=%d/%d touching",
         len(df),
@@ -89,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # LOBO holdout: Taiwan never enters training/val. If Taiwan is absent
     # (e.g., regime dropped it), proceed with all available basins.
-    df_cv = df[df["basin"] != HOLDOUT_BASIN].copy().reset_index(drop=True)
+    df_cv = cv_pool(df)
     n_holdout = int((df["basin"] == HOLDOUT_BASIN).sum())
     log.info(
         "CV pool: %d rows from %d basins (holdout %s: %d rows)",
@@ -103,12 +102,7 @@ def main(argv: list[str] | None = None) -> int:
         log.error("CV pool too small (%d rows) — aborting.", len(df_cv))
         return 1
 
-    val_size = max(int(len(df_cv) * args.val_frac), 10)
-    perm = np.random.default_rng(RANDOM_STATE).permutation(len(df_cv))
-    val_idx = perm[:val_size]
-    train_idx = perm[val_size:]
-    df_train = df_cv.iloc[train_idx].reset_index(drop=True)
-    df_val = df_cv.iloc[val_idx].reset_index(drop=True)
+    df_train, df_val = deterministic_val_split(df_cv, val_frac=args.val_frac)
     log.info(
         "Train: %d (%.1f%% touching)  Val: %d (%.1f%% touching)",
         len(df_train),

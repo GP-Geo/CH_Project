@@ -8,12 +8,12 @@ _Last updated: 2026-06-03_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** Earth/regime package foundations added
-  (`training/datasets.py`, `training/xgboost.py`, `training/regime.py`,
-  `eval/lobo.py`; see `AGENT_RUN_LOG.md`). Prior stable commit moved regime
-  inference helpers into `models/regime.py`.
-- **Working tree:** clean at time of writing after the Earth/regime package
-  foundation commit.
+- **Latest stable commit:** Low-risk Earth/regime scripts now wrap the package
+  foundations (`train_cnn_baseline.py`, `train_cnn_regime.py`,
+  `train_cnn_multiseed.py`, `eval_lobo_cv.py`; see `AGENT_RUN_LOG.md`). Prior
+  stable commit added the Earth/regime package foundations.
+- **Working tree:** clean at time of writing after the low-risk Earth/regime
+  script-wrapper commit.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
 
@@ -42,6 +42,13 @@ _Last updated: 2026-06-03_
   `channel_heads/training/regime.py`, and `channel_heads/eval/lobo.py`, with
   behavior-pinning tests. Incomplete script edits from the interrupted
   extraction were reverted; script repointing/wrapper conversion is deferred.
+- **Low-risk Earth/regime script wrappers:** `scripts/train_cnn_baseline.py`,
+  `scripts/train_cnn_regime.py`, `scripts/train_cnn_multiseed.py`, and
+  `scripts/eval_lobo_cv.py` now call the package foundations for manifest
+  filtering, Taiwan CV pool, deterministic validation split, and LOBO reporting.
+  CLI/defaults/artifact paths/output paths/log/print behavior are unchanged.
+  Feature/patch builders, combined-XGB trainers, and regime pipeline scripts
+  remain transitional.
 - **Geometric analysis audit:** ownership plan recorded in
   `AGENT_AUDIT_GEOMETRIC_ANALYSIS.md` (audit-only; no implementation moved).
 - **Rasterizer audit:** ownership plan recorded in `AGENT_AUDIT_RASTERIZER.md`
@@ -73,10 +80,10 @@ _Last updated: 2026-06-03_
 | CNN architecture / dataset / one-hot (`OutletCNN`, `OutletPairDataset`, `encode_raster_onehot`, `DEFAULT_EMBEDDING_DIM`, `DEFAULT_TARGET_SIZE`) | `channel_heads/models/cnn.py` | `channel_heads/cnn_model.py` (shim) |
 | Generic/Earth CNN embedding helpers (`extract_embeddings`, `merge_cnn_features`, `CNN_FEATURE_COLS`) | `channel_heads/models/cnn_features.py` | `channel_heads/cnn_features.py` (shim) |
 | CNN training core (`train_cnn`, `DEFAULT_*`, `HOLDOUT_BASIN`, `RANDOM_STATE`) | `channel_heads/training/cnn.py` | `channel_heads/cnn_training.py` (shim) |
-| Earth/regime raster-manifest, CV-pool, split, and combined feature constants (foundation only) | `channel_heads/training/datasets.py` | `scripts/train_cnn_baseline.py`, `scripts/train_cnn_regime.py`, `scripts/train_cnn_multiseed.py`, `scripts/train_combined_xgb_phase6b.py`, and `scripts/train_combined_xgb_regime.py` remain transitional until the next wrapper-conversion slice |
+| Earth/regime raster-manifest, CV-pool, split, and combined feature constants | `channel_heads/training/datasets.py` | `scripts/train_cnn_baseline.py`, `scripts/train_cnn_regime.py`, and `scripts/train_cnn_multiseed.py` call the package helpers; `scripts/train_combined_xgb_phase6b.py` and `scripts/train_combined_xgb_regime.py` remain transitional |
 | Earth combined-XGBoost training helpers: strict CNN extraction, frozen XGB config, PR-threshold policy, metrics schema, feature/threshold writers (foundation only) | `channel_heads/training/xgboost.py` | `scripts/train_combined_xgb_phase6b.py` and `scripts/train_combined_xgb_regime.py` remain transitional until the next wrapper-conversion slice |
 | Earth/regime feature-build, negative subsampling, DEM resolution, and regime stream-loader helpers (foundation only) | `channel_heads/training/regime.py` | `scripts/build_earth_features_regime.py` and `scripts/build_cnn_patches_regime.py` remain transitional until the next wrapper-conversion slice |
-| LOBO geom+CNN-embedding XGBoost diagnostic report (foundation only) | `channel_heads/eval/lobo.py` | `scripts/eval_lobo_cv.py` remains transitional until the next wrapper-conversion slice |
+| LOBO geom+CNN-embedding XGBoost diagnostic report | `channel_heads/eval/lobo.py` | `scripts/eval_lobo_cv.py` is a thin wrapper preserving script constants/output path |
 | Pure feature math | `channel_heads/features/geometry.py` | `channel_heads/geometric_analysis.py` aliases for compatibility |
 | Earth/TopoToolbox path helpers (`_build_children_from_parents`, `_trace_path_downstream`, `_compute_direction_vector`, `_trace_full_path`, `_sample_path_coords`, `_detect_cellsize`, `_euclidean_2d`, `_normalize_vector`, `EPSILON`, `MIN_EDGES_FOR_DIRECTION`) | `channel_heads/features/earth_paths.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
 | Earth lengthwise asymmetry (`PairAsymmetryResult`, `compute_delta_L`, `LengthwiseAsymmetryAnalyzer`, `compute_asymmetry_statistics`, `merge_coupling_and_asymmetry`) | `channel_heads/features/asymmetry.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
