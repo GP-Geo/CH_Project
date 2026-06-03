@@ -36,6 +36,7 @@ from channel_heads.features.earth_geometry import GeometricFeaturesAnalyzer
 from channel_heads.io.paths import EXAMPLE_DEMS, resolve_dem_path
 from channel_heads.pairing.earth import first_meet_pairs_for_outlet
 from channel_heads.pruning import apply_strategy
+from channel_heads.rasterization.earth_batch import precompute_raster_dataset
 from channel_heads.regimes import Regime
 from channel_heads.stream_utils import outlet_node_ids_from_streampoi
 from channel_heads.training.labeling import generate_labeled_dataset
@@ -363,13 +364,13 @@ def make_regime_stream_loader(regime: Regime):
     """
 
     def loader(basin: str, lat: float, z_th: float, threshold: int):
-        import topotoolbox as tt3
-
         dem_path = resolve_dem_path(basin)
         if dem_path is None or not Path(dem_path).exists():
             log.warning("DEM not found for basin '%s'", basin)
             return None
         try:
+            import topotoolbox as tt3
+
             dem = tt3.read_tif(str(dem_path))
             if z_th is not None and not np.isnan(z_th):
                 dem.z[dem.z < z_th] = np.nan
@@ -397,6 +398,79 @@ def make_regime_stream_loader(regime: Regime):
     return loader
 
 
+def regime_patch_paths(
+    regime: Regime,
+    *,
+    results_dir: Path,
+) -> tuple[Path, Path, Path]:
+    """Return master CSV, output root, and manifest path for regime patches."""
+    return (
+        results_dir / f"master_dataset_{regime.name}.csv",
+        results_dir / f"_rasters_{regime.name}",
+        results_dir / f"raster_manifest_{regime.name}.csv",
+    )
+
+
+def build_regime_patch_dataset(
+    regime: Regime,
+    *,
+    results_dir: Path,
+    target_size: int = 128,
+    stream_loader=None,
+    precompute_func=precompute_raster_dataset,
+    log_override=None,
+) -> tuple[pd.DataFrame, Path]:
+    """Rasterize CNN patches for a regime master dataset and write the manifest."""
+    master_csv, output_root, manifest_path = regime_patch_paths(
+        regime,
+        results_dir=results_dir,
+    )
+    output_root.mkdir(parents=True, exist_ok=True)
+    active_log = log if log_override is None else log_override
+    active_log.info("Rasters output root: %s", output_root)
+
+    loader = (
+        make_regime_stream_loader(regime)
+        if stream_loader is None
+        else stream_loader
+    )
+    df = precompute_func(
+        master_csv=master_csv,
+        output_dir=output_root,
+        dem_loader=loader,
+        target_size=target_size,
+        # threshold is forwarded to loader but ignored there; kept to satisfy signature.
+        threshold=0,
+    )
+
+    n_total = len(df)
+    if "raster_status" in df.columns:
+        status_counts = df["raster_status"].value_counts(dropna=False).to_dict()
+        n_ok = int((df["raster_status"] == "ok").sum())
+        active_log.info("Raster status counts: %s", status_counts)
+    else:
+        n_ok = int(df["raster_path"].notna().sum())
+    active_log.info("Rasterized %d / %d pairs", n_ok, n_total)
+
+    df.to_csv(manifest_path, index=False)
+    active_log.info("Wrote manifest -> %s", manifest_path)
+
+    failed_basins = [
+        str(name)
+        for name, sub in df.groupby("basin")
+        if (
+            int((sub["raster_status"] == "ok").sum())
+            if "raster_status" in sub.columns
+            else sub["raster_path"].notna().sum()
+        )
+        == 0
+    ]
+    if failed_basins:
+        active_log.warning("Basins with zero rasters: %s", failed_basins)
+
+    return df, manifest_path
+
+
 __all__ = [
     "NEGATIVE_RATIO",
     "RANDOM_SEED",
@@ -408,4 +482,6 @@ __all__ = [
     "stratified_subsample_negatives",
     "resolve_regime_basins",
     "make_regime_stream_loader",
+    "regime_patch_paths",
+    "build_regime_patch_dataset",
 ]

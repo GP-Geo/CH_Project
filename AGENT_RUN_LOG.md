@@ -4,6 +4,45 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Regime CNN patch-builder wrapper
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `3c4ceb8`
+- **Task:** Convert only `scripts/build_cnn_patches_regime.py` to use the
+  package regime/rasterization helpers; leave
+  `scripts/build_earth_features_regime.py`, patch/feature data, and pipeline
+  scripts untouched.
+- **Script converted:** `scripts/build_cnn_patches_regime.py` is now a CLI
+  wrapper around `channel_heads.training.regime.build_regime_patch_dataset`.
+- **Package helper added:** `channel_heads.training.regime` now owns
+  `regime_patch_paths()` and `build_regime_patch_dataset()`, which derive the
+  regime master/output/manifest paths, create the regime raster output root,
+  call canonical `rasterization.earth_batch.precompute_raster_dataset` with the
+  package regime stream loader, write the manifest, and emit the same
+  raster-status / zero-basin logging.
+- **Tests added:** `tests/test_training_regime.py` now covers regime patch
+  output root, manifest path, default `target_size=128`, `threshold=0`
+  forwarding, script import/default smoke, and mocked stream-loader
+  threshold-to-cells / z-mask / pruning behavior without real data writes.
+- **Left unchanged:** `scripts/build_earth_features_regime.py`,
+  `scripts/run_mars_combined_regime.py`, `scripts/run_regime_pipeline.sh`,
+  `data/`, root `/models/`, notebooks, generated outputs, DEMs, and trained
+  artifacts.
+- **Preserved:** CLI arguments/defaults, output root
+  `RESULTS_DIR / f"_rasters_{regime.name}"`, manifest path
+  `RESULTS_DIR / f"raster_manifest_{regime.name}.csv"`, target size default,
+  regime threshold km²-to-cells conversion, DEM z-threshold masking, pruning
+  order (`pre_remove_max_order` then `order_gap_to_prune`), and
+  `precompute_raster_dataset(..., threshold=0)`.
+- **Validation:** import smoke for `scripts/build_cnn_patches_regime.py`
+  passed. Focused pytest (`tests/test_training_regime.py tests/test_rasterizer.py
+  tests/test_mars_patches.py`) -> 61 passed. Full pytest -> 575 passed,
+  7 warnings. Targeted ruff on changed source/test files passed. `git diff
+  --check` clean.
+- **Next step:** Convert `scripts/build_earth_features_regime.py` as its own
+  bounded slice; keep real data, trained artifacts, and pipeline scripts
+  untouched unless explicitly requested.
+
 ## 2026-06-03 — Combined-XGBoost training script wrappers
 
 - **Branch:** `refactor/package-first-architecture`

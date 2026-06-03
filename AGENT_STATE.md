@@ -8,12 +8,12 @@ _Last updated: 2026-06-03_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** Combined-XGBoost training scripts now wrap the
-  package training helpers (`train_combined_xgb_phase6b.py`,
-  `train_combined_xgb_regime.py`; see `AGENT_RUN_LOG.md`). Prior stable commit
-  converted the low-risk Earth/regime scripts.
-- **Working tree:** clean at time of writing after the combined-XGBoost
-  script-wrapper commit.
+- **Latest stable commit:** Regime CNN patch builder now wraps package
+  regime/rasterization helpers (`scripts/build_cnn_patches_regime.py`; see
+  `AGENT_RUN_LOG.md`). Prior stable commits converted the low-risk
+  Earth/regime scripts and combined-XGBoost trainers.
+- **Working tree:** clean at time of writing after the regime CNN patch-builder
+  wrapper commit.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
 
@@ -55,7 +55,16 @@ _Last updated: 2026-06-03_
   config, threshold tuning, metrics assembly, and feature/threshold file
   writers. CLI/defaults/artifact paths/output paths/metrics files/log behavior,
   feature order, strict loading, and threshold policy are unchanged.
-  Feature/patch builders and regime pipeline scripts remain transitional.
+  Feature builder and regime pipeline scripts remain transitional.
+- **Regime CNN patch-builder wrapper:** `scripts/build_cnn_patches_regime.py`
+  now calls `channel_heads.training.regime` for regime patch paths,
+  regime stream loading, canonical Earth batch rasterization, output-root
+  creation, manifest writing, and raster status/basin logging. CLI/defaults,
+  output root (`RESULTS_DIR / f"_rasters_{regime.name}"`), manifest path
+  (`RESULTS_DIR / f"raster_manifest_{regime.name}.csv"`), `target_size=128`,
+  regime threshold-to-cells conversion, DEM z-threshold masking, pruning order,
+  and `precompute_raster_dataset(..., threshold=0)` behavior are unchanged.
+  `scripts/build_earth_features_regime.py` remains transitional.
 - **Geometric analysis audit:** ownership plan recorded in
   `AGENT_AUDIT_GEOMETRIC_ANALYSIS.md` (audit-only; no implementation moved).
 - **Rasterizer audit:** ownership plan recorded in `AGENT_AUDIT_RASTERIZER.md`
@@ -89,7 +98,7 @@ _Last updated: 2026-06-03_
 | CNN training core (`train_cnn`, `DEFAULT_*`, `HOLDOUT_BASIN`, `RANDOM_STATE`) | `channel_heads/training/cnn.py` | `channel_heads/cnn_training.py` (shim) |
 | Earth/regime raster-manifest, CV-pool, split, and combined feature constants | `channel_heads/training/datasets.py` | `scripts/train_cnn_baseline.py`, `scripts/train_cnn_regime.py`, `scripts/train_cnn_multiseed.py`, `scripts/train_combined_xgb_phase6b.py`, and `scripts/train_combined_xgb_regime.py` call package helpers where applicable |
 | Earth combined-XGBoost training helpers: strict CNN extraction, frozen XGB config, PR-threshold policy, metrics schema, feature/threshold writers | `channel_heads/training/xgboost.py` | `scripts/train_combined_xgb_phase6b.py` and `scripts/train_combined_xgb_regime.py` are wrappers around the package helpers |
-| Earth/regime feature-build, negative subsampling, DEM resolution, and regime stream-loader helpers (foundation only) | `channel_heads/training/regime.py` | `scripts/build_earth_features_regime.py` and `scripts/build_cnn_patches_regime.py` remain transitional until the next wrapper-conversion slice |
+| Earth/regime feature-build, negative subsampling, DEM resolution, regime stream-loader, and regime CNN patch-build orchestration helpers | `channel_heads/training/regime.py` | `scripts/build_cnn_patches_regime.py` is a wrapper; `scripts/build_earth_features_regime.py` remains transitional |
 | LOBO geom+CNN-embedding XGBoost diagnostic report | `channel_heads/eval/lobo.py` | `scripts/eval_lobo_cv.py` is a thin wrapper preserving script constants/output path |
 | Pure feature math | `channel_heads/features/geometry.py` | `channel_heads/geometric_analysis.py` aliases for compatibility |
 | Earth/TopoToolbox path helpers (`_build_children_from_parents`, `_trace_path_downstream`, `_compute_direction_vector`, `_trace_full_path`, `_sample_path_coords`, `_detect_cellsize`, `_euclidean_2d`, `_normalize_vector`, `EPSILON`, `MIN_EDGES_FOR_DIRECTION`) | `channel_heads/features/earth_paths.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |

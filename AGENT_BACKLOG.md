@@ -363,29 +363,40 @@ Standard tests:
 > artifact paths, output files, and script logging are preserved.
 > Commit: `refactor(scripts): wrap combined XGBoost training scripts`.
 
-## Slice 16c — Repoint remaining Earth/regime feature and patch builders (NEXT)
+## Slice 16c — Repoint regime CNN patch builder (DONE)
 
-- **Goal:** Convert the transitional Earth/regime scripts to thin wrappers or
-  direct callers of the new package foundations as a separate bounded slice.
-  Preserve every CLI argument, model path, output path, feature order,
-  threshold policy, strict/lenient CNN-loading behavior, metric schema, and
-  numeric output.
-- **Transitional scripts:** `scripts/build_earth_features_regime.py`,
-  `scripts/build_cnn_patches_regime.py`. `scripts/run_mars_combined_regime.py`
-  and `scripts/run_regime_pipeline.sh` are intentionally out of scope unless
-  explicitly requested.
-- **Allowed files:** the transitional scripts above, package `__init__` files
-  only if exposure is needed, focused tests/import checks, and handoff docs.
+> Completed — see `AGENT_RUN_LOG.md`. `scripts/build_cnn_patches_regime.py`
+> now wraps `channel_heads.training.regime.build_regime_patch_dataset`, which
+> uses the package regime stream loader and canonical Earth batch rasterization.
+> CLI/defaults, output root, manifest path, target size, threshold-to-cells
+> conversion, DEM z-threshold masking, pruning order, and
+> `precompute_raster_dataset(..., threshold=0)` behavior are preserved.
+> Commit: `refactor(scripts): wrap regime CNN patch builder`.
+
+## Slice 16d — Repoint remaining Earth/regime feature builder (NEXT)
+
+- **Goal:** Convert `scripts/build_earth_features_regime.py` to a thin wrapper
+  or direct caller of the package regime foundations as a separate bounded
+  slice. Preserve every CLI argument, output path, feature order, regime
+  threshold/pruning policy, negative-sampling behavior, metric/schema column,
+  and numeric output.
+- **Transitional script:** `scripts/build_earth_features_regime.py`.
+  `scripts/build_cnn_patches_regime.py` is now a wrapper.
+  `scripts/run_mars_combined_regime.py` and `scripts/run_regime_pipeline.sh`
+  are intentionally out of scope unless explicitly requested.
+- **Allowed files:** `scripts/build_earth_features_regime.py`,
+  `channel_heads/training/regime.py` only if a small helper addition is needed,
+  focused tests/import checks, and handoff docs.
 - **Forbidden files:** `data/`, root `/models/`, notebooks, generated outputs,
   raw DEMs/shapefiles/GeoPackages, trained artifacts, and unrelated package
   refactors.
 - **Tests to run:** focused script import/smoke checks, the Earth/regime package
   tests, then full `conda run -n ch-heads python -m pytest`, `git diff --check`,
   and ruff only if available.
-- **Suggested commit:** `refactor(scripts): repoint Earth regime scripts to training package`
-- **Stop condition:** Stop if any script conversion would alter scientific
-  behavior, CLI compatibility, artifact paths, thresholds, feature order,
-  prediction schema, class counts, or numeric output.
+- **Suggested commit:** `refactor(scripts): wrap regime Earth feature builder`
+- **Stop condition:** Stop if conversion would alter scientific behavior, CLI
+  compatibility, artifact paths, thresholds, feature order, prediction schema,
+  class counts, or numeric output.
 
 ## Slice 9 (original) — Data cleanup dry-run (later)
 
