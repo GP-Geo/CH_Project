@@ -8,12 +8,12 @@ _Last updated: 2026-06-03_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** Regime CNN patch builder now wraps package
-  regime/rasterization helpers (`scripts/build_cnn_patches_regime.py`; see
-  `AGENT_RUN_LOG.md`). Prior stable commits converted the low-risk
-  Earth/regime scripts and combined-XGBoost trainers.
-- **Working tree:** clean at time of writing after the regime CNN patch-builder
-  wrapper commit.
+- **Latest stable commit:** Regime Earth feature builder now wraps package
+  regime helpers (`scripts/build_earth_features_regime.py`; see
+  `AGENT_RUN_LOG.md`). All Earth/regime training/eval/patch/feature scripts
+  are now wrappers.
+- **Working tree:** clean at time of writing after the regime Earth feature
+  builder wrapper commit.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
 
@@ -48,14 +48,13 @@ _Last updated: 2026-06-03_
   filtering, Taiwan CV pool, deterministic validation split, and LOBO reporting.
   CLI/defaults/artifact paths/output paths/log/print behavior are unchanged.
   Feature/patch builders, combined-XGB trainers, and regime pipeline scripts
-  remain transitional.
+  were converted in later bounded slices where applicable.
 - **Combined-XGBoost script wrappers:** `scripts/train_combined_xgb_phase6b.py`
   and `scripts/train_combined_xgb_regime.py` now call
   `channel_heads.training.xgboost` for strict CNN extraction, frozen XGBoost
   config, threshold tuning, metrics assembly, and feature/threshold file
   writers. CLI/defaults/artifact paths/output paths/metrics files/log behavior,
   feature order, strict loading, and threshold policy are unchanged.
-  Feature builder and regime pipeline scripts remain transitional.
 - **Regime CNN patch-builder wrapper:** `scripts/build_cnn_patches_regime.py`
   now calls `channel_heads.training.regime` for regime patch paths,
   regime stream loading, canonical Earth batch rasterization, output-root
@@ -64,7 +63,14 @@ _Last updated: 2026-06-03_
   (`RESULTS_DIR / f"raster_manifest_{regime.name}.csv"`), `target_size=128`,
   regime threshold-to-cells conversion, DEM z-threshold masking, pruning order,
   and `precompute_raster_dataset(..., threshold=0)` behavior are unchanged.
-  `scripts/build_earth_features_regime.py` remains transitional.
+- **Regime Earth feature-builder wrapper:** `scripts/build_earth_features_regime.py`
+  now calls `channel_heads.training.regime.build_regime_feature_dataset` for
+  basin resolution, per-basin cache handling, stats writing, optional master
+  assembly, hard-negative filtering, and stratified negative subsampling.
+  CLI/defaults, cache paths, stats/master paths, regime threshold/pruning
+  behavior, `CONNECTIVITY=8`, min basin / max outlet defaults, per-outlet
+  prefilter distance, `coupling_n_workers`, hard-negative parameters, and
+  subsampling policy are unchanged.
 - **Geometric analysis audit:** ownership plan recorded in
   `AGENT_AUDIT_GEOMETRIC_ANALYSIS.md` (audit-only; no implementation moved).
 - **Rasterizer audit:** ownership plan recorded in `AGENT_AUDIT_RASTERIZER.md`
@@ -98,7 +104,7 @@ _Last updated: 2026-06-03_
 | CNN training core (`train_cnn`, `DEFAULT_*`, `HOLDOUT_BASIN`, `RANDOM_STATE`) | `channel_heads/training/cnn.py` | `channel_heads/cnn_training.py` (shim) |
 | Earth/regime raster-manifest, CV-pool, split, and combined feature constants | `channel_heads/training/datasets.py` | `scripts/train_cnn_baseline.py`, `scripts/train_cnn_regime.py`, `scripts/train_cnn_multiseed.py`, `scripts/train_combined_xgb_phase6b.py`, and `scripts/train_combined_xgb_regime.py` call package helpers where applicable |
 | Earth combined-XGBoost training helpers: strict CNN extraction, frozen XGB config, PR-threshold policy, metrics schema, feature/threshold writers | `channel_heads/training/xgboost.py` | `scripts/train_combined_xgb_phase6b.py` and `scripts/train_combined_xgb_regime.py` are wrappers around the package helpers |
-| Earth/regime feature-build, negative subsampling, DEM resolution, regime stream-loader, and regime CNN patch-build orchestration helpers | `channel_heads/training/regime.py` | `scripts/build_cnn_patches_regime.py` is a wrapper; `scripts/build_earth_features_regime.py` remains transitional |
+| Earth/regime feature-build, negative subsampling, DEM resolution, regime stream-loader, Earth feature-build orchestration, and regime CNN patch-build orchestration helpers | `channel_heads/training/regime.py` | `scripts/build_earth_features_regime.py` and `scripts/build_cnn_patches_regime.py` are wrappers |
 | LOBO geom+CNN-embedding XGBoost diagnostic report | `channel_heads/eval/lobo.py` | `scripts/eval_lobo_cv.py` is a thin wrapper preserving script constants/output path |
 | Pure feature math | `channel_heads/features/geometry.py` | `channel_heads/geometric_analysis.py` aliases for compatibility |
 | Earth/TopoToolbox path helpers (`_build_children_from_parents`, `_trace_path_downstream`, `_compute_direction_vector`, `_trace_full_path`, `_sample_path_coords`, `_detect_cellsize`, `_euclidean_2d`, `_normalize_vector`, `EPSILON`, `MIN_EDGES_FOR_DIRECTION`) | `channel_heads/features/earth_paths.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
@@ -362,11 +368,10 @@ _Last updated: 2026-06-03_
   (`features.asymmetry`, `features.earth_geometry`, `features.earth_enrichment`,
   `training.labeling`, `units`) instead of from `geometric_analysis`. The shim
   is unchanged and still re-exports everything (no exports removed).
-  `scripts/build_earth_features_regime.py` was already importing via the
-  top-level `channel_heads` public API (not the shim), so it needed no change
-  and now resolves transitively to the canonical modules. Top-level, canonical,
-  and shim objects remain identical (pinned by the existing
-  `Test*Extraction` parity tests).
+  `scripts/build_earth_features_regime.py` now wraps
+  `channel_heads.training.regime` helpers, which import directly from the
+  canonical feature/labeling modules. Top-level, canonical, and shim objects
+  remain identical (pinned by the existing `Test*Extraction` parity tests).
 - **Shared raster schema extraction (Raster R1): DONE.**
   `BACKGROUND`, `BRANCH_A`, `BRANCH_B`, `OTHER_STREAMS`, `CONFLUENCE_MARKER`,
   `NUM_CLASSES`, `CLASS_LABELS`, and `PATCH_FLAG_COLUMNS` now live canonically

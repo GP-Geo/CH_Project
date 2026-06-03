@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -39,7 +40,10 @@ from channel_heads.pruning import apply_strategy
 from channel_heads.rasterization.earth_batch import precompute_raster_dataset
 from channel_heads.regimes import Regime
 from channel_heads.stream_utils import outlet_node_ids_from_streampoi
-from channel_heads.training.labeling import generate_labeled_dataset
+from channel_heads.training.labeling import (
+    filter_hard_negatives,
+    generate_labeled_dataset,
+)
 
 log = logging.getLogger(__name__)
 
@@ -87,10 +91,12 @@ def process_basin(
     regime: Regime,
     min_basin_px: int,
     max_outlets: int | None,
+    log_override=None,
 ) -> tuple[pd.DataFrame | None, dict]:
     """Build the regime-pruned StreamObject and run the full pair pipeline."""
     import topotoolbox as tt3
 
+    active_log = log if log_override is None else log_override
     stats: dict = {
         "basin": basin_name,
         "n_outlets": 0,
@@ -139,7 +145,7 @@ def process_basin(
         n_nodes_pruned = int(np.asarray(s.node_indices[0]).size)
         stats["n_nodes_pruned"] = n_nodes_pruned
 
-        log.info(
+        active_log.info(
             "[%s] pixel=%.1fm  T=%.3fkm^2 (%d cells)  full=%d nodes -> pruned=%d nodes",
             basin_name,
             pixel_size_m,
@@ -186,7 +192,7 @@ def process_basin(
                     np.argsort(sizes[keep_idx])[::-1][:max_outlets]
                 ]
             outlets_kept = outlets[keep_idx]
-            log.info(
+            active_log.info(
                 "[%s] %d outlets -> %d kept (min_px=%d, max=%s)",
                 basin_name,
                 len(outlets),
@@ -220,23 +226,22 @@ def process_basin(
         # instead of a fixed 300-cell guess. Floor at min_prefilter_px so
         # pathologically small basins still get a sane lookup window.
         sizes_kept = sizes[keep_idx]
-        import math as _math
-
         outlet_results: list[pd.DataFrame] = []
         for oid, basin_px in zip(outlets_kept, sizes_kept):
             try:
                 # Override the analyzer's prefilter for this outlet.
-                pf_px = max(
-                    regime.min_prefilter_px,
-                    2.0 * _math.sqrt(float(basin_px)),
-                )
+                pf_px = regime_prefilter_distance(regime, basin_px)
                 coupling_an._prefilter_distance = pf_px
                 df_o = _process_outlet(
                     int(oid), s, coupling_an, asym_an, geom_an,
                     n_workers=regime.coupling_n_workers,
                 )
             except Exception:  # noqa: BLE001 — one bad outlet shouldn't kill the basin
-                log.exception("[%s] outlet=%d failed; skipping", basin_name, int(oid))
+                active_log.exception(
+                    "[%s] outlet=%d failed; skipping",
+                    basin_name,
+                    int(oid),
+                )
                 continue
             finally:
                 coupling_an.clear_cache()
@@ -260,7 +265,7 @@ def process_basin(
     except Exception as exc:  # noqa: BLE001
         stats["error"] = str(exc)
         stats["time_s"] = time.time() - t0
-        log.exception("[%s] processing failed", basin_name)
+        active_log.exception("[%s] processing failed", basin_name)
         return None, stats
 
 
@@ -310,6 +315,13 @@ def stratified_subsample_negatives(
     return out.sort_values(["basin", "outlet", "confluence"], ignore_index=True)
 
 
+def regime_prefilter_distance(regime: Regime, outlet_basin_px: float) -> float:
+    """Return the per-outlet prefilter distance used by regime feature builds."""
+    import math as _math
+
+    return max(regime.min_prefilter_px, 2.0 * _math.sqrt(float(outlet_basin_px)))
+
+
 # ---------------------------------------------------------------------------
 # DEM discovery — same DEM→basin mapping as nb00
 # ---------------------------------------------------------------------------
@@ -350,6 +362,184 @@ def resolve_regime_basins(requested: list[str] | None) -> list[tuple[str, Path]]
             continue
         pairs.append((basin_name, dem_path))
     return pairs
+
+
+def regime_feature_paths(
+    regime: Regime,
+    *,
+    results_dir: Path,
+) -> tuple[Path, Path]:
+    """Return per-regime stats CSV and master dataset paths."""
+    return (
+        results_dir / f"build_earth_features_{regime.name}_stats.csv",
+        results_dir / f"master_dataset_{regime.name}.csv",
+    )
+
+
+def regime_basin_feature_cache_path(
+    basin_name: str,
+    regime: Regime,
+    *,
+    results_dir: Path,
+) -> Path:
+    """Return the per-basin full-feature cache path for a regime."""
+    return results_dir / basin_name / f"full_features_{regime.name}.csv"
+
+
+def assemble_regime_master_dataset(
+    df_combined: pd.DataFrame,
+    *,
+    filter_func: Callable[..., pd.DataFrame] = filter_hard_negatives,
+    subsample_func: Callable[..., pd.DataFrame] = stratified_subsample_negatives,
+    log_override=None,
+) -> pd.DataFrame:
+    """Apply the regime hard-negative filter and stratified subsampling."""
+    active_log = log if log_override is None else log_override
+    df_filtered = filter_func(
+        df_combined,
+        max_L_ratio=HARD_NEG_MAX_L_RATIO,
+        max_dist_ratio=HARD_NEG_MAX_DIST_RATIO,
+    )
+    active_log.info(
+        "After filter_hard_negatives: %d rows (touching=%d, not=%d)",
+        len(df_filtered),
+        int((df_filtered["y"] == 1).sum()),
+        int((df_filtered["y"] == 0).sum()),
+    )
+
+    df_master = subsample_func(
+        df_filtered,
+        target_ratio=NEGATIVE_RATIO,
+        random_state=RANDOM_SEED,
+    )
+    active_log.info(
+        "After subsample (target neg:pos = %.1f:1): %d rows (touching=%d, not=%d)",
+        NEGATIVE_RATIO,
+        len(df_master),
+        int((df_master["y"] == 1).sum()),
+        int((df_master["y"] == 0).sum()),
+    )
+    return df_master
+
+
+def build_regime_feature_dataset(
+    regime: Regime,
+    *,
+    results_dir: Path,
+    requested_basins: list[str] | None = None,
+    force: bool = False,
+    no_master: bool = False,
+    min_basin_px: int = 500,
+    max_outlets: int = 40,
+    resolve_basins_func: Callable[[list[str] | None], list[tuple[str, Path]]] = resolve_regime_basins,
+    process_basin_func: Callable[..., tuple[pd.DataFrame | None, dict]] = process_basin,
+    filter_func: Callable[..., pd.DataFrame] = filter_hard_negatives,
+    subsample_func: Callable[..., pd.DataFrame] = stratified_subsample_negatives,
+    gc_collect: Callable[[], object] | None = None,
+    log_override=None,
+) -> int:
+    """Build per-basin regime Earth features and optionally the master dataset."""
+    import gc
+
+    active_log = log if log_override is None else log_override
+    collect = gc.collect if gc_collect is None else gc_collect
+
+    basins = resolve_basins_func(requested_basins)
+    if not basins:
+        active_log.error("No basins available; aborting.")
+        return 1
+    active_log.info("Processing %d basins", len(basins))
+
+    all_results: list[pd.DataFrame] = []
+    all_stats: list[dict] = []
+    t_total = time.time()
+
+    for basin_name, dem_path in basins:
+        cache_path = regime_basin_feature_cache_path(
+            basin_name,
+            regime,
+            results_dir=results_dir,
+        )
+        if cache_path.exists() and not force:
+            active_log.info("[%s] loading cache %s", basin_name, cache_path)
+            df_basin = pd.read_csv(cache_path)
+            all_results.append(df_basin)
+            all_stats.append(
+                {
+                    "basin": basin_name,
+                    "n_pairs": int(len(df_basin)),
+                    "n_touching": int((df_basin["y"] == 1).sum()),
+                    "n_not_touching": int((df_basin["y"] == 0).sum()),
+                    "from_cache": True,
+                    "time_s": 0.0,
+                }
+            )
+            continue
+
+        df_basin, stats = process_basin_func(
+            basin_name,
+            dem_path,
+            regime,
+            min_basin_px=min_basin_px,
+            max_outlets=(None if max_outlets == 0 else max_outlets),
+            log_override=active_log,
+        )
+        all_stats.append({**stats, "from_cache": False})
+
+        if df_basin is None or df_basin.empty:
+            active_log.error(
+                "[%s] FAILED in %.1fs: %s",
+                basin_name,
+                stats.get("time_s", 0.0),
+                stats.get("error"),
+            )
+        else:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            df_basin.to_csv(cache_path, index=False)
+            active_log.info(
+                "[%s] %d pairs (%d touching) in %.1fs -> %s",
+                basin_name,
+                stats["n_pairs"],
+                stats["n_touching"],
+                stats["time_s"],
+                cache_path,
+            )
+            all_results.append(df_basin)
+
+        collect()
+
+    active_log.info("Per-basin loop done in %.1fs", time.time() - t_total)
+
+    stats_csv, master_path = regime_feature_paths(regime, results_dir=results_dir)
+    pd.DataFrame(all_stats).to_csv(stats_csv, index=False)
+    active_log.info("Wrote per-basin stats -> %s", stats_csv)
+
+    if no_master or not all_results:
+        active_log.info("Skipping master dataset assembly (no-master=%s).", no_master)
+        return 0
+
+    df_combined = pd.concat(all_results, ignore_index=True)
+    active_log.info(
+        "Combined: %d rows from %d basins (touching=%d, not=%d)",
+        len(df_combined),
+        df_combined["basin"].nunique(),
+        int((df_combined["y"] == 1).sum()),
+        int((df_combined["y"] == 0).sum()),
+    )
+
+    df_master = assemble_regime_master_dataset(
+        df_combined,
+        filter_func=filter_func,
+        subsample_func=subsample_func,
+        log_override=active_log,
+    )
+    df_master.to_csv(master_path, index=False)
+    active_log.info(
+        "Wrote master dataset -> %s (%.2f MB)",
+        master_path,
+        master_path.stat().st_size / 1e6,
+    )
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -480,7 +670,12 @@ __all__ = [
     "DEM_TO_BASIN",
     "process_basin",
     "stratified_subsample_negatives",
+    "regime_prefilter_distance",
     "resolve_regime_basins",
+    "regime_feature_paths",
+    "regime_basin_feature_cache_path",
+    "assemble_regime_master_dataset",
+    "build_regime_feature_dataset",
     "make_regime_stream_loader",
     "regime_patch_paths",
     "build_regime_patch_dataset",

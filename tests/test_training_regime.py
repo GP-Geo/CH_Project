@@ -82,6 +82,36 @@ class TestStratifiedSubsample:
         expected = out1.sort_values(["basin", "outlet", "confluence"], ignore_index=True)
         pd.testing.assert_frame_equal(out1, expected)
 
+    def test_largest_basin_adjusts_rounding_diff(self):
+        positives = pd.DataFrame(
+            {
+                "y": [1, 1],
+                "basin": ["p", "p"],
+                "outlet": [0, 0],
+                "confluence": [0, 1],
+            }
+        )
+        negatives = pd.DataFrame(
+            {
+                "y": [0] * 6,
+                "basin": ["a", "a", "b", "b", "c", "c"],
+                "outlet": [2, 1, 1, 2, 1, 2],
+                "confluence": [20, 10, 10, 20, 10, 20],
+            }
+        )
+        df = pd.concat([positives, negatives], ignore_index=True)
+
+        out = regime.stratified_subsample_negatives(
+            df,
+            target_ratio=2.0,
+            random_state=7,
+        )
+
+        neg_counts = out[out["y"] == 0].groupby("basin").size().to_dict()
+        assert neg_counts == {"a": 2, "b": 1, "c": 1}
+        expected = out.sort_values(["basin", "outlet", "confluence"], ignore_index=True)
+        pd.testing.assert_frame_equal(out, expected)
+
 
 class TestResolveRegimeBasins:
     def test_filters_to_existing_dems_and_requested(self, tmp_path, monkeypatch):
@@ -277,3 +307,258 @@ class TestRegimePatchBuild:
             "target_size": 128,
             "log_name": "build_cnn_patches_regime",
         }
+
+
+class TestRegimeFeatureBuild:
+    def test_feature_paths_use_regime_outputs(self, tmp_path):
+        from channel_heads.regimes import REGIMES
+
+        stats_path, master_path = regime.regime_feature_paths(
+            REGIMES["regC"],
+            results_dir=tmp_path,
+        )
+        cache_path = regime.regime_basin_feature_cache_path(
+            "inyo",
+            REGIMES["regC"],
+            results_dir=tmp_path,
+        )
+
+        assert stats_path == tmp_path / "build_earth_features_regC_stats.csv"
+        assert master_path == tmp_path / "master_dataset_regC.csv"
+        assert cache_path == tmp_path / "inyo" / "full_features_regC.csv"
+
+    def test_prefilter_distance_formula(self):
+        from channel_heads.regimes import REGIMES
+
+        regime_cfg = REGIMES["regA"]
+        assert regime.regime_prefilter_distance(regime_cfg, 1) == 30.0
+        assert regime.regime_prefilter_distance(regime_cfg, 400) == 40.0
+
+    def test_assemble_master_forwards_filter_and_subsample_params(self):
+        calls = {}
+        df = pd.DataFrame(
+            {
+                "basin": ["a", "a"],
+                "outlet": [1, 1],
+                "confluence": [2, 3],
+                "y": [1, 0],
+            }
+        )
+
+        def fake_filter(df_in, *, max_L_ratio, max_dist_ratio):
+            calls["filter"] = (df_in.copy(), max_L_ratio, max_dist_ratio)
+            return df_in
+
+        def fake_subsample(df_in, *, target_ratio, random_state):
+            calls["subsample"] = (df_in.copy(), target_ratio, random_state)
+            return df_in
+
+        out = regime.assemble_regime_master_dataset(
+            df,
+            filter_func=fake_filter,
+            subsample_func=fake_subsample,
+        )
+
+        pd.testing.assert_frame_equal(out, df)
+        assert calls["filter"][1:] == (3.0, 5.0)
+        assert calls["subsample"][1:] == (3.0, 42)
+
+    def test_build_feature_dataset_loads_cache_unless_force(self, tmp_path):
+        from channel_heads.regimes import REGIMES
+
+        regime_cfg = REGIMES["regB"]
+        cache_path = tmp_path / "inyo" / "full_features_regB.csv"
+        cache_path.parent.mkdir()
+        pd.DataFrame(
+            {
+                "basin": ["inyo", "inyo"],
+                "outlet": [1, 1],
+                "confluence": [2, 3],
+                "y": [1, 0],
+            }
+        ).to_csv(cache_path, index=False)
+        calls = {"processed": 0, "gc": 0}
+
+        def fake_resolve(requested):
+            calls["requested"] = requested
+            return [("inyo", tmp_path / "inyo.tif")]
+
+        def fake_process(*args, **kwargs):
+            calls["processed"] += 1
+            raise AssertionError("cache should be used")
+
+        def fake_gc():
+            calls["gc"] += 1
+
+        rc = regime.build_regime_feature_dataset(
+            regime_cfg,
+            results_dir=tmp_path,
+            requested_basins=["inyo"],
+            force=False,
+            no_master=True,
+            resolve_basins_func=fake_resolve,
+            process_basin_func=fake_process,
+            gc_collect=fake_gc,
+        )
+
+        assert rc == 0
+        assert calls == {"processed": 0, "gc": 0, "requested": ["inyo"]}
+        stats_path = tmp_path / "build_earth_features_regB_stats.csv"
+        stats = pd.read_csv(stats_path)
+        assert stats.to_dict("records") == [
+            {
+                "basin": "inyo",
+                "n_pairs": 2,
+                "n_touching": 1,
+                "n_not_touching": 1,
+                "from_cache": True,
+                "time_s": 0.0,
+            }
+        ]
+        assert not (tmp_path / "master_dataset_regB.csv").exists()
+
+    def test_build_feature_dataset_force_processes_and_writes_master(self, tmp_path):
+        from channel_heads.regimes import REGIMES
+
+        regime_cfg = REGIMES["regB"]
+        cache_path = tmp_path / "inyo" / "full_features_regB.csv"
+        cache_path.parent.mkdir()
+        pd.DataFrame(
+            {
+                "basin": ["old"],
+                "outlet": [9],
+                "confluence": [9],
+                "y": [0],
+            }
+        ).to_csv(cache_path, index=False)
+        calls = {}
+
+        def fake_resolve(_requested):
+            return [("inyo", tmp_path / "inyo.tif")]
+
+        def fake_process(
+            basin_name,
+            dem_path,
+            regime_arg,
+            *,
+            min_basin_px,
+            max_outlets,
+            log_override,
+        ):
+            calls["process"] = {
+                "basin": basin_name,
+                "dem_path": dem_path,
+                "regime": regime_arg.name,
+                "min_basin_px": min_basin_px,
+                "max_outlets": max_outlets,
+                "log_name": log_override.name,
+            }
+            return (
+                pd.DataFrame(
+                    {
+                        "basin": ["inyo", "inyo"],
+                        "outlet": [1, 1],
+                        "confluence": [2, 3],
+                        "y": [1, 0],
+                    }
+                ),
+                {
+                    "basin": "inyo",
+                    "n_pairs": 2,
+                    "n_touching": 1,
+                    "n_not_touching": 1,
+                    "time_s": 2.5,
+                    "error": None,
+                    "max_outlets": None,
+                },
+            )
+
+        def fake_filter(df_in, **kwargs):
+            calls["filter_kwargs"] = kwargs
+            return df_in
+
+        def fake_subsample(df_in, **kwargs):
+            calls["subsample_kwargs"] = kwargs
+            return df_in
+
+        rc = regime.build_regime_feature_dataset(
+            regime_cfg,
+            results_dir=tmp_path,
+            force=True,
+            max_outlets=0,
+            resolve_basins_func=fake_resolve,
+            process_basin_func=fake_process,
+            filter_func=fake_filter,
+            subsample_func=fake_subsample,
+            gc_collect=lambda: calls.setdefault("gc", 0) or calls.__setitem__("gc", 1),
+        )
+
+        assert rc == 0
+        assert calls["process"] == {
+            "basin": "inyo",
+            "dem_path": tmp_path / "inyo.tif",
+            "regime": "regB",
+            "min_basin_px": 500,
+            "max_outlets": None,
+            "log_name": "channel_heads.training.regime",
+        }
+        assert calls["filter_kwargs"] == {
+            "max_L_ratio": 3.0,
+            "max_dist_ratio": 5.0,
+        }
+        assert calls["subsample_kwargs"] == {
+            "target_ratio": 3.0,
+            "random_state": 42,
+        }
+        assert pd.read_csv(cache_path)["basin"].tolist() == ["inyo", "inyo"]
+        assert (tmp_path / "master_dataset_regB.csv").exists()
+
+    def test_build_feature_dataset_empty_basin_resolution_returns_error(self, tmp_path):
+        from channel_heads.regimes import REGIMES
+
+        rc = regime.build_regime_feature_dataset(
+            REGIMES["regA"],
+            results_dir=tmp_path,
+            resolve_basins_func=lambda requested: [],
+        )
+
+        assert rc == 1
+        assert not (tmp_path / "build_earth_features_regA_stats.csv").exists()
+
+    def test_earth_feature_script_import_smoke_and_default_args(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        script_path = (
+            Path(__file__).resolve().parents[1]
+            / "scripts"
+            / "build_earth_features_regime.py"
+        )
+        spec = importlib.util.spec_from_file_location(
+            "build_earth_features_regime_smoke",
+            script_path,
+        )
+        assert spec is not None
+        assert spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        calls = {}
+
+        def fake_build(regime_cfg, **kwargs):
+            calls["regime"] = regime_cfg.name
+            calls.update(kwargs)
+            return 0
+
+        monkeypatch.setattr(module, "RESULTS_DIR", tmp_path)
+        monkeypatch.setattr(module, "build_regime_feature_dataset", fake_build)
+
+        assert module.main(["--regime", "regA"]) == 0
+        assert calls["regime"] == "regA"
+        assert calls["results_dir"] == tmp_path
+        assert calls["requested_basins"] is None
+        assert calls["force"] is False
+        assert calls["no_master"] is False
+        assert calls["min_basin_px"] == 500
+        assert calls["max_outlets"] == 40
+        assert calls["log_override"].name == "build_earth_features_regime"

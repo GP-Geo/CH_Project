@@ -4,6 +4,47 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Regime Earth feature-builder wrapper
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `2798251`
+- **Task:** Convert only `scripts/build_earth_features_regime.py` into a
+  wrapper around package regime helpers; leave patch builder, training/eval
+  scripts, pipeline scripts, real data, generated outputs, and artifacts
+  untouched.
+- **Script converted:** `scripts/build_earth_features_regime.py` now keeps the
+  CLI/log setup and delegates to
+  `channel_heads.training.regime.build_regime_feature_dataset`.
+- **Package helpers added:** `channel_heads.training.regime` now owns
+  `regime_feature_paths()`, `regime_basin_feature_cache_path()`,
+  `regime_prefilter_distance()`, `assemble_regime_master_dataset()`, and
+  `build_regime_feature_dataset()`. The existing package `process_basin()` and
+  `resolve_regime_basins()` remain the default implementation path.
+- **Tests added:** `tests/test_training_regime.py` now covers output path
+  naming, cache load vs. force recompute behavior, no-master behavior,
+  hard-negative filter parameter forwarding, stratified subsample parameter
+  forwarding and largest-basin adjustment, prefilter distance formula, empty
+  basin resolution error behavior, and script import/default-argument smoke.
+  All tests use temp paths and mocked processors; no real data writes.
+- **Preserved:** regime presets, DEM discovery / basin resolution,
+  threshold km²-to-cells conversion, DEM z-threshold masking, `CONNECTIVITY=8`,
+  pruning order, `min_basin_px=500`, `max_outlets=40` and `0 -> None`,
+  per-outlet prefilter distance
+  `max(regime.min_prefilter_px, 2 * sqrt(outlet_basin_px))`,
+  `coupling_n_workers`, analyzer calls, hard-negative parameters
+  (`max_L_ratio=3.0`, `max_dist_ratio=5.0`), stratified negative subsampling
+  (`target_ratio=3.0`, seed `42`, basin-proportional targets, largest-basin
+  adjustment, final sort), cache path/load policy, stats CSV path, master CSV
+  path, and script logging surface.
+- **Validation:** import smoke for `scripts/build_earth_features_regime.py`
+  passed. Focused pytest (`tests/test_training_regime.py
+  tests/test_geometric_analysis.py`) -> 129 passed. Full pytest -> 583 passed,
+  7 warnings. Targeted ruff on changed source/test files passed. `git diff
+  --check` clean.
+- **Next step:** No remaining Earth/regime training/eval/patch/feature script
+  conversion is pending. Future work should be explicit and bounded, e.g. data
+  cleanup dry-run or notebook import updates only if requested.
+
 ## 2026-06-03 — Regime CNN patch-builder wrapper
 
 - **Branch:** `refactor/package-first-architecture`
