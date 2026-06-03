@@ -215,7 +215,7 @@ training can now consume these manifests. See `AGENT_STATE.md`.
 | 5 | ✅ | QA gate passed, 0 hard flags |
 | 6 | ✅ | `00_pair_sample_qa.ipynb` added |
 | 7 | ✅ | Reconciled 2026-06-04: regA regenerated, regB/regC restored; manifests resolve 0-missing |
-| 8 | ⚠️ | Stale models present; re-run after Stage 7 |
+| 8 | ⚠️ | Stale models (pre-rewrite); **Stage 7 now reconciled → ready to retrain** (next step) |
 | 9 | ⚠️ | Stale LOBO metrics; re-run after Stage 8 |
 | 10 | ⚠️ | Stale Mars inputs; re-run after Stage 8 |
 | 11 | ⚠️ | Stale predictions; re-run after Stage 10 |

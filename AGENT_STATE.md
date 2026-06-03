@@ -38,21 +38,35 @@ Key facts:
     serial path. Verified output-identical on real data (regA `inyo`, and
     finisterre 900-pair byte-for-byte), with ~2.4× speedup at 4 workers
     (process-based to sidestep the GIL; threads gave no gain).
-- **Stages 8–11:** ✅ model artifacts and Mars predictions exist in `models/` and
-  `data/Mars/model_outputs/` — built on pre-rewrite data, adequate for structural
-  testing and scientific review.
+- **Stages 8–11:** ⚠️ **stale — retrain pending.** Model artifacts and Mars
+  predictions exist in `models/` and `data/Mars/model_outputs/`, but the regime
+  CNN/XGBoost variants were trained on the *old* (pre-rewrite / interrupted)
+  rasters. Now that Stage 7 is reconciled, these are the next thing to refresh.
+  Usable for structural testing only until retrained.
 - **Stages 12–14:** 🔶 threshold sensitivity, interpretation, and figures
   notebooks in `notebooks/mars/`, `notebooks/interpretation/`, and
-  `notebooks/presentation/`.
+  `notebooks/presentation/` — runnable on current (stale) predictions; refresh
+  after the retrain.
 
-## Next actions when regime is finalised
+## Current phase (2026-06-04)
 
-1. Restore or regenerate regime rasters:
-   ```bash
-   python scripts/cli/build_cnn_patches_regime.py --regime regA -v
-   python scripts/cli/build_cnn_patches_regime.py --regime regB -v
-   python scripts/cli/build_cnn_patches_regime.py --regime regC -v
-   ```
-2. Retrain: `train_cnn_regime.py` and `train_combined_xgb_regime.py` for each regime.
-3. Rerun Mars pipeline: `run_mars_pipeline.py --stage all`.
-4. Rerun Mars inference: `run_mars_combined_regime.py`.
+**Foundation verified + Stage 7 reconciled; ready for a clean Stage 8 retrain.**
+Stages 0–7 are complete/verified: foundation (0–3) checked with S1 resolved,
+regimes frozen (4), Earth networks + pairs + labels done (5–6), and all three
+regime raster sets + manifests are clean (7, resolve 0-missing). The regime
+*models* (8) and everything downstream (9–11) are still trained on pre-rewrite
+data, so the next bounded step is to retrain on the reconciled rasters.
+
+## Next actions (Stage 8 → 11 retrain)
+
+Stage 7 rasters/manifests are already reconciled — **do not** regenerate them
+unless a regime parameter changes. The patch builder now supports
+`--workers N` (multiprocess) if you ever do regenerate.
+
+1. Retrain per regime: `train_cnn_regime.py` then `train_combined_xgb_regime.py`
+   for regA / regB / regC (or `scripts/run_regime_pipeline.sh regA|regB`).
+2. Validate: `eval_lobo_cv.py` + `retune_threshold_regime.py`; refresh
+   `models/ALL_MODELS_METRICS.csv`.
+3. Rerun Mars inference per regime: `run_mars_combined_regime.py`.
+4. Re-run Stage 12–14 notebooks (threshold sensitivity, interpretation, figures)
+   on the refreshed predictions.
