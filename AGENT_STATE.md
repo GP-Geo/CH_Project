@@ -430,9 +430,23 @@ See `STAGE_45_PLANNING.md` for the full plan.
 - No raw/source/manual data, models, notebooks, package code, raster
   regeneration, patch regeneration, or training was touched.
 
-**Next:**
-- Run Stage 7B regeneration commands from `AGENT_STAGE7_REGENERATION_PLAN.md`
-  when ready:
-  `python scripts/cli/build_cnn_patches_regime.py --regime regA|regB|regC -v`.
-- Do not proceed to Stage 8 model training/retraining or Stage 9 validation
-  until Stage 7 regenerated patches/manifests pass validation.
+**Completed (Stages 7B–11, verified 2026-06-04):**
+- Stage 7B: rasters regenerated for all three regimes (artifacts used for training,
+  may have been cleaned after training to save disk).
+- Stage 8: all regime models trained:
+  - `models/cnn_outlet_reg{A,B,C}.pt`
+  - `models/xgb_geom_plus_cnn_emb_reg{A,B,C}.json`
+  - `models/optimal_threshold_geom_plus_cnn_emb_reg{A,B,C}.txt` (regA=0.739, regB=0.761, regC=0.765)
+  - `models/ALL_MODELS_METRICS.csv` — ROC-AUC: regA=0.886, regB=0.871, regC=0.882
+- Stage 9: LOBO CV metrics (`models/lobo_cv_metrics.csv`) present; regC pooled
+  AUC (0.710) is anomalously low vs its fold mean (0.908) — worth reviewing.
+- Stage 10: CNN embeddings extracted into `data/results/master_dataset_reg{A,B,C}_with_emb.csv`.
+- Stage 11: Mars combined inference complete for all regimes:
+  `data/Mars/model_outputs/mars_combined_reg{A,B,C}_predictions.{csv,gpkg,parquet}`.
+
+**Next recommended task:**
+Stage 12 — Mars threshold sensitivity notebook:
+`notebooks/mars/05_mars_threshold_sensitivity.ipynb`
+Load Mars prediction probabilities for all three regimes, sweep threshold,
+show touching fraction and network-level statistics per regime.
+See `STAGE_ASSET_MAP.md` §Stage 12 for the full gap description.

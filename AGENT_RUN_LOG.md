@@ -4,6 +4,25 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-04 — Verify Stages 5–11 complete
+
+- **Branch:** `refactor/package-first-architecture`
+- **Task:** Verify pipeline stages 5–11 executed and update docs.
+- **Findings:**
+  - Stage 5 QA: `stage5_earth_network_qa_report.csv` exists, 17 basins, 0 hard flags, 5 soft warnings.
+  - Stage 7B: `_rasters_regA` present; regB/C rasters may have been cleaned after training. Training artifacts confirm all rasters were generated.
+  - Stage 8: `cnn_outlet_reg{A,B,C}.pt`, `xgb_geom_plus_cnn_emb_reg{A,B,C}.json`, `optimal_threshold_*_reg{A,B,C}.txt` all present (dated June 1–2). Metrics: regA ROC-AUC=0.886, regB=0.871, regC=0.882. RegC LOBO pooled AUC (0.710) anomalously low vs fold mean (0.908) — flagged for Stage 9 review.
+  - Stage 9: `lobo_cv_metrics.csv`, `ALL_MODELS_METRICS.csv` present.
+  - Stage 10: `master_dataset_reg{A,B,C}_with_emb.csv` with 4-d CNN embeddings.
+  - Stage 11: `mars_combined_reg{A,B,C}_predictions.*` all present.
+- **Actions taken:**
+  1. `STAGE_ASSET_MAP.md`: Stages 5/7/8/9/10/11 all marked ✅; metrics recorded; gap summary and priority list updated.
+  2. `AGENT_STATE.md`: recorded stages 7B–11 complete with key artifacts and metrics; next task = Stage 12.
+- **Not touched:** `data/`, `models/`, notebooks, package code.
+- **Next step:** Stage 12 — `notebooks/mars/05_mars_threshold_sensitivity.ipynb`.
+
+---
+
 ## 2026-06-03 — Stage 7A archive stale Earth regime raster artifacts
 
 - **Branch:** `refactor/package-first-architecture`
