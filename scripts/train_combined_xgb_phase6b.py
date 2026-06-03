@@ -57,26 +57,18 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import torch
-from sklearn.metrics import (
-    accuracy_score,
-    average_precision_score,
-    f1_score,
-    precision_recall_curve,
-    precision_score,
-    recall_score,
-    roc_auc_score,
-)
 from sklearn.model_selection import GroupShuffleSplit
-from torch.utils.data import DataLoader
-from xgboost import XGBClassifier
 
-from channel_heads.models.cnn import (  # noqa: E402
-    DEFAULT_EMBEDDING_DIM,
-    OutletCNN,
-    OutletPairDataset,
-)
+from channel_heads.models.cnn import DEFAULT_EMBEDDING_DIM  # noqa: E402
 from channel_heads.models.device import pick_device  # noqa: E402
+from channel_heads.training import xgboost as xgb_training  # noqa: E402
+from channel_heads.training.datasets import (  # noqa: E402
+    EMB_FEATURES,
+    GEOM_FEATURES,
+    GEOM_PLUS_EMB,
+    GEOM_PLUS_LOGIT,
+    filter_valid_raster_rows,
+)
 
 # ---------------------------------------------------------------------------
 # Parameters
@@ -92,27 +84,18 @@ METRICS_CSV = MODELS_DIR / "combined_models_comparison.csv"
 
 # Mirror notebooks/training/04_cnn_embeddings.ipynb cell 13 hyperparameters so the
 # three variants are directly comparable.
-N_ESTIMATORS = 200
-MAX_DEPTH = 4
-LEARNING_RATE = 0.1
-RANDOM_STATE = 42
+N_ESTIMATORS = xgb_training.N_ESTIMATORS
+MAX_DEPTH = xgb_training.MAX_DEPTH
+LEARNING_RATE = xgb_training.LEARNING_RATE
+RANDOM_STATE = xgb_training.RANDOM_STATE
 
 # Mirror notebooks/training/02_train_classifier.ipynb cell 24
-TEST_SIZE = 0.20
+TEST_SIZE = xgb_training.TEST_SIZE
 
 # Mirror notebooks/training/02_train_classifier.ipynb cell 33
-THRESHOLD_MIN_RECALL = 0.50
+THRESHOLD_MIN_RECALL = xgb_training.THRESHOLD_MIN_RECALL
 
-BATCH_SIZE = 64
-
-GEOM_FEATURES: list[str] = [
-    "orientation_diff_deg",
-    "headhead_dist_norm",
-    "apex_angle_deg",
-    "strahler_order_diff",
-    "proximity_profile_norm",
-]
-EMB_FEATURES: list[str] = [f"emb_{i}" for i in range(DEFAULT_EMBEDDING_DIM)]
+BATCH_SIZE = xgb_training.BATCH_SIZE
 
 log = logging.getLogger("phase6b")
 
@@ -141,31 +124,10 @@ def extract_emb_and_logit(
     Logits are ``model(x).squeeze()`` — in eval mode the Dropout layer is
     a no-op, so the forward pass produces ``fc_head(embedding)`` directly.
     """
-    model = OutletCNN(embedding_dim=DEFAULT_EMBEDDING_DIM)
-    state = torch.load(model_path, map_location="cpu", weights_only=True)
-    missing, unexpected = model.load_state_dict(state, strict=True)
-    if missing or unexpected:
-        raise RuntimeError(
-            f"State-dict mismatch: missing={missing} unexpected={unexpected}"
-        )
-    model.to(device)
-    model.eval()
-
     paths = [Path(p) for p in manifest_df["raster_path"]]
-    dummy_labels = np.zeros(len(paths), dtype=np.float32)
-    ds = OutletPairDataset(paths, dummy_labels, augment=False)
-    loader = DataLoader(ds, batch_size=batch_size, shuffle=False)
-
-    all_emb: list[np.ndarray] = []
-    all_logits: list[np.ndarray] = []
-    with torch.no_grad():
-        for images, _ in loader:
-            images = images.to(device)
-            emb = model.embed(images)
-            logit = model(images).squeeze(-1)
-            all_emb.append(emb.cpu().numpy())
-            all_logits.append(logit.cpu().numpy())
-    return np.vstack(all_emb), np.concatenate(all_logits)
+    return xgb_training.extract_emb_and_logit_strict(
+        model_path, paths, device=device, batch_size=batch_size
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -180,10 +142,7 @@ def build_master_v4(device: str) -> pd.DataFrame:
         df["basin"].nunique(),
         int(df["raster_path"].notna().sum()),
     )
-    valid_mask = df["raster_path"].notna()
-    if "raster_status" in df.columns:
-        valid_mask &= df["raster_status"].eq("ok")
-    df = df[valid_mask].reset_index(drop=True)
+    df = filter_valid_raster_rows(df)
 
     # Sanity: at least the 5 model features and y label must be present.
     required = GEOM_FEATURES + ["y", "basin", "outlet", "raster_path"]
@@ -227,7 +186,7 @@ def train_variant(
     y_train: np.ndarray,
     X_test: np.ndarray,
     y_test: np.ndarray,
-) -> tuple[XGBClassifier, dict]:
+) -> tuple[object, dict]:
     n_pos = int(y_train.sum())
     n_neg = int(len(y_train) - n_pos)
     spw = n_neg / max(n_pos, 1)
@@ -241,70 +200,22 @@ def train_variant(
         len(X_test),
     )
 
-    model = XGBClassifier(
-        n_estimators=N_ESTIMATORS,
-        max_depth=MAX_DEPTH,
-        learning_rate=LEARNING_RATE,
-        scale_pos_weight=spw,
-        random_state=RANDOM_STATE,
-        n_jobs=-1,
-        eval_metric="logloss",
-        tree_method="hist",
+    model, metrics = xgb_training.train_combined_variant(
+        "variant",
+        name,
+        feature_cols,
+        X_train,
+        y_train,
+        X_test,
+        y_test,
+        threshold_min_recall=THRESHOLD_MIN_RECALL,
     )
-    model.fit(X_train, y_train)
-
-    proba = model.predict_proba(X_test)[:, 1]
-
-    # Threshold tuning — port of nb02 cell 33
-    precisions, recalls, thresholds = precision_recall_curve(y_test, proba)
-    valid_mask = recalls[:-1] >= THRESHOLD_MIN_RECALL
-    if valid_mask.any():
-        local_best = int(np.argmax(precisions[:-1][valid_mask]))
-        orig_indices = np.where(valid_mask)[0]
-        best_idx = int(orig_indices[local_best])
-        opt_threshold = float(thresholds[best_idx])
-        tuned_precision = float(precisions[best_idx])
-        tuned_recall = float(recalls[best_idx])
-        threshold_source = "max_precision_at_recall>=0.50"
-    else:
-        opt_threshold = 0.5
-        tuned_precision = float("nan")
-        tuned_recall = float("nan")
-        threshold_source = "fallback_default_0.5"
+    if metrics["threshold_source"] == "fallback_default_0.5":
         log.warning(
             "Variant %s: no PR-curve point with recall >= %.2f; using 0.5",
             name,
             THRESHOLD_MIN_RECALL,
         )
-
-    pred = (proba >= opt_threshold).astype(int)
-    pred_default = (proba >= 0.5).astype(int)
-
-    metrics = {
-        "variant": name,
-        "n_features": len(feature_cols),
-        "feature_columns": ",".join(feature_cols),
-        "n_train": int(len(X_train)),
-        "n_test": int(len(X_test)),
-        "n_train_pos": n_pos,
-        "n_train_neg": n_neg,
-        "scale_pos_weight": float(spw),
-        "test_pos_fraction": float(y_test.mean()),
-        "optimal_threshold": opt_threshold,
-        "threshold_source": threshold_source,
-        "roc_auc_test": float(roc_auc_score(y_test, proba)),
-        "pr_auc_test": float(average_precision_score(y_test, proba)),
-        "precision_tuned": float(precision_score(y_test, pred)),
-        "recall_tuned": float(recall_score(y_test, pred)),
-        "f1_tuned": float(f1_score(y_test, pred)),
-        "accuracy_tuned": float(accuracy_score(y_test, pred)),
-        "precision_default_0.5": float(precision_score(y_test, pred_default)),
-        "recall_default_0.5": float(recall_score(y_test, pred_default)),
-        "f1_default_0.5": float(f1_score(y_test, pred_default)),
-        "accuracy_default_0.5": float(accuracy_score(y_test, pred_default)),
-        "pr_curve_tuned_precision": tuned_precision,
-        "pr_curve_tuned_recall": tuned_recall,
-    }
     return model, metrics
 
 
@@ -346,8 +257,8 @@ def main() -> None:
     # --- 3. Train three variants ---------------------------------------
     variants: list[tuple[str, list[str]]] = [
         ("geom_only", GEOM_FEATURES),
-        ("geom_plus_cnn_emb", GEOM_FEATURES + EMB_FEATURES),
-        ("geom_plus_cnn_logit", GEOM_FEATURES + ["cnn_logit"]),
+        ("geom_plus_cnn_emb", GEOM_PLUS_EMB),
+        ("geom_plus_cnn_logit", GEOM_PLUS_LOGIT),
     ]
 
     all_metrics: list[dict] = []
@@ -366,8 +277,8 @@ def main() -> None:
         threshold_path = MODELS_DIR / f"optimal_threshold_{name}.txt"
 
         model.save_model(str(model_path))
-        feature_path.write_text("\n".join(feats) + "\n")
-        threshold_path.write_text(f"{metrics['optimal_threshold']:.6f}\n")
+        xgb_training.write_feature_columns(feature_path, feats)
+        xgb_training.write_threshold(threshold_path, metrics["optimal_threshold"])
 
         log.info("Saved: %s", model_path)
         log.info("Saved: %s", feature_path)

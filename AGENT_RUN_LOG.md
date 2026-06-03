@@ -4,6 +4,40 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Combined-XGBoost training script wrappers
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `7294024`
+- **Task:** Convert only the combined-XGBoost training scripts to call the
+  package training helpers; leave Earth/regime feature and patch builders
+  untouched.
+- **Scripts converted:**
+  - `scripts/train_combined_xgb_phase6b.py` — uses
+    `training.xgboost.extract_emb_and_logit_strict`,
+    `train_combined_variant`, and the feature/threshold file writers. Keeps the
+    Phase 6B dataset rebuild, GroupShuffleSplit, variant loop, artifact names,
+    metrics CSV, and logging surface in the script.
+  - `scripts/train_combined_xgb_regime.py` — uses
+    `training.xgboost.extract_emb_strict`, `train_combined_variant`, and the
+    feature/threshold file writers. Keeps regime CLI, manifest/model path
+    checks, dataset write, GroupShuffleSplit, artifact names, metrics CSV, and
+    logging surface in the script.
+- **Left unchanged:** `scripts/build_earth_features_regime.py`,
+  `scripts/build_cnn_patches_regime.py`, `scripts/run_mars_combined_regime.py`,
+  and `scripts/run_regime_pipeline.sh`.
+- **Preserved:** CLI/defaults, artifact/model/dataset/metrics/feature-column/
+  threshold paths, feature order, XGBoost hyperparameters, strict CNN loading,
+  threshold policy (`max_precision_at_recall>=0.50`, fallback 0.5), metrics
+  schema/order, and script log messages.
+- **Validation:** import smoke for both changed scripts passed. Focused pytest
+  (`tests/test_training_xgboost.py tests/test_training_datasets.py
+  tests/test_cnn_consolidation.py`) -> 58 passed, 1 warning. Full pytest ->
+  571 passed, 7 warnings. `git diff --check` clean. Targeted ruff on the
+  changed scripts passed.
+- **Next step:** Convert the remaining Earth/regime feature and patch builders
+  in a separate slice only if behavior can be kept pinned; do not touch
+  generated data or trained artifacts.
+
 ## 2026-06-03 — Low-risk Earth/regime script wrappers
 
 - **Branch:** `refactor/package-first-architecture`

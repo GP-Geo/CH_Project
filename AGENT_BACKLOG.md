@@ -353,7 +353,17 @@ Standard tests:
 > logging/printing surfaces are preserved.
 > Commit: `refactor(scripts): wrap low-risk Earth regime training scripts`.
 
-## Slice 16b — Repoint remaining Earth/regime scripts to package foundations (NEXT)
+## Slice 16b — Repoint combined-XGBoost scripts to package foundations (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. `scripts/train_combined_xgb_phase6b.py`
+> and `scripts/train_combined_xgb_regime.py` now wrap
+> `channel_heads.training.xgboost` for strict CNN extraction, frozen XGBoost
+> config, PR-threshold tuning, metrics schema, and feature/threshold writers.
+> Feature order, hyperparameters, strict loading, threshold fallback policy,
+> artifact paths, output files, and script logging are preserved.
+> Commit: `refactor(scripts): wrap combined XGBoost training scripts`.
+
+## Slice 16c — Repoint remaining Earth/regime feature and patch builders (NEXT)
 
 - **Goal:** Convert the transitional Earth/regime scripts to thin wrappers or
   direct callers of the new package foundations as a separate bounded slice.
@@ -361,9 +371,7 @@ Standard tests:
   threshold policy, strict/lenient CNN-loading behavior, metric schema, and
   numeric output.
 - **Transitional scripts:** `scripts/build_earth_features_regime.py`,
-  `scripts/build_cnn_patches_regime.py`,
-  `scripts/train_combined_xgb_phase6b.py`, and
-  `scripts/train_combined_xgb_regime.py`. `scripts/run_mars_combined_regime.py`
+  `scripts/build_cnn_patches_regime.py`. `scripts/run_mars_combined_regime.py`
   and `scripts/run_regime_pipeline.sh` are intentionally out of scope unless
   explicitly requested.
 - **Allowed files:** the transitional scripts above, package `__init__` files

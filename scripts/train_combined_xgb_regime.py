@@ -39,70 +39,36 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import torch
-from sklearn.metrics import (
-    accuracy_score,
-    average_precision_score,
-    f1_score,
-    precision_recall_curve,
-    precision_score,
-    recall_score,
-    roc_auc_score,
-)
 from sklearn.model_selection import GroupShuffleSplit
-from torch.utils.data import DataLoader
-from xgboost import XGBClassifier
 
 from channel_heads.io.paths import PROJECT_ROOT, RESULTS_DIR
-from channel_heads.models.cnn import (
-    DEFAULT_EMBEDDING_DIM,
-    OutletCNN,
-    OutletPairDataset,
-)
+from channel_heads.models.cnn import DEFAULT_EMBEDDING_DIM
 from channel_heads.models.device import pick_device
 from channel_heads.regimes import REGIMES
+from channel_heads.training import xgboost as xgb_training
+from channel_heads.training.datasets import (
+    EMB_FEATURES,
+    GEOM_FEATURES,
+    GEOM_PLUS_EMB,
+    load_valid_raster_manifest,
+)
 
 log = logging.getLogger("train_combined_xgb_regime")
 
-# Mirror phase6b.py hyperparameters.
-N_ESTIMATORS = 200
-MAX_DEPTH = 4
-LEARNING_RATE = 0.1
-RANDOM_STATE = 42
-TEST_SIZE = 0.20
-THRESHOLD_MIN_RECALL = 0.50
-BATCH_SIZE = 64
-
-GEOM_FEATURES: list[str] = [
-    "orientation_diff_deg",
-    "headhead_dist_norm",
-    "apex_angle_deg",
-    "strahler_order_diff",
-    "proximity_profile_norm",
-]
-EMB_FEATURES: list[str] = [f"emb_{i}" for i in range(DEFAULT_EMBEDDING_DIM)]
+N_ESTIMATORS = xgb_training.N_ESTIMATORS
+MAX_DEPTH = xgb_training.MAX_DEPTH
+LEARNING_RATE = xgb_training.LEARNING_RATE
+RANDOM_STATE = xgb_training.RANDOM_STATE
+TEST_SIZE = xgb_training.TEST_SIZE
+THRESHOLD_MIN_RECALL = xgb_training.THRESHOLD_MIN_RECALL
+BATCH_SIZE = xgb_training.BATCH_SIZE
 
 
 def extract_emb(model_path: Path, paths: list[Path], device: str) -> np.ndarray:
     """Run the regime CNN in eval mode over all rasters; return (N, 4) embeddings."""
-    model = OutletCNN(embedding_dim=DEFAULT_EMBEDDING_DIM)
-    state = torch.load(model_path, map_location="cpu", weights_only=True)
-    missing, unexpected = model.load_state_dict(state, strict=True)
-    if missing or unexpected:
-        raise RuntimeError(
-            f"State-dict mismatch: missing={missing} unexpected={unexpected}"
-        )
-    model.to(device).eval()
-
-    dummy = np.zeros(len(paths), dtype=np.float32)
-    ds = OutletPairDataset(paths, dummy, augment=False)
-    loader = DataLoader(ds, batch_size=BATCH_SIZE, shuffle=False)
-    out: list[np.ndarray] = []
-    with torch.no_grad():
-        for images, _ in loader:
-            images = images.to(device)
-            out.append(model.embed(images).cpu().numpy())
-    return np.vstack(out)
+    return xgb_training.extract_emb_strict(
+        model_path, paths, device=device, batch_size=BATCH_SIZE
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -127,11 +93,7 @@ def main(argv: list[str] | None = None) -> int:
         log.error("Missing CNN model: %s — run Step 4.", cnn_path)
         return 1
 
-    df = pd.read_csv(manifest_csv)
-    valid_mask = df["raster_path"].notna()
-    if "raster_status" in df.columns:
-        valid_mask &= df["raster_status"].eq("ok")
-    df = df[valid_mask].copy().reset_index(drop=True)
+    df = load_valid_raster_manifest(manifest_csv)
 
     required = GEOM_FEATURES + ["y", "basin", "outlet", "raster_path"]
     missing = [c for c in required if c not in df.columns]
@@ -177,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
         df["outlet_group"].nunique(),
     )
 
-    feats = GEOM_FEATURES + EMB_FEATURES
+    feats = GEOM_PLUS_EMB
     X = df[feats].to_numpy()
     X_train, X_test = X[train_idx], X[test_idx]
     y_train, y_test = y[train_idx], y[test_idx]
@@ -194,66 +156,21 @@ def main(argv: list[str] | None = None) -> int:
         float(y_test.mean()),
     )
 
-    model = XGBClassifier(
-        n_estimators=N_ESTIMATORS,
-        max_depth=MAX_DEPTH,
-        learning_rate=LEARNING_RATE,
-        scale_pos_weight=spw,
-        random_state=RANDOM_STATE,
-        n_jobs=-1,
-        eval_metric="logloss",
-        tree_method="hist",
+    model, metrics = xgb_training.train_combined_variant(
+        "regime",
+        regime.name,
+        feats,
+        X_train,
+        y_train,
+        X_test,
+        y_test,
+        threshold_min_recall=THRESHOLD_MIN_RECALL,
     )
-    model.fit(X_train, y_train)
-    proba = model.predict_proba(X_test)[:, 1]
-
-    # Port of nb02 cell 33: max precision subject to recall >= 0.5; fallback 0.5.
-    precisions, recalls, thresholds = precision_recall_curve(y_test, proba)
-    valid_mask = recalls[:-1] >= THRESHOLD_MIN_RECALL
-    if valid_mask.any():
-        local_best = int(np.argmax(precisions[:-1][valid_mask]))
-        orig_indices = np.where(valid_mask)[0]
-        best_idx = int(orig_indices[local_best])
-        opt_threshold = float(thresholds[best_idx])
-        tuned_precision = float(precisions[best_idx])
-        tuned_recall = float(recalls[best_idx])
-        threshold_source = "max_precision_at_recall>=0.50"
-    else:
-        opt_threshold = 0.5
-        tuned_precision = float("nan")
-        tuned_recall = float("nan")
-        threshold_source = "fallback_default_0.5"
+    if metrics["threshold_source"] == "fallback_default_0.5":
         log.warning(
             "No PR-curve point with recall >= %.2f; using 0.5", THRESHOLD_MIN_RECALL
         )
-
-    pred = (proba >= opt_threshold).astype(int)
-    pred_default = (proba >= 0.5).astype(int)
-    metrics = {
-        "regime": regime.name,
-        "n_features": len(feats),
-        "feature_columns": ",".join(feats),
-        "n_train": int(len(X_train)),
-        "n_test": int(len(X_test)),
-        "n_train_pos": n_pos,
-        "n_train_neg": n_neg,
-        "scale_pos_weight": float(spw),
-        "test_pos_fraction": float(y_test.mean()),
-        "optimal_threshold": opt_threshold,
-        "threshold_source": threshold_source,
-        "roc_auc_test": float(roc_auc_score(y_test, proba)),
-        "pr_auc_test": float(average_precision_score(y_test, proba)),
-        "precision_tuned": float(precision_score(y_test, pred)),
-        "recall_tuned": float(recall_score(y_test, pred)),
-        "f1_tuned": float(f1_score(y_test, pred)),
-        "accuracy_tuned": float(accuracy_score(y_test, pred)),
-        "precision_default_0.5": float(precision_score(y_test, pred_default)),
-        "recall_default_0.5": float(recall_score(y_test, pred_default)),
-        "f1_default_0.5": float(f1_score(y_test, pred_default)),
-        "accuracy_default_0.5": float(accuracy_score(y_test, pred_default)),
-        "pr_curve_tuned_precision": tuned_precision,
-        "pr_curve_tuned_recall": tuned_recall,
-    }
+    opt_threshold = metrics["optimal_threshold"]
 
     models_dir = PROJECT_ROOT / "models"
     models_dir.mkdir(parents=True, exist_ok=True)
@@ -266,8 +183,8 @@ def main(argv: list[str] | None = None) -> int:
     metrics_csv = models_dir / f"xgb_{slug}_metrics.csv"
 
     model.save_model(str(model_path))
-    feature_path.write_text("\n".join(feats) + "\n")
-    threshold_path.write_text(f"{metrics['optimal_threshold']:.6f}\n")
+    xgb_training.write_feature_columns(feature_path, feats)
+    xgb_training.write_threshold(threshold_path, metrics["optimal_threshold"])
     pd.DataFrame([metrics]).to_csv(metrics_csv, index=False)
 
     log.info("Saved model      -> %s", model_path)
