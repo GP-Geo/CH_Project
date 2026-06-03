@@ -4,6 +4,47 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Earth/regime package foundations recovery
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `ad089d8`
+- **Task:** Recover the interrupted Earth/regime training extraction to a safe,
+  commit-ready state. Keep the self-contained package foundations and tests;
+  revert incomplete script edits.
+- **Files created:**
+  - `channel_heads/training/datasets.py` — raster-manifest filtering, Taiwan CV
+    pool, deterministic validation split, and frozen Earth combined feature
+    constants/order.
+  - `channel_heads/training/xgboost.py` — strict CNN embedding/logit extraction,
+    frozen combined-XGBoost config, scale-pos-weight helper, PR-threshold policy,
+    combined-variant metrics routine, and feature/threshold file writers.
+  - `channel_heads/training/regime.py` — regime feature-build helpers,
+    stratified negative subsampling, DEM-to-basin resolution, and regime stream
+    loader factory.
+  - `channel_heads/eval/lobo.py` — LOBO geom+CNN-embedding XGBoost diagnostic
+    dataset map and report helper.
+  - Focused tests for each new module.
+- **Files reverted before validation:** `scripts/build_earth_features_regime.py`,
+  `scripts/eval_lobo_cv.py`, `scripts/train_cnn_baseline.py`,
+  `scripts/train_cnn_multiseed.py`, `scripts/train_cnn_regime.py`,
+  `scripts/train_combined_xgb_phase6b.py`, and
+  `scripts/train_combined_xgb_regime.py`.
+- **Not changed:** no script repointing/wrapper conversion in this recovery
+  slice; scripts remain transitional. No data, root `/models`, notebooks,
+  generated outputs, DEMs/shapefiles/GeoPackages, or trained artifacts touched.
+- **Validation:** current Python focused tests -> 19 passed, 2 skipped
+  (`xgboost` unavailable there); current Python full suite -> 536 passed,
+  19 skipped, 1 warning. `ch-heads` focused tests -> 37 passed, 1 warning.
+  `ch-heads` full suite -> 571 passed, 7 warnings. Import smoke passed for
+  `channel_heads.training.datasets`, `channel_heads.training.xgboost`,
+  `channel_heads.training.regime`, and `channel_heads.eval.lobo`.
+  `git diff --check` clean. Ruff unavailable (`python -m ruff` no module,
+  `ruff` not on PATH).
+- **Next step:** Repoint/convert the transitional Earth/regime scripts as a
+  separate slice using the package foundations above; stop if any CLI,
+  threshold, feature order, artifact path, schema, class count, or numeric
+  behavior would change.
+
 ## 2026-06-03 — Regime inference: move into models/regime.py (inference/regime.py → shim)
 
 - **Branch:** `refactor/package-first-architecture`

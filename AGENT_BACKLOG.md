@@ -332,6 +332,41 @@ Standard tests:
 > lenient `models.cnn_features.extract_embeddings` was NOT merged.
 > Commit: `refactor(models): move regime inference helpers into models`.
 
+## Recovery Slice — Earth/regime package foundations (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. Added package foundations and tests for
+> `channel_heads/training/datasets.py`, `channel_heads/training/xgboost.py`,
+> `channel_heads/training/regime.py`, and `channel_heads/eval/lobo.py`.
+> Incomplete edits to Earth/regime scripts were reverted before validation.
+> Scripts remain transitional; no wrapper conversion was forced in this recovery
+> slice.
+> Commit: `refactor(training): add Earth regime package foundations`.
+
+## Slice 16 — Repoint Earth/regime scripts to package foundations (NEXT)
+
+- **Goal:** Convert the transitional Earth/regime scripts to thin wrappers or
+  direct callers of the new package foundations as a separate bounded slice.
+  Preserve every CLI argument, model path, output path, feature order,
+  threshold policy, strict/lenient CNN-loading behavior, metric schema, and
+  numeric output.
+- **Transitional scripts:** `scripts/build_earth_features_regime.py`,
+  `scripts/build_cnn_patches_regime.py`, `scripts/eval_lobo_cv.py`,
+  `scripts/train_cnn_baseline.py`, `scripts/train_cnn_regime.py`,
+  `scripts/train_cnn_multiseed.py`, `scripts/train_combined_xgb_phase6b.py`,
+  and `scripts/train_combined_xgb_regime.py`.
+- **Allowed files:** the transitional scripts above, package `__init__` files
+  only if exposure is needed, focused tests/import checks, and handoff docs.
+- **Forbidden files:** `data/`, root `/models/`, notebooks, generated outputs,
+  raw DEMs/shapefiles/GeoPackages, trained artifacts, and unrelated package
+  refactors.
+- **Tests to run:** focused script import/smoke checks, the Earth/regime package
+  tests, then full `conda run -n ch-heads python -m pytest`, `git diff --check`,
+  and ruff only if available.
+- **Suggested commit:** `refactor(scripts): repoint Earth regime scripts to training package`
+- **Stop condition:** Stop if any script conversion would alter scientific
+  behavior, CLI compatibility, artifact paths, thresholds, feature order,
+  prediction schema, class counts, or numeric output.
+
 ## Slice 9 (original) — Data cleanup dry-run (later)
 
 - **Goal:** Produce a **dry-run only** report of candidate stale/generated data

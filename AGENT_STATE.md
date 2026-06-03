@@ -8,10 +8,12 @@ _Last updated: 2026-06-03_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** Earth raster batch precompute moved into the
-  rasterization package (Raster Slice R3; see `AGENT_RUN_LOG.md`); prior was
-  Raster R2 Earth single-patch rasterization.
-- **Working tree:** clean at time of writing after the Raster R3 commit.
+- **Latest stable commit:** Earth/regime package foundations added
+  (`training/datasets.py`, `training/xgboost.py`, `training/regime.py`,
+  `eval/lobo.py`; see `AGENT_RUN_LOG.md`). Prior stable commit moved regime
+  inference helpers into `models/regime.py`.
+- **Working tree:** clean at time of writing after the Earth/regime package
+  foundation commit.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
 
@@ -35,6 +37,11 @@ _Last updated: 2026-06-03_
   where safe; no scripts were archived.
 - **Earth/regime training audit:** ownership plan recorded in
   `AGENT_AUDIT_EARTH_REGIME.md` (audit-only; no implementation moved).
+- **Earth/regime package foundations:** reusable helpers now live in
+  `channel_heads/training/datasets.py`, `channel_heads/training/xgboost.py`,
+  `channel_heads/training/regime.py`, and `channel_heads/eval/lobo.py`, with
+  behavior-pinning tests. Incomplete script edits from the interrupted
+  extraction were reverted; script repointing/wrapper conversion is deferred.
 - **Geometric analysis audit:** ownership plan recorded in
   `AGENT_AUDIT_GEOMETRIC_ANALYSIS.md` (audit-only; no implementation moved).
 - **Rasterizer audit:** ownership plan recorded in `AGENT_AUDIT_RASTERIZER.md`
@@ -66,6 +73,10 @@ _Last updated: 2026-06-03_
 | CNN architecture / dataset / one-hot (`OutletCNN`, `OutletPairDataset`, `encode_raster_onehot`, `DEFAULT_EMBEDDING_DIM`, `DEFAULT_TARGET_SIZE`) | `channel_heads/models/cnn.py` | `channel_heads/cnn_model.py` (shim) |
 | Generic/Earth CNN embedding helpers (`extract_embeddings`, `merge_cnn_features`, `CNN_FEATURE_COLS`) | `channel_heads/models/cnn_features.py` | `channel_heads/cnn_features.py` (shim) |
 | CNN training core (`train_cnn`, `DEFAULT_*`, `HOLDOUT_BASIN`, `RANDOM_STATE`) | `channel_heads/training/cnn.py` | `channel_heads/cnn_training.py` (shim) |
+| Earth/regime raster-manifest, CV-pool, split, and combined feature constants (foundation only) | `channel_heads/training/datasets.py` | `scripts/train_cnn_baseline.py`, `scripts/train_cnn_regime.py`, `scripts/train_cnn_multiseed.py`, `scripts/train_combined_xgb_phase6b.py`, and `scripts/train_combined_xgb_regime.py` remain transitional until the next wrapper-conversion slice |
+| Earth combined-XGBoost training helpers: strict CNN extraction, frozen XGB config, PR-threshold policy, metrics schema, feature/threshold writers (foundation only) | `channel_heads/training/xgboost.py` | `scripts/train_combined_xgb_phase6b.py` and `scripts/train_combined_xgb_regime.py` remain transitional until the next wrapper-conversion slice |
+| Earth/regime feature-build, negative subsampling, DEM resolution, and regime stream-loader helpers (foundation only) | `channel_heads/training/regime.py` | `scripts/build_earth_features_regime.py` and `scripts/build_cnn_patches_regime.py` remain transitional until the next wrapper-conversion slice |
+| LOBO geom+CNN-embedding XGBoost diagnostic report (foundation only) | `channel_heads/eval/lobo.py` | `scripts/eval_lobo_cv.py` remains transitional until the next wrapper-conversion slice |
 | Pure feature math | `channel_heads/features/geometry.py` | `channel_heads/geometric_analysis.py` aliases for compatibility |
 | Earth/TopoToolbox path helpers (`_build_children_from_parents`, `_trace_path_downstream`, `_compute_direction_vector`, `_trace_full_path`, `_sample_path_coords`, `_detect_cellsize`, `_euclidean_2d`, `_normalize_vector`, `EPSILON`, `MIN_EDGES_FOR_DIRECTION`) | `channel_heads/features/earth_paths.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
 | Earth lengthwise asymmetry (`PairAsymmetryResult`, `compute_delta_L`, `LengthwiseAsymmetryAnalyzer`, `compute_asymmetry_statistics`, `merge_coupling_and_asymmetry`) | `channel_heads/features/asymmetry.py` | `channel_heads/geometric_analysis.py` re-exports for compatibility |
