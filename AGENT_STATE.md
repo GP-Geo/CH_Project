@@ -393,7 +393,15 @@ See `STAGE_45_PLANNING.md` for the full plan.
 - `docs/REGIME_SELECTION.md` — created; freezes regime parameters, calibration
   rationale, evidence pointers, and downstream artifact map.
 
-**Next (Stage 5):**
-- **Write `notebooks/analysis/05_earth_network_qa.ipynb`** — per-basin outlet
-  counts, touching ratios, flagged-basin DEM overlays. Reads tabular data only;
-  safe to write and run now.
+**Completed (Stage 5):**
+- `notebooks/analysis/05_earth_network_qa.ipynb` — formal QA gate notebook
+  created. Opens with pipeline stage card (stage/prev/next/purpose/inputs/
+  outputs/decision gate). Hard gate on: zero error basins, ≥5 000 total pairs
+  per regime, no NaN in feature columns. Soft warnings: basins <10 pairs,
+  touching ratio outside [0.05, 0.95]. Writes `stage5_earth_network_qa_report.csv`
+  on PASS. `STAGE_ASSET_MAP.md` updated: Stage 5 ❌ → 🔶.
+
+**Next:**
+- **Run `notebooks/analysis/05_earth_network_qa.ipynb`** and confirm PASS.
+  This clears the gate for Stage 7 (raster regeneration) and Stage 8 (retraining).
+- Or: proceed to Stage 12 (Mars threshold sensitivity notebook).

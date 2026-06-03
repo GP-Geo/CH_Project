@@ -4,6 +4,28 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Stage 5 Earth network QA gate
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit:** `5a98517` (Stage 4 — regime selection rationale)
+- **Task:** Create the formal Stage 5 QA gate notebook and update STAGE_ASSET_MAP.md.
+- **Actions taken:**
+  1. Created `notebooks/analysis/05_earth_network_qa.ipynb` — formal QA gate
+     connected to PIPELINE_DESIGN.md. Opens with pipeline stage card.
+     Cells: config → imports/paths → load data → cross-regime summary →
+     flag analysis (hard + soft) → feature distributions → QC flags →
+     per-basin detail for flagged basins → DEM thumbnails (optional) →
+     decision gate (raises AssertionError on hard fail, writes QA CSV on pass).
+  2. Updated `STAGE_ASSET_MAP.md`: Stage 5 ❌ → 🔶 with gate criteria listed;
+     priority order updated to reflect Stages 4 and 5 complete.
+  3. Updated `AGENT_STATE.md` to reflect Stage 5 complete and next actions.
+- **Not touched:** `data/`, trained models, existing notebooks.
+- **Validation:** no tests changed; full pytest still 569 passed.
+- **Next step:** Run `notebooks/analysis/05_earth_network_qa.ipynb` and confirm
+  PASS, then proceed to Stage 12 (Mars threshold sensitivity) or Stage 7 (rasters).
+
+---
+
 ## 2026-06-03 — Agent doc update post-cleanup
 
 - **Branch:** `refactor/package-first-architecture`
