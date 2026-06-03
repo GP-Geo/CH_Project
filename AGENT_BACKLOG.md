@@ -400,7 +400,16 @@ Standard tests:
 > were deleted or archived in this phase.
 > Commit: `chore(scripts): organize CLI and wrapper scripts`.
 
-## Slice 9 (original) — Data cleanup dry-run (later)
+## Slice 9 (original) — Data cleanup dry-run (DONE)
+
+> Completed — see `AGENT_DATA_CLEANUP_DRYRUN.md` and `AGENT_RUN_LOG.md`.
+> Report-only. No data was deleted or moved. Key findings: `data/outputs/`
+> (179 MB, LEGACY) is the main safe-delete candidate; ~1.4 GB of regime
+> rasters + ~74 MB Mars CNN patches are STALE_AFTER_RASTER_FIX; production
+> model `models/xgb_touching_classifier.json` is missing from `models/` but
+> present in the backup. `DATA_STATUS.md` needs entries for
+> `data/results/experiments/`, `data/results/drainage_density_calibration/`,
+> and the `.sr.lock` files in `data/final_valleys/`.
 
 - **Goal:** Produce a **dry-run only** report of candidate stale/generated data
   per `docs/DATA_STATUS.md`. No deletion, no moves.

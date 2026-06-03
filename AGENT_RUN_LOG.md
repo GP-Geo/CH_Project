@@ -4,6 +4,36 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Data cleanup dry-run (report-only)
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `fd789dc`
+- **Task:** Produce a report-only inventory of stale, legacy, and unclassified
+  data against `docs/DATA_STATUS.md`. No data deleted, moved, or mutated.
+- **Report file:** `AGENT_DATA_CLEANUP_DRYRUN.md`
+- **Key findings:**
+  - `data/outputs/` (179 MB) is `LEGACY` — main near-term safe-delete candidate
+    once `data/results/` content is confirmed to supersede it.
+  - Regime rasters `_rasters_reg{A,B,C}` (~1.43 GB, ~73k files) and per-basin
+    rasters (~5,923 files) are `STALE_AFTER_RASTER_FIX` — delete only after
+    retrain decision.
+  - `data/Mars/model_inputs/cnn_patches_5class/` (74 MB) is
+    `STALE_AFTER_RASTER_FIX`.
+  - `models/xgb_touching_classifier.json` is **missing** from `models/` but
+    present in the backup. `channel_heads/io/paths.py:228` registers this as
+    `XGB_PRODUCTION`. Needs restore or reference update.
+  - 12 stale `.sr.lock` GIS lock files in `data/final_valleys/` — safe to
+    delete (no scientific content).
+  - `data/results/experiments/` and `data/results/drainage_density_calibration/`
+    are not classified in `DATA_STATUS.md` — need entries.
+  - `data/_rebuild_backup_20260531/` (94 MB) is `BACKUP` — keep off-repo;
+    no action until full rebuild is verified.
+- **Not touched:** `data/`, root `/models/`, any code or generated artifact.
+- **Validation:** no pytest required (doc-only slice).
+- **Next step:** Restore `models/xgb_touching_classifier.json` from backup or
+  update the CLAUDE.md/paths.py reference; update `DATA_STATUS.md` for the
+  unclassified items; then move to `PIPELINE_DESIGN.md` stage-to-asset mapping.
+
 ## 2026-06-03 — Archive Mars root wrappers
 
 - **Branch:** `refactor/package-first-architecture`

@@ -404,9 +404,19 @@ _Last updated: 2026-06-03_
 
 ## Next recommended task
 
-The backlog's standalone **data cleanup dry-run (report-only)** item remains
-the next listed task. Do not delete, move, or mutate any data/model/generated
-artifact when it is picked up.
+Data cleanup dry-run is **DONE** (see `AGENT_DATA_CLEANUP_DRYRUN.md`). The
+remaining structured backlog item is notebook import updates (explicit request
+only). The next meaningful work items are from `PIPELINE_DESIGN.md`:
+
+1. **Restore or resolve `models/xgb_touching_classifier.json`** — the
+   production model expected by `channel_heads/io/paths.py` is missing from
+   `models/`; it exists in `data/_rebuild_backup_20260531/models/`. Confirm
+   whether to restore from backup or update the CLAUDE.md/paths.py reference.
+2. **Update `docs/DATA_STATUS.md`** — add entries for
+   `data/results/experiments/`, `data/results/drainage_density_calibration/`,
+   and the stale `.sr.lock` files in `data/final_valleys/`.
+3. **Stage-to-asset map** — bridge `PIPELINE_DESIGN.md` stages to existing
+   scripts, notebooks, and package functions.
 
 > Note: the user-issued geometric_analysis split slices are numbered 9–13 in the
 > prompts; the backlog's original Slice 9 was the data cleanup dry-run, retained
