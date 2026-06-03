@@ -122,7 +122,7 @@ def extract_logits(
     import torch
     from torch.utils.data import DataLoader
 
-    from channel_heads.cnn_model import (
+    from channel_heads.models.cnn import (
         DEFAULT_EMBEDDING_DIM,
         OutletCNN,
         OutletPairDataset,

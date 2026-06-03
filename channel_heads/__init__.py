@@ -96,13 +96,13 @@ from .rasterization.schema import (
     OTHER_STREAMS,
 )
 
-# Rasterizer (no PyTorch dependency)
+# Rasterization (no PyTorch dependency)
 try:
-    from .rasterizer import (
-        precompute_raster_dataset,
+    from .rasterization.earth_patches import (
         raster_quality_flags,
         rasterize_outlet_pair,
     )
+    from .rasterization.earth_batch import precompute_raster_dataset
 except ModuleNotFoundError as exc:
     if exc.name != "skimage":
         raise

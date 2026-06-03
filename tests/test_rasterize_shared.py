@@ -1,15 +1,8 @@
-"""Shared rasterization primitive: bresenham_line.
-
-The Mars patch script previously carried a byte-identical copy of the
-rasterizer's Bresenham line routine; it now imports the canonical
-``channel_heads.rasterizer.bresenham_line``. (The larger polyline-drawing
-duplication is intentionally NOT unified — the two operate on different data
-models and the rasterizer is the tested, known-good pipeline.)
-"""
+"""Shared rasterization primitive: bresenham_line."""
 
 from __future__ import annotations
 
-from channel_heads.rasterizer import bresenham_line
+from channel_heads.rasterization.earth_patches import bresenham_line
 
 
 class TestBresenham:

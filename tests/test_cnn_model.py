@@ -5,19 +5,19 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from channel_heads.cnn_model import (
+from channel_heads.models.cnn import (
     DEFAULT_EMBEDDING_DIM,
     OutletCNN,
     OutletPairDataset,
     encode_raster_onehot,
 )
-from channel_heads.cnn_training import (
+from channel_heads.training.cnn import (
     DEFAULT_BATCH_SIZE,
     DEFAULT_EPOCHS,
     DEFAULT_PATIENCE,
     pick_device,
 )
-from channel_heads.rasterizer import NUM_CLASSES
+from channel_heads.rasterization import NUM_CLASSES
 
 # =============================================================================
 # One-Hot Encoding Tests

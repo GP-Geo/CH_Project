@@ -1,51 +1,40 @@
 # scripts/ — CLI, diagnostics, and archive layer
 
-This repository is package-first: real pipeline/model/raster/training logic
-lives in `channel_heads/`. The `scripts/` tree is retained as a stable command
-surface for rebuilds, diagnostics, rendering, maintenance, and historical
-provenance.
+This repository is package-first: all pipeline/model/raster/training logic lives
+in `channel_heads/`. The `scripts/` tree holds thin CLI wrappers, orchestration
+shell scripts, diagnostics utilities, and archive.
 
-Mars package wrappers have been archived because the maintained
-`scripts/cli/run_mars_pipeline.py` entry point now covers Phases 1-6C. Earth,
-regime, training, diagnostics, and shell entry points remain at their documented
-paths.
+**Refactor complete.** No implementation lives in scripts. All `scripts/cli/`
+files call `channel_heads.*` directly.
 
 ## Categories
 
 - **Maintained CLI:** preferred human-facing command entry point.
-- **Wrapper over package API:** compatibility command whose logic is package-owned.
+- **Wrapper over package API:** thin CLI whose logic is entirely package-owned.
 - **Diagnostics utility:** headless analysis, QA, or reporting helper.
 - **Shell/orchestration entry point:** batch runner that invokes other scripts.
 - **Historical/archive candidate:** retained for provenance, not maintained.
-- **Unknown/manual-review:** no scripts currently fall in this category.
 
-## Preferred CLI Entry Points
+## CLI Entry Points (`scripts/cli/`)
 
-Use these for new command-line work when they fit the task.
+All new command-line work should use or add to `scripts/cli/`.
 
 | Script | Category | Canonical package API |
 |--------|----------|-----------------------|
-| `cli/run_mars_pipeline.py` | maintained CLI | `channel_heads.pipelines.run_full_mars_pipeline` and per-stage pipeline functions |
+| `cli/run_mars_pipeline.py` | maintained CLI | `channel_heads.pipelines.run_full_mars_pipeline` + per-stage functions |
 | `cli/run_mars_inference.py` | maintained CLI | `channel_heads.pipelines.run_mars_combined_inference` |
+| `cli/run_mars_combined_regime.py` | maintained CLI | `channel_heads.models.regime` + `channel_heads.models.xgboost` |
 | `cli/generate_poster_figures.py` | maintained CLI | `channel_heads.pipelines.generate_poster_figures` |
-
-## Root Compatibility Wrappers
-
-These root scripts remain in place because they are documented and/or called by
-shell orchestrators. They should stay thin; new implementation belongs in the
-listed package module.
-
-| Script | Category | Canonical package alternative |
-|--------|----------|-------------------------------|
-| `build_earth_features_regime.py` | wrapper over package API | `channel_heads.training.regime.build_regime_feature_dataset` |
-| `build_cnn_patches_regime.py` | wrapper over package API | `channel_heads.training.regime.build_regime_patch_dataset` |
-| `train_cnn_baseline.py` | wrapper over package API | `channel_heads.training.cnn.train_cnn` plus dataset helpers in `channel_heads.training.datasets` |
-| `train_cnn_regime.py` | wrapper over package API | `channel_heads.training.cnn.train_cnn` plus regime/dataset helpers |
-| `train_cnn_multiseed.py` | wrapper over package API | `channel_heads.training.cnn.train_cnn` plus deterministic split helpers in `channel_heads.training.datasets` |
-| `train_combined_xgb_phase6b.py` | wrapper over package API | `channel_heads.training.xgboost` helpers for strict CNN extraction, model training, thresholds, and artifact writers |
-| `train_combined_xgb_regime.py` | wrapper over package API | `channel_heads.training.xgboost` helpers plus regime manifest/model paths |
-| `eval_lobo_cv.py` | diagnostics utility / wrapper over package API | `channel_heads.eval.lobo` |
-| `run_mars_combined_regime.py` | maintained CLI / wrapper over package API | `channel_heads.models.regime`, `channel_heads.models.xgboost`, and Mars input/output helpers |
+| `cli/build_earth_features_regime.py` | wrapper | `channel_heads.training.regime.build_regime_feature_dataset` |
+| `cli/build_cnn_patches_regime.py` | wrapper | `channel_heads.training.regime.build_regime_patch_dataset` |
+| `cli/train_cnn_baseline.py` | wrapper | `channel_heads.training.cnn.train_cnn` + `channel_heads.training.datasets` |
+| `cli/train_cnn_regime.py` | wrapper | `channel_heads.training.cnn.train_cnn` + regime/dataset helpers |
+| `cli/train_cnn_multiseed.py` | wrapper | `channel_heads.training.cnn.train_cnn` + deterministic split helpers |
+| `cli/train_combined_xgb_phase6b.py` | wrapper | `channel_heads.training.xgboost` |
+| `cli/train_combined_xgb_regime.py` | wrapper | `channel_heads.training.xgboost` + regime paths |
+| `cli/eval_lobo_cv.py` | diagnostics / wrapper | `channel_heads.eval.lobo` |
+| `cli/retune_threshold_regime.py` | diagnostics utility | `channel_heads.eval` + `channel_heads.models.xgboost` |
+| `cli/make_result_figures.py` | diagnostics utility | `channel_heads.viz` + `channel_heads.eval` |
 
 ## Diagnostics and Rendering
 

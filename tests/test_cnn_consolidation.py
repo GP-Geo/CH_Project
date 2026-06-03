@@ -1,8 +1,7 @@
-"""Slice 3a consolidation tests: CNN architecture canonical home + shim.
+"""CNN consolidation tests: architecture, training, and embedding canonical homes.
 
-Proves that moving the OutletCNN architecture/dataset into
-``channel_heads.models.cnn`` preserved behavior exactly and that the historical
-``channel_heads.cnn_model`` import path still resolves to the *same* objects.
+Pins behavior of channel_heads.models.cnn, channel_heads.training.cnn,
+and channel_heads.models.cnn_features after the package-first refactor.
 """
 
 from __future__ import annotations
@@ -12,9 +11,8 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-import channel_heads.cnn_model as legacy
 import channel_heads.models.cnn as canonical
-from channel_heads.rasterizer import NUM_CLASSES
+from channel_heads.rasterization import NUM_CLASSES
 
 # State-dict keys the trained artifact ``models/cnn_outlet_final.pt`` is keyed
 # to. Pinned here so any accidental architecture drift is caught immediately.
@@ -47,56 +45,27 @@ EXPECTED_STATE_DICT_KEYS = {
 }
 
 
-class TestImportPathsIdentical:
-    """Old and new import paths must resolve to the same implementation."""
+class TestCanonicalLocation:
+    """Architecture lives in channel_heads.models.cnn."""
 
-    def test_outletcnn_is_same_object(self):
-        assert legacy.OutletCNN is canonical.OutletCNN
-
-    def test_outletpairdataset_is_same_object(self):
-        assert legacy.OutletPairDataset is canonical.OutletPairDataset
-
-    def test_encode_raster_onehot_is_same_object(self):
-        assert legacy.encode_raster_onehot is canonical.encode_raster_onehot
-
-    def test_constants_match(self):
-        assert legacy.DEFAULT_EMBEDDING_DIM == canonical.DEFAULT_EMBEDDING_DIM == 4
-        assert legacy.DEFAULT_TARGET_SIZE == canonical.DEFAULT_TARGET_SIZE == 128
-
-    def test_from_import_resolves_same(self):
-        from channel_heads.cnn_model import OutletCNN as OldOutletCNN
-        from channel_heads.models.cnn import OutletCNN as NewOutletCNN
-
-        assert OldOutletCNN is NewOutletCNN
-
-    def test_canonical_class_module_is_models_cnn(self):
-        """Real definition lives in models.cnn; cnn_model only re-exports it."""
+    def test_outletcnn_module_is_models_cnn(self):
         assert canonical.OutletCNN.__module__ == "channel_heads.models.cnn"
-        assert legacy.OutletCNN.__module__ == "channel_heads.models.cnn"
 
-    def test_shim_reexports_num_classes(self):
-        assert legacy.NUM_CLASSES == NUM_CLASSES
+    def test_constants(self):
+        assert canonical.DEFAULT_EMBEDDING_DIM == 4
+        assert canonical.DEFAULT_TARGET_SIZE == 128
 
 
 class TestArchitecturePreserved:
     """Constructor defaults, forward shapes, and state-dict keys are unchanged."""
 
-    def test_instantiate_from_old_path(self):
-        model = legacy.OutletCNN()
-        assert isinstance(model, torch.nn.Module)
-
-    def test_instantiate_from_new_path(self):
+    def test_instantiate(self):
         model = canonical.OutletCNN()
         assert isinstance(model, torch.nn.Module)
 
     def test_state_dict_keys_unchanged(self):
         model = canonical.OutletCNN()
         assert set(model.state_dict().keys()) == EXPECTED_STATE_DICT_KEYS
-
-    def test_state_dict_keys_same_from_both_paths(self):
-        assert set(legacy.OutletCNN().state_dict().keys()) == set(
-            canonical.OutletCNN().state_dict().keys()
-        )
 
     def test_default_embedding_dim_constructor(self):
         model = canonical.OutletCNN()
@@ -117,7 +86,7 @@ class TestArchitecturePreserved:
     def test_strict_load_roundtrip(self):
         """state_dict from one instance loads strict into another (artifact path)."""
         src = canonical.OutletCNN()
-        dst = legacy.OutletCNN()
+        dst = canonical.OutletCNN()
         missing, unexpected = dst.load_state_dict(src.state_dict(), strict=True)
         assert not missing and not unexpected
 
@@ -152,10 +121,10 @@ class TestLazyTrainingReexport:
         assert callable(pick_device)
 
     def test_training_defaults_match_training_module(self):
-        from channel_heads import cnn_training
+        from channel_heads.training import cnn as training_cnn
 
-        assert canonical.DEFAULT_EPOCHS == cnn_training.DEFAULT_EPOCHS
-        assert canonical.HOLDOUT_BASIN == cnn_training.HOLDOUT_BASIN
+        assert canonical.DEFAULT_EPOCHS == training_cnn.DEFAULT_EPOCHS
+        assert canonical.HOLDOUT_BASIN == training_cnn.HOLDOUT_BASIN
 
     def test_unknown_attribute_raises(self):
         with pytest.raises(AttributeError):
@@ -163,10 +132,10 @@ class TestLazyTrainingReexport:
 
 
 class TestPickDeviceDeduplicated:
-    """cnn_training.pick_device is the canonical models.device.pick_device."""
+    """pick_device is canonical in models.device; training.cnn re-exports it."""
 
-    def test_cnn_training_pick_device_is_canonical(self):
-        from channel_heads.cnn_training import pick_device as training_pick
+    def test_training_cnn_pick_device_is_canonical(self):
+        from channel_heads.training.cnn import pick_device as training_pick
         from channel_heads.models.device import pick_device as canonical_pick
 
         assert training_pick is canonical_pick
@@ -179,21 +148,7 @@ class TestPickDeviceDeduplicated:
 
 
 class TestCNNFeaturesConsolidated:
-    """Earth/generic embedding helpers: canonical home + shim identity."""
-
-    def test_old_and_new_paths_same_objects(self):
-        import channel_heads.cnn_features as legacy_feat
-        import channel_heads.models.cnn_features as canonical_feat
-
-        assert legacy_feat.extract_embeddings is canonical_feat.extract_embeddings
-        assert legacy_feat.merge_cnn_features is canonical_feat.merge_cnn_features
-        assert legacy_feat.CNN_FEATURE_COLS is canonical_feat.CNN_FEATURE_COLS
-
-    def test_from_import_resolves_same(self):
-        from channel_heads.cnn_features import extract_embeddings as old_extract
-        from channel_heads.models.cnn_features import extract_embeddings as new_extract
-
-        assert old_extract is new_extract
+    """Earth/generic embedding helpers: canonical home in models.cnn_features."""
 
     def test_canonical_function_module(self):
         import channel_heads.models.cnn_features as canonical_feat
@@ -245,41 +200,32 @@ class TestCNNFeaturesConsolidated:
 
 
 class TestTrainingCoreConsolidated:
-    """CNN training core: canonical home in training.cnn + shim identity."""
-
-    def test_old_and_new_train_cnn_same_object(self):
-        from channel_heads.cnn_training import train_cnn as old_train
-        from channel_heads.training.cnn import train_cnn as new_train
-
-        assert old_train is new_train
+    """CNN training core: canonical home in training.cnn."""
 
     def test_train_cnn_module_is_training_cnn(self):
         from channel_heads.training.cnn import train_cnn
 
         assert train_cnn.__module__ == "channel_heads.training.cnn"
 
-    def test_defaults_unchanged_and_identical_across_paths(self):
-        from channel_heads import cnn_training as shim
-        from channel_heads.training import cnn as canonical
+    def test_defaults_unchanged(self):
+        from channel_heads.training import cnn as cnn_training
 
-        assert canonical.DEFAULT_EPOCHS == shim.DEFAULT_EPOCHS == 60
-        assert canonical.DEFAULT_LR == shim.DEFAULT_LR == 1e-3
-        assert canonical.DEFAULT_WEIGHT_DECAY == shim.DEFAULT_WEIGHT_DECAY == 1e-4
-        assert canonical.DEFAULT_BATCH_SIZE == shim.DEFAULT_BATCH_SIZE == 64
-        assert canonical.DEFAULT_DROPOUT == shim.DEFAULT_DROPOUT == 0.3
-        assert canonical.DEFAULT_PATIENCE == shim.DEFAULT_PATIENCE == 12
+        assert cnn_training.DEFAULT_EPOCHS == 60
+        assert cnn_training.DEFAULT_LR == 1e-3
+        assert cnn_training.DEFAULT_WEIGHT_DECAY == 1e-4
+        assert cnn_training.DEFAULT_BATCH_SIZE == 64
+        assert cnn_training.DEFAULT_DROPOUT == 0.3
+        assert cnn_training.DEFAULT_PATIENCE == 12
 
     def test_holdout_basin_unchanged(self):
-        from channel_heads import cnn_training as shim
-        from channel_heads.training import cnn as canonical
+        from channel_heads.training import cnn as cnn_training
 
-        assert canonical.HOLDOUT_BASIN == shim.HOLDOUT_BASIN == "taiwan"
+        assert cnn_training.HOLDOUT_BASIN == "taiwan"
 
     def test_random_state_unchanged(self):
-        from channel_heads import cnn_training as shim
-        from channel_heads.training import cnn as canonical
+        from channel_heads.training import cnn as cnn_training
 
-        assert canonical.RANDOM_STATE == shim.RANDOM_STATE == 42
+        assert cnn_training.RANDOM_STATE == 42
 
     def test_models_cnn_lazy_reexport_sources_from_training_cnn(self):
         """models.cnn lazy re-export resolves to training.cnn (no import cycle)."""

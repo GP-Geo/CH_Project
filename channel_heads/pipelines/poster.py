@@ -9,18 +9,26 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import runpy
+import sys
+
 from channel_heads.io import paths
-from channel_heads.pipelines._delegate import run_script
 
 
 def generate_poster_figures(output_dir: Path | None = None) -> Path:
     """Generate the poster/report figure set.
 
-    TRANSITIONAL — runs ``scripts/make_result_figures.py``. Returns the output
+    Runs ``scripts/cli/make_result_figures.py``. Returns the output
     directory (defaults to ``data/results/final_figures``).
     """
     out = Path(output_dir) if output_dir else paths.poster_figures_dir()
-    run_script("make_result_figures.py")
+    script = paths.PROJECT_ROOT / "scripts" / "cli" / "make_result_figures.py"
+    old_argv = sys.argv
+    sys.argv = [str(script)]
+    try:
+        runpy.run_path(str(script), run_name="__main__")
+    finally:
+        sys.argv = old_argv
     return out
 
 

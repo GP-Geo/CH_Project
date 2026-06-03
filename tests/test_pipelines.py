@@ -40,9 +40,7 @@ def test_migrated_stages_do_not_delegate():
         assert "run_script" not in src, f"{name} should call channel_heads.* directly"
 
 
-def test_remaining_transitional_stages_are_not_mars_inference():
-    for name in ("train_earth_cnn", "train_earth_xgb_variants", "generate_poster_figures"):
-        assert "TRANSITIONAL" in inspect.getdoc(getattr(pipelines, name))
-
-    for name in ("extract_mars_cnn_embeddings", "run_mars_combined_inference"):
-        assert "TRANSITIONAL" not in inspect.getdoc(getattr(pipelines, name))
+def test_earth_and_mars_stages_are_callable():
+    for name in ("train_earth_cnn", "train_earth_xgb_variants", "generate_poster_figures",
+                 "extract_mars_cnn_embeddings", "run_mars_combined_inference"):
+        assert callable(getattr(pipelines, name))

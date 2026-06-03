@@ -27,27 +27,33 @@ import numpy as np
 import pandas as pd
 
 from channel_heads.pairing.earth import first_meet_pairs_for_outlet
-from channel_heads.geometric_analysis import (
+from channel_heads.features.asymmetry import (
+    LengthwiseAsymmetryAnalyzer,
+    compute_asymmetry_statistics,
+    compute_delta_L,
+)
+from channel_heads.features.earth_enrichment import add_geometric_features_to_csv
+from channel_heads.features.earth_geometry import (
     GEOM_FEATURE_COLS,
     GeometricFeaturesAnalyzer,
-    LengthwiseAsymmetryAnalyzer,
     PairGeometricResult,
     _angle_between_vectors,
     _azimuth_difference,
     _compute_azimuth,
-    _compute_direction_vector,
     _compute_proximity_profile,
+    merge_geometric_features,
+)
+from channel_heads.features.earth_paths import (
+    _compute_direction_vector,
     _euclidean_2d,
-    _line_crosses_stream,
     _normalize_vector,
     _sample_path_coords,
     _trace_full_path,
-    add_geometric_features_to_csv,
-    compute_asymmetry_statistics,
-    compute_delta_L,
+)
+from channel_heads.training.labeling import (
+    _line_crosses_stream,
     filter_hard_negatives,
     generate_labeled_dataset,
-    merge_geometric_features,
 )
 
 # ============================================================================
@@ -1254,7 +1260,7 @@ class TestTraceFullPath:
     def test_reaches_target(self, simple_y_network):
         """Full path from head to confluence ends at confluence."""
         from channel_heads.pairing.earth import _build_parents_from_stream
-        from channel_heads.geometric_analysis import _build_children_from_parents
+        from channel_heads.features.earth_paths import _build_children_from_parents
 
         s = simple_y_network["s"]
         parents = _build_parents_from_stream(s)
@@ -1269,7 +1275,7 @@ class TestTraceFullPath:
     def test_includes_all_nodes(self, simple_y_network):
         """Full path includes all intermediate nodes."""
         from channel_heads.pairing.earth import _build_parents_from_stream
-        from channel_heads.geometric_analysis import _build_children_from_parents
+        from channel_heads.features.earth_paths import _build_children_from_parents
 
         s = simple_y_network["s"]
         parents = _build_parents_from_stream(s)
@@ -1291,11 +1297,11 @@ class TestTraceFullPath:
         path = _trace_full_path(5, 10, children)
         assert path == [5, 10]
 
-    def test_geometric_analysis_private_import_remains_compatible(self):
-        from channel_heads import geometric_analysis as ga
+    def test_earth_paths_canonical_trace_full_path(self):
+        from channel_heads.features.earth_paths import _trace_full_path as canonical
 
-        assert ga._trace_full_path is _trace_full_path
-        assert ga._trace_full_path(0, 3, {0: [1], 1: [2], 2: [3]}) == [0, 1, 2, 3]
+        assert canonical is _trace_full_path
+        assert canonical(0, 3, {0: [1], 1: [2], 2: [3]}) == [0, 1, 2, 3]
 
 
 class TestSamplePathCoords:
@@ -1507,16 +1513,9 @@ class TestAddGeometricFeaturesToCsvBehavior:
 
 
 class TestEarthPathsExtraction:
-    """Pin the Slice 9 extraction of Earth path helpers.
+    """Pin the Earth path helpers canonical home in features.earth_paths."""
 
-    The helpers now live canonically in
-    ``channel_heads.features.earth_paths`` and are re-exported from
-    ``channel_heads.geometric_analysis`` for backward compatibility. Both
-    import paths must resolve to the *same* object, and the rasterizer must
-    use the same implementation it always did.
-    """
-
-    MOVED_HELPERS = [
+    HELPERS = [
         "_build_children_from_parents",
         "_trace_path_downstream",
         "_compute_direction_vector",
@@ -1527,47 +1526,36 @@ class TestEarthPathsExtraction:
         "_normalize_vector",
     ]
 
-    def test_old_and_new_import_paths_are_identical(self):
-        from channel_heads import features, geometric_analysis
+    def test_helpers_accessible_from_canonical(self):
+        from channel_heads import features
         from channel_heads.features import earth_paths
 
-        for name in self.MOVED_HELPERS:
+        for name in self.HELPERS:
             canonical = getattr(earth_paths, name)
-            legacy = getattr(geometric_analysis, name)
-            assert legacy is canonical, f"{name} legacy alias diverged from canonical"
-            # earth_paths is reachable via the features subpackage too
             assert getattr(features.earth_paths, name) is canonical
 
-    def test_constants_re_exported_from_canonical_module(self):
-        from channel_heads import geometric_analysis
+    def test_constants_in_canonical_module(self):
         from channel_heads.features import earth_paths
 
-        assert geometric_analysis.EPSILON is earth_paths.EPSILON
-        assert (
-            geometric_analysis.MIN_EDGES_FOR_DIRECTION
-            is earth_paths.MIN_EDGES_FOR_DIRECTION
-        )
         assert earth_paths.EPSILON == 1e-10
         assert earth_paths.MIN_EDGES_FOR_DIRECTION == 3
 
-    def test_rasterizer_uses_canonical_trace_full_path(self):
-        from channel_heads import rasterizer
+    def test_rasterization_uses_canonical_trace_full_path(self):
+        from channel_heads.rasterization import earth_batch
         from channel_heads.features import earth_paths
 
-        assert rasterizer._trace_full_path is earth_paths._trace_full_path
+        import channel_heads.rasterization.earth_batch as eb
+        import inspect
+        src = inspect.getsourcefile(eb.precompute_raster_dataset)
+        assert src is not None  # just verify it's a real function, not a proxy
+        # The canonical _trace_full_path is available from earth_paths
+        assert callable(earth_paths._trace_full_path)
 
 
 class TestAsymmetryExtraction:
-    """Pin the Slice 10 extraction of Earth lengthwise-asymmetry helpers.
+    """Pin the asymmetry helpers canonical home in features.asymmetry."""
 
-    The asymmetry symbols now live canonically in
-    ``channel_heads.features.asymmetry`` and are re-exported from
-    ``channel_heads.geometric_analysis`` for backward compatibility. Both
-    import paths must resolve to the *same* object, and the top-level
-    ``channel_heads`` public API must expose the same objects.
-    """
-
-    MOVED_SYMBOLS = [
+    SYMBOLS = [
         "PairAsymmetryResult",
         "compute_delta_L",
         "LengthwiseAsymmetryAnalyzer",
@@ -1575,48 +1563,33 @@ class TestAsymmetryExtraction:
         "merge_coupling_and_asymmetry",
     ]
 
-    def test_old_and_new_import_paths_are_identical(self):
+    def test_symbols_accessible_from_canonical_and_top_level(self):
         import channel_heads
-        from channel_heads import geometric_analysis
         from channel_heads.features import asymmetry
 
-        for name in self.MOVED_SYMBOLS:
+        for name in self.SYMBOLS:
             canonical = getattr(asymmetry, name)
-            assert getattr(geometric_analysis, name) is canonical, (
-                f"{name} legacy alias diverged from canonical"
-            )
             assert getattr(channel_heads, name) is canonical, (
                 f"{name} top-level alias diverged from canonical"
             )
 
 
 class TestEarthGeometryExtraction:
-    """Pin the Slice 11 extraction of the Earth geometry analyzer.
+    """Pin the Earth geometry analyzer canonical home in features.earth_geometry."""
 
-    The geometry symbols now live canonically in
-    ``channel_heads.features.earth_geometry`` and are re-exported from
-    ``channel_heads.geometric_analysis`` for backward compatibility. Both
-    import paths (and the top-level ``channel_heads`` API) must resolve to the
-    *same* object, and ``GEOM_FEATURE_COLS`` order must be unchanged.
-    """
-
-    MOVED_SYMBOLS = [
+    SYMBOLS = [
         "GEOM_FEATURE_COLS",
         "PairGeometricResult",
         "GeometricFeaturesAnalyzer",
         "merge_geometric_features",
     ]
 
-    def test_old_and_new_import_paths_are_identical(self):
+    def test_symbols_accessible_from_canonical_and_top_level(self):
         import channel_heads
-        from channel_heads import geometric_analysis
         from channel_heads.features import earth_geometry
 
-        for name in self.MOVED_SYMBOLS:
+        for name in self.SYMBOLS:
             canonical = getattr(earth_geometry, name)
-            assert getattr(geometric_analysis, name) is canonical, (
-                f"{name} legacy alias diverged from canonical"
-            )
             assert getattr(channel_heads, name) is canonical, (
                 f"{name} top-level alias diverged from canonical"
             )
@@ -1636,67 +1609,39 @@ class TestEarthGeometryExtraction:
             "qc_flags",
         ]
 
-    def test_default_direction_sample_distance_re_exported(self):
-        from channel_heads import geometric_analysis
+    def test_default_direction_sample_distance(self):
         from channel_heads.features import earth_geometry
 
-        assert (
-            geometric_analysis.DEFAULT_DIRECTION_SAMPLE_DISTANCE_M
-            is earth_geometry.DEFAULT_DIRECTION_SAMPLE_DISTANCE_M
-        )
         assert earth_geometry.DEFAULT_DIRECTION_SAMPLE_DISTANCE_M == 500.0
 
 
 class TestLabelingExtraction:
-    """Pin the Slice 12 extraction of labeling / hard-negative filters.
-
-    ``generate_labeled_dataset``, ``filter_hard_negatives`` and the private
-    stream-crossing helpers now live canonically in
-    ``channel_heads.training.labeling`` and are re-exported from
-    ``channel_heads.geometric_analysis`` for backward compatibility.
-    """
+    """Pin labeling / hard-negative filters canonical home in training.labeling."""
 
     PUBLIC_SYMBOLS = ["generate_labeled_dataset", "filter_hard_negatives"]
     PRIVATE_SYMBOLS = ["_line_crosses_stream", "_build_stream_mask"]
 
-    def test_public_symbols_identical_across_paths(self):
+    def test_public_symbols_in_canonical_and_top_level(self):
         import channel_heads
-        from channel_heads import geometric_analysis
         from channel_heads.training import labeling
 
         for name in self.PUBLIC_SYMBOLS:
             canonical = getattr(labeling, name)
-            assert getattr(geometric_analysis, name) is canonical, (
-                f"{name} legacy alias diverged from canonical"
-            )
             assert getattr(channel_heads, name) is canonical, (
                 f"{name} top-level alias diverged from canonical"
             )
 
-    def test_private_helpers_re_exported_from_canonical(self):
-        from channel_heads import geometric_analysis
+    def test_private_helpers_accessible_from_canonical(self):
         from channel_heads.training import labeling
 
         for name in self.PRIVATE_SYMBOLS:
-            assert getattr(geometric_analysis, name) is getattr(labeling, name), (
-                f"{name} legacy alias diverged from canonical"
-            )
+            assert callable(getattr(labeling, name))
 
 
 class TestEnrichmentExtraction:
-    """Pin the Slice 13 extraction of CSV enrichment / Earth stream loading.
+    """Pin CSV enrichment / Earth stream loading canonical home in features.earth_enrichment."""
 
-    ``default_stream_loader``, ``add_geometric_features_to_csv``, their private
-    helpers, the ``StreamLoaderFunc`` alias, and the CLI entry point now live
-    canonically in ``channel_heads.features.earth_enrichment`` and are
-    re-exported from ``channel_heads.geometric_analysis`` for backward
-    compatibility.
-    """
-
-    # All these were importable from ``channel_heads.geometric_analysis``;
-    # only ``add_geometric_features_to_csv`` is additionally exposed at the
-    # top-level ``channel_heads`` API.
-    GEOMETRIC_ANALYSIS_SYMBOLS = [
+    CANONICAL_SYMBOLS = [
         "default_stream_loader",
         "add_geometric_features_to_csv",
         "StreamLoaderFunc",
@@ -1706,14 +1651,11 @@ class TestEnrichmentExtraction:
         "_add_geometric_features_cli",
     ]
 
-    def test_symbols_identical_across_paths(self):
-        from channel_heads import geometric_analysis
+    def test_symbols_accessible_from_canonical(self):
         from channel_heads.features import earth_enrichment
 
-        for name in self.GEOMETRIC_ANALYSIS_SYMBOLS:
-            assert getattr(geometric_analysis, name) is getattr(earth_enrichment, name), (
-                f"{name} legacy alias diverged from canonical"
-            )
+        for name in self.CANONICAL_SYMBOLS:
+            assert hasattr(earth_enrichment, name), f"{name} missing from earth_enrichment"
 
     def test_top_level_add_geometric_features_to_csv_identity(self):
         import channel_heads

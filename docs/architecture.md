@@ -74,13 +74,13 @@ from channel_heads import models   # models.xgboost / thresholds / comparison / 
 | Mars CNN patches (4) | ✅ migrated | `channel_heads/rasterization/mars_patches.py` |
 | Mars CNN embeddings (5) | ✅ migrated | `channel_heads/models/embeddings.py` |
 | Mars combined inference (6C) | ✅ migrated | `channel_heads/models/mars_combined.py` |
-| Earth training | ⏳ transitional | `scripts/train_*` |
-| Regime calibration | ⏳ transitional | `scripts/*_regime.py`, `run_regime_pipeline.sh` |
+| Earth training | ✅ package-resident | `channel_heads/training/{cnn,xgboost,datasets}.py`; `scripts/cli/train_*` are thin wrappers |
+| Regime calibration | ✅ package-resident | `channel_heads/training/regime.py`; `scripts/cli/*_regime.py` are thin wrappers |
 
-The full Mars inference pipeline is now package-resident. Remaining
-**transitional** stages are non-Mars: the `pipelines.*` function runs the script
-in-process via `channel_heads/pipelines/_delegate.py` until those Earth/regime
-training paths are extracted.
+The full pipeline is now package-resident. `scripts/cli/` contains thin CLI
+wrappers that call package functions — the implementation no longer lives in
+scripts. `channel_heads/pipelines/earth.py` invokes the Earth training wrappers
+in-process via `runpy`.
 
 See also: [pipeline.md](pipeline.md) · [modeling.md](modeling.md) ·
 [data_management.md](data_management.md) · [notebooks.md](notebooks.md).

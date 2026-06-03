@@ -81,11 +81,11 @@ class TestAreaLengthDensity:
 class TestSingleSourceOfTruth:
     """Old call sites must re-export the identical objects from units."""
 
-    def test_geometric_analysis_reexports(self):
-        from channel_heads import geometric_analysis as ga
+    def test_top_level_channel_heads_reexports_units(self):
+        import channel_heads as ch
 
-        assert ga.compute_meters_per_degree is units.compute_meters_per_degree
-        assert ga.compute_pixel_size_meters is units.compute_pixel_size_meters
+        assert ch.compute_meters_per_degree is units.compute_meters_per_degree
+        assert ch.compute_pixel_size_meters is units.compute_pixel_size_meters
 
     def test_dd_calibration_reexports(self):
         from channel_heads import dd_calibration as dd

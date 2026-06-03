@@ -132,17 +132,11 @@ def _touching_df() -> pd.DataFrame:
     return pd.DataFrame([{"outlet": 4, "head_1": 0, "head_2": 1, "confluence": 2}])
 
 
-def test_legacy_plotting_utils_reexports_viz_earth():
-    legacy = importlib.import_module("channel_heads.plotting_utils")
-
-    assert legacy.plot_coupled_pair is earth_module.plot_coupled_pair
-    assert legacy.plot_outlet_view is earth_module.plot_outlet_view
-    assert legacy.plot_all_coupled_pairs_for_outlet is (
-        earth_module.plot_all_coupled_pairs_for_outlet
-    )
-    assert legacy.plot_all_coupled_pairs_for_outlet_3d is (
-        earth_module.plot_all_coupled_pairs_for_outlet_3d
-    )
+def test_viz_earth_has_canonical_functions():
+    assert callable(earth_module.plot_coupled_pair)
+    assert callable(earth_module.plot_outlet_view)
+    assert callable(earth_module.plot_all_coupled_pairs_for_outlet)
+    assert callable(earth_module.plot_all_coupled_pairs_for_outlet_3d)
 
 
 def test_viz_package_exports_earth_plotting_functions():

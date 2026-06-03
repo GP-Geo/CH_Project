@@ -31,7 +31,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from ..config import resolve_dem_path
+from ..io.paths import resolve_dem_path
 from ..logging_config import get_logger
 from ..pairing.earth import _normalize_pair
 from .earth_geometry import GEOM_FEATURE_COLS, GeometricFeaturesAnalyzer

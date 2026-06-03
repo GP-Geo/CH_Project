@@ -20,31 +20,31 @@ LOG_DIR="/tmp/regime_${REGIME}"
 mkdir -p "$LOG_DIR"
 
 echo "=== Step 2: Earth features (regime=$REGIME) ==="
-python scripts/build_earth_features_regime.py \
+python scripts/cli/build_earth_features_regime.py \
     --regime "$REGIME" -v \
     > "$LOG_DIR/step2_features.log" 2>&1
 tail -20 "$LOG_DIR/step2_features.log"
 
 echo "=== Step 3: CNN patches (regime=$REGIME) ==="
-python scripts/build_cnn_patches_regime.py \
+python scripts/cli/build_cnn_patches_regime.py \
     --regime "$REGIME" -v \
     > "$LOG_DIR/step3_patches.log" 2>&1
 tail -20 "$LOG_DIR/step3_patches.log"
 
 echo "=== Step 4: Train CNN (regime=$REGIME) ==="
-python scripts/train_cnn_regime.py \
+python scripts/cli/train_cnn_regime.py \
     --regime "$REGIME" -v \
     > "$LOG_DIR/step4_cnn.log" 2>&1
 tail -30 "$LOG_DIR/step4_cnn.log"
 
 echo "=== Step 5: Train combined XGBoost (regime=$REGIME) ==="
-python scripts/train_combined_xgb_regime.py \
+python scripts/cli/train_combined_xgb_regime.py \
     --regime "$REGIME" -v \
     > "$LOG_DIR/step5_xgb.log" 2>&1
 tail -30 "$LOG_DIR/step5_xgb.log"
 
 echo "=== Step 6: Mars inference (regime=$REGIME) ==="
-python scripts/run_mars_combined_regime.py \
+python scripts/cli/run_mars_combined_regime.py \
     --regime "$REGIME" -v \
     > "$LOG_DIR/step6_mars.log" 2>&1
 tail -30 "$LOG_DIR/step6_mars.log"

@@ -1,10 +1,10 @@
 """Tests for the regime embedding-attach glue.
 
-The implementation is canonical in :mod:`channel_heads.models.regime`;
-:mod:`channel_heads.inference.regime` is a compatibility shim. The CNN forward
-pass (``extract_regime_embeddings``) needs a trained model, so for the
-merge/drop/column-assignment tests it is monkeypatched on the canonical module;
-a separate torch-guarded test exercises the real strict state-dict load.
+The canonical implementation lives in :mod:`channel_heads.models.regime`.
+The CNN forward pass (``extract_regime_embeddings``) needs a trained model,
+so for the merge/drop/column-assignment tests it is monkeypatched on the
+canonical module; a separate torch-guarded test exercises the real strict
+state-dict load.
 """
 
 from __future__ import annotations
@@ -79,24 +79,8 @@ def test_attach_raises_on_nonfinite_embeddings(tmp_path, monkeypatch):
         )
 
 
-class TestRegimeShimIdentity:
-    """The old ``inference.regime`` path must resolve to the canonical objects."""
-
-    SYMBOLS = [
-        "extract_regime_embeddings",
-        "attach_regime_embeddings",
-        "DEFAULT_BATCH_SIZE",
-        "DEFAULT_EMBEDDING_DIM",
-    ]
-
-    def test_old_and_new_paths_are_identical(self):
-        import channel_heads.inference.regime as shim
-        import channel_heads.models.regime as canonical
-
-        for name in self.SYMBOLS:
-            assert getattr(shim, name) is getattr(canonical, name), (
-                f"{name} shim alias diverged from canonical"
-            )
+class TestRegimeCanonicalSurface:
+    """The canonical ``models.regime`` and ``models`` package expose the symbols."""
 
     def test_models_package_exposes_canonical(self):
         import channel_heads.models as models

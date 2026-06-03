@@ -99,13 +99,13 @@ class TestPathHelpers:
 
 
 class TestSingleSourceOfTruth:
-    def test_geometric_analysis_reexports_same_objects(self):
-        from channel_heads import geometric_analysis as ga
+    def test_earth_geometry_uses_canonical_math(self):
+        from channel_heads.features import earth_geometry
 
-        assert ga._angle_between_vectors is geo.angle_between_vectors
-        assert ga._compute_azimuth is geo.compute_azimuth
-        assert ga._azimuth_difference is geo.azimuth_difference
-        assert ga._compute_proximity_profile is geo.compute_proximity_profile
+        assert earth_geometry._angle_between_vectors is geo.angle_between_vectors
+        assert earth_geometry._compute_azimuth is geo.compute_azimuth
+        assert earth_geometry._azimuth_difference is geo.azimuth_difference
+        assert earth_geometry._compute_proximity_profile is geo.compute_proximity_profile
 
     def test_package_features_namespace(self):
         from channel_heads import features

@@ -1,4 +1,4 @@
-"""Tests for channel_heads.rasterizer module."""
+"""Tests for channel_heads rasterization modules."""
 
 import math
 from pathlib import Path
@@ -7,19 +7,21 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from channel_heads.rasterizer import (
+from channel_heads.rasterization import (
     BACKGROUND,
     BRANCH_A,
     BRANCH_B,
     CONFLUENCE_MARKER,
     NUM_CLASSES,
     OTHER_STREAMS,
-    _component_count,
-    _compute_rotation_angle,
-    _rotate_coordinates,
     precompute_raster_dataset,
     raster_quality_flags,
     rasterize_outlet_pair,
+)
+from channel_heads.rasterization.earth_patches import (
+    _component_count,
+    _compute_rotation_angle,
+    _rotate_coordinates,
 )
 from tests.conftest import MockGridObject, MockStreamObject
 
@@ -520,26 +522,17 @@ class TestConstants:
         import channel_heads.rasterization.patches as patches
         import channel_heads.rasterization.schema as schema
         import channel_heads.models.cnn as cnn
-        import channel_heads.rasterizer as rasterizer
 
-        assert rasterizer.rasterize_outlet_pair is earth_patches.rasterize_outlet_pair
-        assert patches.rasterize_outlet_pair is rasterizer.rasterize_outlet_pair
-        assert rasterization.rasterize_outlet_pair is rasterizer.rasterize_outlet_pair
+        assert patches.rasterize_outlet_pair is earth_patches.rasterize_outlet_pair
+        assert rasterization.rasterize_outlet_pair is earth_patches.rasterize_outlet_pair
         assert patches.precompute_raster_dataset is earth_batch.precompute_raster_dataset
         assert rasterization.precompute_raster_dataset is earth_batch.precompute_raster_dataset
-        assert callable(rasterizer.precompute_raster_dataset)
-        assert rasterizer.raster_quality_flags is earth_patches.raster_quality_flags
-        assert patches.raster_quality_flags is rasterizer.raster_quality_flags
-        assert rasterization.raster_quality_flags is rasterizer.raster_quality_flags
-        assert rasterizer.bresenham_line is earth_patches.bresenham_line
-        assert rasterization.bresenham_line is rasterizer.bresenham_line
-        assert rasterizer._compute_rotation_angle is earth_patches._compute_rotation_angle
-        assert rasterizer._rotate_coordinates is earth_patches._rotate_coordinates
-        assert rasterizer._component_count is earth_patches._component_count
+        assert rasterization.raster_quality_flags is earth_patches.raster_quality_flags
+        assert patches.raster_quality_flags is earth_patches.raster_quality_flags
+        assert rasterization.bresenham_line is earth_patches.bresenham_line
         assert (
             schema.NUM_CLASSES
             == patches.NUM_CLASSES
-            == rasterizer.NUM_CLASSES
             == rasterization.NUM_CLASSES
             == cnn.NUM_CLASSES
         )
@@ -801,16 +794,12 @@ class TestPrecomputeQAGating:
     def test_invalid_patch_gets_no_raster_path(self, tmp_path, simple_y_network, monkeypatch):
         """A patch that fails structural QA is 'invalid' with no raster_path,
         but is still saved to a debug path for inspection."""
-        import channel_heads.rasterizer as rast
-
         def broken_raster(*_args, **_kwargs):
             # Branch A and B present but no confluence marker and disconnected.
             r = np.zeros((32, 32), dtype=np.uint8)
             r[5, 5] = BRANCH_A
             r[25, 25] = BRANCH_B
             return r
-
-        monkeypatch.setattr(rast, "rasterize_outlet_pair", broken_raster)
 
         master_csv = self._write_master(tmp_path)
 
@@ -822,6 +811,7 @@ class TestPrecomputeQAGating:
             output_dir=tmp_path / "rasters",
             dem_loader=loader,
             target_size=32,
+            rasterize_func=broken_raster,
         )
         row = out.iloc[0]
         assert row["raster_status"] == "invalid"
@@ -885,8 +875,6 @@ class TestPrecomputeQAGating:
         assert not loader_called
 
     def test_rasterizer_exception_marks_row_failed(self, tmp_path, simple_y_network, monkeypatch):
-        import channel_heads.rasterizer as rast
-
         master_csv = self._write_master(tmp_path)
 
         def loader(_basin, _lat, _z_th, _threshold):
@@ -895,13 +883,12 @@ class TestPrecomputeQAGating:
         def raise_rasterizer(*_args, **_kwargs):
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(rast, "rasterize_outlet_pair", raise_rasterizer)
-
         out = precompute_raster_dataset(
             master_csv=master_csv,
             output_dir=tmp_path / "rasters",
             dem_loader=loader,
             target_size=32,
+            rasterize_func=raise_rasterizer,
         )
 
         row = out.iloc[0]

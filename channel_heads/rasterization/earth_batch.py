@@ -139,6 +139,8 @@ def precompute_raster_dataset(
     dem_loader: Callable[[str, float, float, int], tuple[Any, Any] | None],
     target_size: int = 128,
     threshold: int = 300,
+    *,
+    rasterize_func: RasterizeFunc = rasterize_outlet_pair,
 ) -> pd.DataFrame:
     """Pre-render raster patches for all pairs in the master dataset.
 
@@ -153,11 +155,13 @@ def precompute_raster_dataset(
     dem_loader : Callable
         Function ``(basin, lat, z_th, threshold) -> (StreamObject, GridObject)``
         or ``None`` if DEM not found. Same signature as
-        ``geometric_analysis.default_stream_loader``.
+        ``features.earth_enrichment.default_stream_loader``.
     target_size : int
         Output image size.
     threshold : int
         Stream network threshold parameter.
+    rasterize_func : callable
+        Rasterization function to use (injectable for testing).
 
     Returns
     -------
@@ -170,6 +174,7 @@ def precompute_raster_dataset(
         dem_loader=dem_loader,
         target_size=target_size,
         threshold=threshold,
+        rasterize_func=rasterize_func,
     )
 
 

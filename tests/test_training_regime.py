@@ -274,6 +274,7 @@ class TestRegimePatchBuild:
         script_path = (
             Path(__file__).resolve().parents[1]
             / "scripts"
+            / "cli"
             / "build_cnn_patches_regime.py"
         )
         spec = importlib.util.spec_from_file_location(
@@ -533,6 +534,7 @@ class TestRegimeFeatureBuild:
         script_path = (
             Path(__file__).resolve().parents[1]
             / "scripts"
+            / "cli"
             / "build_earth_features_regime.py"
         )
         spec = importlib.util.spec_from_file_location(

@@ -6,13 +6,13 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from channel_heads.cnn_features import (
+from channel_heads.models.cnn_features import (
     CNN_FEATURE_COLS,
     extract_embeddings,
     merge_cnn_features,
 )
-from channel_heads.cnn_model import DEFAULT_EMBEDDING_DIM, OutletCNN
-from channel_heads.rasterizer import NUM_CLASSES
+from channel_heads.models.cnn import DEFAULT_EMBEDDING_DIM, OutletCNN
+from channel_heads.rasterization import NUM_CLASSES
 
 # =============================================================================
 # CNN_FEATURE_COLS Tests

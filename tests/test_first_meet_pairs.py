@@ -18,17 +18,7 @@ from channel_heads.pairing.earth import (
 
 
 class TestEarthAdapterImports:
-    """Test new public import paths and legacy compatibility shim."""
-
-    def test_legacy_module_reexports_new_implementation(self):
-        """Historical imports should resolve to the package-resident implementation."""
-        legacy_module = importlib.import_module("channel_heads.first_meet_pairs_for_outlet")
-
-        assert legacy_module.first_meet_pairs_for_outlet is earth_module.first_meet_pairs_for_outlet
-        assert legacy_module._build_parents_from_stream is earth_module._build_parents_from_stream
-        assert legacy_module._collect_basin_nodes_from_outlet is (
-            earth_module._collect_basin_nodes_from_outlet
-        )
+    """Test canonical import paths for the Earth adapter."""
 
     def test_pairing_package_exports_earth_adapter(self):
         """The pairing package exposes the Earth adapter at the package boundary."""

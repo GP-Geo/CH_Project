@@ -136,7 +136,7 @@ which the in-notebook root-resolution cells assume — keep new notebooks at tha
 
 | Home | Contents |
 |------|----------|
-| `training/` | Earth training pipeline `00_full_pipeline` → `05_cnn_quick_eval`; referenced by `scripts/train_*`, `build_*`. |
+| `training/` | Earth training pipeline `00_full_pipeline` → `05_cnn_quick_eval`; referenced by `scripts/cli/train_*`, `build_*`. |
 | `analysis/` | Earth basin analysis `01_single_basin_test` → `04_all_basins_full`. |
 | `mars/` | Mars cross-planet exploration (`dd_hull_mars_vs_earth_complexity`). |
 | `regime/` | Regime calibration: `00_calibration_overview`, `01_mars_inference` (→ `channel_heads.inference`). |

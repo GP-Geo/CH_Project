@@ -19,9 +19,7 @@ def test_paths_are_under_project_root():
     assert paths.PRODUCTION_THRESHOLD == pytest.approx(0.577406)
 
 
-def test_config_reexports_canonical_io_paths():
-    config = importlib.import_module("channel_heads.config")
-
+def test_io_paths_has_canonical_constants():
     for name in (
         "PROJECT_ROOT",
         "DATA_DIR",
@@ -34,17 +32,13 @@ def test_config_reexports_canonical_io_paths():
         "EXPORTS_DIR",
         "NOTEBOOKS_DIR",
         "EXAMPLE_DEMS",
-    ):
-        assert getattr(config, name) == getattr(paths, name)
-
-    for name in (
         "get_output_dir",
         "get_experiment_output_dir",
         "list_available_dems",
         "ensure_directories",
         "resolve_dem_path",
     ):
-        assert getattr(config, name) is getattr(paths, name)
+        assert hasattr(paths, name)
 
 
 def test_core_path_categories_and_legacy_aliases():
@@ -73,10 +67,6 @@ def test_models_artifact_dir_is_not_models_package():
 
 
 def test_environment_overrides_are_preserved(monkeypatch, tmp_path):
-    config = importlib.import_module("channel_heads.config")
-
-    original_root = paths.PROJECT_ROOT
-    original_data = paths.DATA_DIR
     root_override = tmp_path / "project-root"
     data_override = tmp_path / "external-data"
     monkeypatch.setenv("CHANNEL_HEADS_ROOT", str(root_override))
@@ -84,22 +74,15 @@ def test_environment_overrides_are_preserved(monkeypatch, tmp_path):
 
     try:
         importlib.reload(paths)
-        importlib.reload(config)
 
         assert paths.PROJECT_ROOT == root_override
         assert paths.DATA_DIR == data_override
         assert paths.CROPPED_DEMS_DIR == data_override / "cropped_DEMs"
         assert paths.EXAMPLE_DEMS["inyo"] == data_override / "cropped_DEMs/Inyo_strm_crop.tif"
-        assert config.PROJECT_ROOT == paths.PROJECT_ROOT
-        assert config.DATA_DIR == paths.DATA_DIR
     finally:
         monkeypatch.delenv("CHANNEL_HEADS_ROOT", raising=False)
         monkeypatch.delenv("CHANNEL_HEADS_DATA", raising=False)
         importlib.reload(paths)
-        importlib.reload(config)
-
-    assert paths.PROJECT_ROOT == original_root
-    assert paths.DATA_DIR == original_data
 
 
 def test_path_accessor_creates_dir(tmp_path, monkeypatch):

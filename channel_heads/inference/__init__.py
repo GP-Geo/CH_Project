@@ -1,17 +1,14 @@
-"""Shared inference helpers for the Mars XGBoost prediction scripts.
+"""Inference helpers — canonical implementations live in ``channel_heads.models``.
 
-Artifact loading, model/feature compatibility checks, and predict-with-threshold
-glue used by the tabular, combined (emb/logit), and regime inference entry
-points. The XGBoost helpers now live in :mod:`channel_heads.models.xgboost`
-(re-exported here via the :mod:`channel_heads.inference.xgb` shim); device
-selection now lives in :mod:`channel_heads.models.device` (re-exported here via
-the :mod:`channel_heads.inference.device` shim).
+Re-exported here for any remaining external callers. New code should import
+directly from :mod:`channel_heads.models.xgboost` and
+:mod:`channel_heads.models.device`.
 """
 
 from __future__ import annotations
 
-from .device import pick_device
-from .xgb import (
+from channel_heads.models.device import pick_device
+from channel_heads.models.xgboost import (
     load_feature_columns,
     load_threshold,
     load_xgb_model,
