@@ -63,6 +63,7 @@ data/results/
 data/outputs/
 data/archive/
 data/_rebuild_backup_*/
+data/_stage7_archive_*/
 data/Mars/
 data/final_valleys/
 data/exports/**/*.pdf

@@ -4,6 +4,46 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Stage 7A archive stale Earth regime raster artifacts
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit:** `d3bd085` (Stage 7 regeneration plan)
+- **Task:** Archive only stale generated Earth regime raster artifacts before
+  regeneration. Do not delete data, regenerate patches, run training, touch
+  models, or touch notebooks.
+- **Actions taken:**
+  1. Created timestamped archive folder
+     `data/_stage7_archive_20260603_231506/`.
+  2. Moved stale generated artifacts with structure preserved relative to
+     `data/`:
+     - `data/results/_rasters_regA/` ->
+       `data/_stage7_archive_20260603_231506/results/_rasters_regA/`
+     - `data/results/_rasters_regB/` ->
+       `data/_stage7_archive_20260603_231506/results/_rasters_regB/`
+     - `data/results/_rasters_regC/` ->
+       `data/_stage7_archive_20260603_231506/results/_rasters_regC/`
+     - `data/results/raster_manifest_regA.csv` ->
+       `data/_stage7_archive_20260603_231506/results/raster_manifest_regA.csv`
+     - `data/results/raster_manifest_regB.csv` ->
+       `data/_stage7_archive_20260603_231506/results/raster_manifest_regB.csv`
+     - `data/results/raster_manifest_regC.csv` ->
+       `data/_stage7_archive_20260603_231506/results/raster_manifest_regC.csv`
+  3. Added `.gitignore` entry `data/_stage7_archive_*/` so the generated archive
+     is not accidentally committed.
+- **Verification:** all six archived paths exist; all six original paths are
+  absent; `data/results/master_dataset_regA_with_emb.csv`,
+  `data/results/master_dataset_regB_with_emb.csv`, and
+  `data/results/master_dataset_regC_with_emb.csv` still exist. Archive contains
+  73,272 raster files and is about 1.4 GB.
+- **Missing expected paths:** none.
+- **Not touched:** raw/source/manual data, `models/`, notebooks, package code,
+  regenerated rasters/patches, embeddings, predictions, training outputs.
+- **Validation:** `git diff --check` clean.
+- **Next step:** Stage 7B regeneration only; do not run Stage 8 training until
+  regenerated manifests and patches validate.
+
+---
+
 ## 2026-06-03 — Stage 7 Earth model-input regeneration plan
 
 - **Branch:** `refactor/package-first-architecture`

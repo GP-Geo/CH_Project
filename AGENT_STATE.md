@@ -3,7 +3,7 @@
 Snapshot for resuming the package-first refactor without chat history.
 Update this file after every completed slice.
 
-_Last updated: 2026-06-03 (Stage 7 regeneration plan)_
+_Last updated: 2026-06-03 (Stage 7A archive preparation)_
 
 ## Git
 
@@ -413,9 +413,26 @@ See `STAGE_45_PLANNING.md` for the full plan.
   before Stage 8/9. No data, models, notebooks, rasters, embeddings,
   predictions, training outputs, or package code were modified.
 
+**Completed (Stage 7A archive preparation):**
+- Stale generated Earth regime raster artifacts were moved, not deleted, to
+  `data/_stage7_archive_20260603_231506/` with structure preserved relative to
+  `data/`:
+  - `results/_rasters_regA/`
+  - `results/_rasters_regB/`
+  - `results/_rasters_regC/`
+  - `results/raster_manifest_regA.csv`
+  - `results/raster_manifest_regB.csv`
+  - `results/raster_manifest_regC.csv`
+- Verification passed: archived paths exist, original paths are absent, and
+  `data/results/master_dataset_reg{A,B,C}_with_emb.csv` remain in place. Archive
+  holds 73,272 raster files and is about 1.4 GB. `data/_stage7_archive_*/` is
+  gitignored so the generated archive is not committed.
+- No raw/source/manual data, models, notebooks, package code, raster
+  regeneration, patch regeneration, or training was touched.
+
 **Next:**
-- Either archive stale generated Earth model-input artifacts listed in
-  `AGENT_STAGE7_REGENERATION_PLAN.md`, or run the Stage 7 regeneration commands
-  from that plan.
+- Run Stage 7B regeneration commands from `AGENT_STAGE7_REGENERATION_PLAN.md`
+  when ready:
+  `python scripts/cli/build_cnn_patches_regime.py --regime regA|regB|regC -v`.
 - Do not proceed to Stage 8 model training/retraining or Stage 9 validation
   until Stage 7 regenerated patches/manifests pass validation.
