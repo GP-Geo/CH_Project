@@ -8,12 +8,11 @@ _Last updated: 2026-06-03_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** Regime Earth feature builder now wraps package
-  regime helpers (`scripts/build_earth_features_regime.py`; see
-  `AGENT_RUN_LOG.md`). All Earth/regime training/eval/patch/feature scripts
-  are now wrappers.
-- **Working tree:** clean at time of writing after the regime Earth feature
-  builder wrapper commit.
+- **Latest stable commit:** Scripts/CLI organization pass classified the
+  `scripts/` tree in `scripts/README.md`; no script paths were moved because
+  root wrappers remain referenced by docs and shell orchestrators.
+- **Working tree:** clean at time of writing after the scripts/CLI organization
+  commit.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
 
@@ -31,10 +30,13 @@ _Last updated: 2026-06-03_
 - **Pairing:** Earth/TopoToolbox first-meet logic → `channel_heads/pairing/earth.py`.
 - **Visualization:** Earth plotting → `channel_heads/viz/earth.py`.
 - **Paths/config:** canonical path ownership → `channel_heads/io/paths.py`.
-- **XGBoost inference:** implementation → `channel_heads/models/xgboost.py`
-  (this is the most recent slice, commit `90fd694`).
-- **Scripts cleanup:** thin scripts now import canonical package modules directly
-  where safe; no scripts were archived.
+- **XGBoost inference:** implementation → `channel_heads/models/xgboost.py`.
+- **Scripts cleanup / organization:** thin scripts import canonical package
+  modules directly where safe. `scripts/README.md` now classifies maintained
+  CLI, wrappers, diagnostics/rendering utilities, shell/orchestration entry
+  points, and archive entries. No scripts were moved, deleted, or newly archived
+  in the organization pass because root paths remain path-coupled to docs and
+  shell runners.
 - **Earth/regime training audit:** ownership plan recorded in
   `AGENT_AUDIT_EARTH_REGIME.md` (audit-only; no implementation moved).
 - **Earth/regime package foundations:** reusable helpers now live in
@@ -394,21 +396,17 @@ _Last updated: 2026-06-03_
   a partial shim plus the Earth batch precompute implementation. Future
   recommendation is to move `precompute_raster_dataset` into
   `channel_heads/rasterization/`, then leave `rasterizer.py` as a pure shim.
-- `scripts/` — cleanup pass complete as of Slice 4. Scripts import canonical
-  package modules where safe; `scripts/run_mars_combined_regime.py` now imports
-  `attach_regime_embeddings` from `channel_heads.models.regime` (the
-  `inference.regime` shim still works). No dead scripts were archived.
+- `scripts/` — CLI/diagnostics/archive organization pass complete. The current
+  inventory is classified in `scripts/README.md` as maintained CLI, wrapper over
+  package API, diagnostics/rendering utility, shell/orchestration entry point,
+  or archive. No scripts were moved in this pass because docs and shell
+  orchestrators still reference root script paths; keeping those paths stable
+  preserves documented commands.
 
 ## Next recommended task
 
-**Raster Slice R3 — move Earth batch precompute into the rasterization package.**
-Move `precompute_raster_dataset` into `channel_heads/rasterization/earth_patches.py`
-or a dedicated `earth_batch.py`, preserving loader signature, output directory,
-filenames, debug patch behavior, status/error strings, QA columns, and old
-imports from `channel_heads.rasterizer`.
-
 The backlog's standalone **data cleanup dry-run (report-only)** item remains
-open as a later task; do not delete, move, or mutate any data/model/generated
+the next listed task. Do not delete, move, or mutate any data/model/generated
 artifact when it is picked up.
 
 > Note: the user-issued geometric_analysis split slices are numbered 9–13 in the

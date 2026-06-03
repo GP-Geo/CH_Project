@@ -4,6 +4,37 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Scripts CLI organization cleanup
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `5eb525a`
+- **Task:** Audit and organize `scripts/` as a CLI/diagnostics/archive layer
+  after package-first extraction, without changing behavior or running real
+  pipelines.
+- **Decision:** No scripts were moved. Reference checks showed root script paths
+  are still used by `docs/PIPELINE_RERUN.md`, `docs/PROJECT_STRUCTURE.md`,
+  `scripts/run_full_rebuild.sh`, `scripts/run_regime_pipeline.sh`, script
+  docstrings, and handoff/audit history. Moving root wrappers would break
+  documented commands unless many references and orchestrators were updated in
+  the same slice.
+- **Docs updated:** `scripts/README.md` now classifies all scripts as
+  maintained CLI, wrapper over package API, diagnostics/rendering utility,
+  shell/orchestration entry point, or archive. It also records canonical
+  package alternatives and a conservative move policy.
+- **Scripts moved:** none.
+- **Scripts archived:** none. Existing archive entries remain
+  `_archive/extract_mars_outlet_candidates.py` and
+  `_archive/old_experiments/exp_calibration_standardize.py`.
+- **Not touched:** `data/`, root `/models/`, notebooks, generated outputs,
+  trained artifacts, DEMs, shapefiles, GeoPackages, parquet/csv outputs,
+  figures, and script behavior.
+- **Validation:** stale-reference `rg` audit completed before deciding not to
+  move files. Full pytest -> 583 passed, 7 warnings. `git diff --check` clean.
+  No Python scripts were changed or moved, so import-smoke and targeted ruff
+  were not applicable.
+- **Next step:** Data cleanup dry-run remains the next backlog item; it must be
+  report-only.
+
 ## 2026-06-03 — Regime Earth feature-builder wrapper
 
 - **Branch:** `refactor/package-first-architecture`

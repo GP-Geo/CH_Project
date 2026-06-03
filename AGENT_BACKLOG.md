@@ -390,6 +390,16 @@ Standard tests:
 > and `run_regime_pipeline.sh` were intentionally out of scope and remain
 > pipeline entry points rather than conversion targets.
 
+## Scripts / CLI organization cleanup (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. Audited the full `scripts/` tree and
+> updated `scripts/README.md` with a conservative classification: maintained
+> CLI, wrapper over package API, diagnostics/rendering utility,
+> shell/orchestration entry point, and archive. No scripts were moved because
+> root paths are still referenced by docs and shell orchestrators. No scripts
+> were deleted or archived in this phase.
+> Commit: `chore(scripts): organize CLI and wrapper scripts`.
+
 ## Slice 9 (original) — Data cleanup dry-run (later)
 
 - **Goal:** Produce a **dry-run only** report of candidate stale/generated data
