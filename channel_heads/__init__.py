@@ -65,23 +65,26 @@ from . import io, mars, models, pipelines, rasterization
 from .coupling_analysis import CouplingAnalyzer, PairTouchResult
 from .pairing.earth import first_meet_pairs_for_outlet
 
-# Geometric analysis (asymmetry, geometric features, CSV enrichment)
-from .geometric_analysis import (
-    GEOM_FEATURE_COLS,
-    GeometricFeaturesAnalyzer,
+# Geometric analysis (asymmetry, geometric features, CSV enrichment).
+# Imported from the canonical feature/training modules; the
+# ``channel_heads.geometric_analysis`` module remains a compatibility shim that
+# re-exports the same objects.
+from .features.asymmetry import (
     LengthwiseAsymmetryAnalyzer,
     PairAsymmetryResult,
-    PairGeometricResult,
-    add_geometric_features_to_csv,
     compute_asymmetry_statistics,
     compute_delta_L,
-    compute_meters_per_degree,
-    compute_pixel_size_meters,
-    filter_hard_negatives,
-    generate_labeled_dataset,
     merge_coupling_and_asymmetry,
+)
+from .features.earth_enrichment import add_geometric_features_to_csv
+from .features.earth_geometry import (
+    GEOM_FEATURE_COLS,
+    GeometricFeaturesAnalyzer,
+    PairGeometricResult,
     merge_geometric_features,
 )
+from .training.labeling import filter_hard_negatives, generate_labeled_dataset
+from .units import compute_meters_per_degree, compute_pixel_size_meters
 from .logging_config import get_logger, setup_logging
 from .pruning import apply_strategy, build_stream_graph, prune_by_order_gap
 

@@ -4,6 +4,51 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Slice 14: repoint internal imports off the geometric_analysis shim
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `ca8220d`
+- **Task:** Low-risk cleanup. Now that `geometric_analysis.py` is a pure
+  re-export shim, repoint internal package code to import from the canonical
+  modules. Keep the shim intact (no exports removed).
+- **Files updated:**
+  - `channel_heads/__init__.py` — the single `from .geometric_analysis import
+    (...)` block was replaced with direct imports from the canonical modules:
+    `features.asymmetry` (`LengthwiseAsymmetryAnalyzer`, `PairAsymmetryResult`,
+    `compute_asymmetry_statistics`, `compute_delta_L`,
+    `merge_coupling_and_asymmetry`), `features.earth_enrichment`
+    (`add_geometric_features_to_csv`), `features.earth_geometry`
+    (`GEOM_FEATURE_COLS`, `GeometricFeaturesAnalyzer`, `PairGeometricResult`,
+    `merge_geometric_features`), `training.labeling` (`filter_hard_negatives`,
+    `generate_labeled_dataset`), and `units` (`compute_meters_per_degree`,
+    `compute_pixel_size_meters`). Public API and `__all__` unchanged.
+  - `AGENT_STATE.md`, `AGENT_BACKLOG.md`, `AGENT_RUN_LOG.md`.
+- **Not changed:**
+  - `channel_heads/geometric_analysis.py` — left as the compatibility shim;
+    still re-exports every symbol (nothing removed).
+  - `scripts/build_earth_features_regime.py` — it imports via the top-level
+    `channel_heads` public API (`from channel_heads import ...`), **not** from
+    `geometric_analysis` directly, so it needed no change; it now resolves
+    transitively to the canonical modules.
+  - Tests — the existing `Test*Extraction` parity classes already assert both
+    canonical-module identity and top-level / shim identity, so they were kept
+    as-is (shim tests preserved per the slice brief).
+  - rasterizer implementation, notebooks, `data/`, root `/models/`, trained
+    artifacts, generated outputs.
+- **Validation:** import smoke — top-level `channel_heads.X`, the canonical
+  `features.*` / `training.labeling` / `units` objects, and the
+  `geometric_analysis` shim re-exports are all the *same* objects. Targeted
+  pytest (`test_geometric_analysis.py` + `test_rasterizer.py`) → **154 passed,
+  1 warning**; full pytest → **513 passed, 17 skipped, 1 warning**.
+  `git diff --check` and `git diff --cached --check` clean. `ruff` was requested
+  but unavailable in the recovery environment (`python -m ruff` reported no
+  installed module and no `ruff` binary was on `PATH`).
+- **Risks:** Very low. Import-source change only; objects are identical across
+  paths and `__all__`/public API are unchanged. The shim remains fully
+  functional for notebooks/scripts/user code.
+- **Next step:** Optional — backlog data cleanup dry-run (report-only), or the
+  `inference/regime.py` consolidation per `AGENT_AUDIT_EARTH_REGIME.md`.
+
 ## 2026-06-03 — Slice 13: extract Earth enrichment helpers (geometric_analysis → shim)
 
 - **Branch:** `refactor/package-first-architecture`

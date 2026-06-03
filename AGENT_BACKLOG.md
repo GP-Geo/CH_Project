@@ -243,6 +243,16 @@ Standard tests:
 >
 > The `geometric_analysis.py` split (Slices 9–13) is complete.
 
+## Slice 14 — Repoint internal imports off the geometric_analysis shim (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. `channel_heads/__init__.py` now imports
+> the asymmetry / geometry / enrichment / labeling / unit symbols directly from
+> the canonical modules instead of from the `geometric_analysis` shim. The shim
+> is unchanged (no exports removed); `scripts/build_earth_features_regime.py`
+> imports via the top-level `channel_heads` API and needed no change. Public
+> API, `__all__`, and all object identities are unchanged.
+> Commit: `refactor(features): repoint internal imports from geometric analysis shim`.
+
 ## Slice 9 (original) — Data cleanup dry-run (later)
 
 - **Goal:** Produce a **dry-run only** report of candidate stale/generated data

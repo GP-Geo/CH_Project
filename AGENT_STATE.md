@@ -8,10 +8,10 @@ _Last updated: 2026-06-03_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** Geometric analysis + rasterizer behavior-pinning
-  tests (Slice 8; see `AGENT_RUN_LOG.md`); prior was the Slice 6/7 ownership
-  audit.
-- **Working tree:** clean at time of writing after the behavior-pinning commit.
+- **Latest stable commit:** Internal imports repointed off the
+  `geometric_analysis` shim (Slice 14; see `AGENT_RUN_LOG.md`); prior was the
+  Slice 13 CSV enrichment extraction.
+- **Working tree:** clean at time of writing after the Slice 14 commit.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
 
@@ -274,6 +274,7 @@ _Last updated: 2026-06-03_
 - `channel_heads/cnn_model.py` → `channel_heads/models/cnn.py`
 - `channel_heads/cnn_features.py` → `channel_heads/models/cnn_features.py`
 - `channel_heads/cnn_training.py` → `channel_heads/training/cnn.py`
+- `channel_heads/geometric_analysis.py` → `channel_heads/features/{earth_paths,asymmetry,earth_geometry,earth_enrichment}.py` + `channel_heads/training/labeling.py` (pure re-export shim; internal package code no longer imports from it as of Slice 14)
 
 ## Known transitional / not-yet-audited areas
 
@@ -295,6 +296,17 @@ _Last updated: 2026-06-03_
   symbol (public + the underscored helpers used by tests/legacy callers), keeps
   the type aliases, and keeps the `python -m channel_heads.geometric_analysis`
   CLI working. No further extraction from this module is pending.
+- **Internal imports repointed off the shim (Slice 14): DONE.**
+  `channel_heads/__init__.py` now imports the asymmetry / geometry / enrichment
+  / labeling / unit symbols directly from the canonical modules
+  (`features.asymmetry`, `features.earth_geometry`, `features.earth_enrichment`,
+  `training.labeling`, `units`) instead of from `geometric_analysis`. The shim
+  is unchanged and still re-exports everything (no exports removed).
+  `scripts/build_earth_features_regime.py` was already importing via the
+  top-level `channel_heads` public API (not the shim), so it needed no change
+  and now resolves transitively to the canonical modules. Top-level, canonical,
+  and shim objects remain identical (pinned by the existing
+  `Test*Extraction` parity tests).
 - `rasterizer.py` — audited in Slice 7 and behavior-pinned in Slice 8. Keep
   untouched for now; future
   recommendation is to move shared constants/schema and Earth rasterization into
@@ -305,20 +317,14 @@ _Last updated: 2026-06-03_
 
 ## Next recommended task
 
-The `geometric_analysis.py` split (Slices 9–13) is **complete**;
-`geometric_analysis.py` is now a pure re-export shim. Candidate follow-ups, in
+The `geometric_analysis.py` split (Slices 9–13) is **complete** and internal
+package imports were repointed off the shim (Slice 14). Candidate follow-ups, in
 rough priority order:
 
-1. **Tidy the `geometric_analysis` re-export surface** — optionally move the
-   underscored-helper re-exports behind a thinner public contract, or repoint
-   `channel_heads/__init__.py` and `scripts/build_earth_features_regime.py` to
-   import directly from the canonical `features.*` / `training.labeling`
-   modules (the shim can then shrink). Low risk; do only with import-identity
-   tests.
-2. **Data cleanup dry-run (report-only)** — the backlog's original Slice 9 item;
+1. **Data cleanup dry-run (report-only)** — the backlog's original Slice 9 item;
    produce a report of candidate stale/generated data per `docs/DATA_STATUS.md`.
    Never delete, move, or mutate any data/model/generated artifact.
-3. Continue the `inference/regime.py` → `models/regime.py` and Earth/regime
+2. Continue the `inference/regime.py` → `models/regime.py` and Earth/regime
    training consolidation per `AGENT_AUDIT_EARTH_REGIME.md`, behind
    behavior-pinning tests.
 
