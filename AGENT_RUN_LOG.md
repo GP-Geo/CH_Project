@@ -4,6 +4,44 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Slice 10: extract asymmetry helpers
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `c566f72`
+- **Task:** Move the Earth lengthwise-asymmetry logic out of
+  `geometric_analysis.py` into `channel_heads/features/asymmetry.py`, preserving
+  behavior exactly (merge-and-consolidate). Second slice of the
+  `geometric_analysis.py` split.
+- **Files created:**
+  - `channel_heads/features/asymmetry.py` — `PairAsymmetryResult`,
+    `compute_delta_L`, `LengthwiseAsymmetryAnalyzer`,
+    `compute_asymmetry_statistics`, `merge_coupling_and_asymmetry` (moved
+    verbatim). Imports `_detect_cellsize` from `features.earth_paths` and
+    `compute_meters_per_degree` from `units`; logger is per-module
+    `get_logger(__name__)` (warnings emitted identically; no test patches the
+    asymmetry logger).
+- **Files updated:**
+  - `channel_heads/geometric_analysis.py` — removed the moved definitions; now
+    imports the five symbols from `channel_heads.features.asymmetry` and
+    re-exports them. `compute_meters_per_degree` kept as a re-export (in
+    `__all__`). No change to the geometry analyzer, labeling, or enrichment.
+  - `tests/test_geometric_analysis.py` — added `TestAsymmetryExtraction`
+    pinning old (`geometric_analysis`) / new (`features.asymmetry`) / top-level
+    (`channel_heads`) import identity for all five moved symbols.
+  - `AGENT_STATE.md`, `AGENT_BACKLOG.md`, `AGENT_RUN_LOG.md`.
+- **Not touched:** geometry analyzer, labeling / hard-negative filtering, CSV
+  enrichment, scripts, notebooks, `data/`, root `/models/`, generated outputs,
+  trained artifacts.
+- **Validation:** targeted pytest → **147 passed, 1 warning**; full pytest →
+  **523 passed, 7 warnings**. `ruff check` clean on
+  `features/asymmetry.py` and `geometric_analysis.py`. `git diff --check` clean.
+- **Risks:** Low. Logic moved verbatim; S1 upstream-distance conversion policy,
+  negative-length warn/clamp, head-order normalization with L swapping, NaN-safe
+  statistics, and merge keys all unchanged. Only the logger name differs
+  (cosmetic; not asserted by any test).
+- **Next step:** Slice 11 — extract the Earth geometry analyzer into
+  `channel_heads/features/earth_geometry.py`.
+
 ## 2026-06-03 — Slice 9: extract Earth path helpers
 
 - **Branch:** `refactor/package-first-architecture`

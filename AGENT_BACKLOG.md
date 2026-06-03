@@ -203,6 +203,38 @@ Standard tests:
 - **Stop condition:** Stop if any path-tracing branch choice, QC flag, or
   coordinate convention would change.
 
+## Slice 10 — Extract asymmetry helpers (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. Moved `PairAsymmetryResult`,
+> `compute_delta_L`, `LengthwiseAsymmetryAnalyzer`,
+> `compute_asymmetry_statistics`, and `merge_coupling_and_asymmetry` into
+> `channel_heads/features/asymmetry.py`; `geometric_analysis.py` re-exports
+> them. S1 upstream-distance unit policy unchanged.
+> Commit: `refactor(features): extract asymmetry helpers`.
+
+## Slice 11 — Extract Earth geometry analyzer (next)
+
+- **Goal:** Move `GEOM_FEATURE_COLS`, `PairGeometricResult`,
+  `GeometricFeaturesAnalyzer`, `merge_geometric_features` into
+  `channel_heads/features/earth_geometry.py`; `geometric_analysis.py`
+  re-exports.
+- **Stop condition:** Stop if feature-column order, y-axis convention,
+  branch-parent Strahler behavior, QC flags, or skip-warning logging change.
+
+## Slice 12 — Extract labeling / hard-negative filters (later)
+
+- **Goal:** Move `generate_labeled_dataset`, `filter_hard_negatives`,
+  `_line_crosses_stream`, `_build_stream_mask` into
+  `channel_heads/training/labeling.py`; `geometric_analysis.py` re-exports.
+
+## Slice 13 — Extract Earth enrichment helpers (later)
+
+- **Goal:** Move `default_stream_loader`, `_build_pairs_at_confluence`,
+  `_build_asymmetry_df`, `_add_missing_stream_qc`,
+  `add_geometric_features_to_csv`, `_add_geometric_features_cli` into
+  `channel_heads/features/earth_enrichment.py`; `geometric_analysis.py`
+  re-exports and keeps its `__main__` CLI working.
+
 ## Slice 9 (original) — Data cleanup dry-run (later)
 
 - **Goal:** Produce a **dry-run only** report of candidate stale/generated data

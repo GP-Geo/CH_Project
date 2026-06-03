@@ -1555,3 +1555,36 @@ class TestEarthPathsExtraction:
         from channel_heads.features import earth_paths
 
         assert rasterizer._trace_full_path is earth_paths._trace_full_path
+
+
+class TestAsymmetryExtraction:
+    """Pin the Slice 10 extraction of Earth lengthwise-asymmetry helpers.
+
+    The asymmetry symbols now live canonically in
+    ``channel_heads.features.asymmetry`` and are re-exported from
+    ``channel_heads.geometric_analysis`` for backward compatibility. Both
+    import paths must resolve to the *same* object, and the top-level
+    ``channel_heads`` public API must expose the same objects.
+    """
+
+    MOVED_SYMBOLS = [
+        "PairAsymmetryResult",
+        "compute_delta_L",
+        "LengthwiseAsymmetryAnalyzer",
+        "compute_asymmetry_statistics",
+        "merge_coupling_and_asymmetry",
+    ]
+
+    def test_old_and_new_import_paths_are_identical(self):
+        import channel_heads
+        from channel_heads import geometric_analysis
+        from channel_heads.features import asymmetry
+
+        for name in self.MOVED_SYMBOLS:
+            canonical = getattr(asymmetry, name)
+            assert getattr(geometric_analysis, name) is canonical, (
+                f"{name} legacy alias diverged from canonical"
+            )
+            assert getattr(channel_heads, name) is canonical, (
+                f"{name} top-level alias diverged from canonical"
+            )
