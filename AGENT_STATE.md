@@ -8,10 +8,10 @@ _Last updated: 2026-06-03_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** Earth single-patch rasterization moved into the
-  rasterization package (Raster Slice R2; see `AGENT_RUN_LOG.md`); prior was
-  Raster R1 shared schema extraction.
-- **Working tree:** clean at time of writing after the Raster R2 commit.
+- **Latest stable commit:** Earth raster batch precompute moved into the
+  rasterization package (Raster Slice R3; see `AGENT_RUN_LOG.md`); prior was
+  Raster R2 Earth single-patch rasterization.
+- **Working tree:** clean at time of writing after the Raster R3 commit.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
 
@@ -45,10 +45,12 @@ _Last updated: 2026-06-03_
 - **Rasterization schema constants:** shared 5-class patch constants,
   `CLASS_LABELS`, and `PATCH_FLAG_COLUMNS` are canonical in
   `channel_heads/rasterization/schema.py` (Raster R1).
-- **Earth single-patch rasterization:** direct-final-grid Earth patch
-  implementation now lives in `channel_heads/rasterization/earth_patches.py`
-  (Raster R2). `channel_heads/rasterizer.py` re-exports the moved helpers and
-  still owns Earth batch precompute until Raster R3.
+- **Earth patch rasterization:** direct-final-grid Earth single-patch
+  implementation lives in `channel_heads/rasterization/earth_patches.py`
+  (Raster R2), and Earth batch precompute lives in
+  `channel_heads/rasterization/earth_batch.py` (Raster R3).
+  `channel_heads/rasterizer.py` is now a compatibility wrapper/re-export
+  surface for these rasterization APIs.
 
 ## Canonical ownership (current truth)
 
@@ -76,7 +78,7 @@ _Last updated: 2026-06-03_
 | Shared raster patch schema (`BACKGROUND`, `BRANCH_A`, `BRANCH_B`, `OTHER_STREAMS`, `CONFLUENCE_MARKER`, `NUM_CLASSES`, `CLASS_LABELS`, `PATCH_FLAG_COLUMNS`) | `channel_heads/rasterization/schema.py` | `channel_heads/rasterizer.py`, `channel_heads/rasterization/patches.py`, and `channel_heads/rasterization` re-export compatibility values |
 | Mars CNN patch generation | `channel_heads/rasterization/mars_patches.py` | `scripts/build_mars_cnn_patches_5class.py` wrapper |
 | Earth 5-class single-patch rasterization (`bresenham_line`, direct final-grid helpers, `raster_quality_flags`, `rasterize_outlet_pair`) | `channel_heads/rasterization/earth_patches.py` | `channel_heads/rasterizer.py`, `channel_heads/rasterization/patches.py`, and `channel_heads/rasterization` re-export compatibility surfaces |
-| Earth raster batch precompute (`precompute_raster_dataset`) | `channel_heads/rasterizer.py` for now | `channel_heads/rasterization/patches.py` and `channel_heads/rasterization` re-export surface |
+| Earth raster batch precompute (`precompute_raster_dataset`) | `channel_heads/rasterization/earth_batch.py` | `channel_heads/rasterizer.py` delegates as a legacy wrapper; `channel_heads/rasterization/patches.py` and `channel_heads/rasterization` re-export the canonical package function |
 
 ## Model-layer status
 

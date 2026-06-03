@@ -294,7 +294,14 @@ Standard tests:
 - **Stop condition:** Stop if any raster pixels, QA flags, import identity, or
   Mars patch behavior would change.
 
-## Raster Slice R3 — Move Earth batch precompute
+## Raster Slice R3 — Move Earth batch precompute (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. Moved Earth batch precompute into
+> `channel_heads/rasterization/earth_batch.py`. `channel_heads/rasterizer.py`
+> now delegates through a compatibility wrapper so old imports and legacy
+> monkeypatch behavior continue to work. `rasterization.patches` and
+> `rasterization` re-export the canonical package function.
+> Commit: `refactor(rasterization): move Earth raster batch precompute`.
 
 - **Goal:** Move `precompute_raster_dataset` into the rasterization package
   after R2, while preserving loader signature, output paths, filenames, debug

@@ -514,6 +514,7 @@ class TestConstants:
 
     def test_rasterization_public_surfaces_reexport_same_objects(self):
         import channel_heads.rasterization as rasterization
+        import channel_heads.rasterization.earth_batch as earth_batch
         import channel_heads.rasterization.earth_patches as earth_patches
         import channel_heads.rasterization.manifest as manifest
         import channel_heads.rasterization.patches as patches
@@ -524,8 +525,9 @@ class TestConstants:
         assert rasterizer.rasterize_outlet_pair is earth_patches.rasterize_outlet_pair
         assert patches.rasterize_outlet_pair is rasterizer.rasterize_outlet_pair
         assert rasterization.rasterize_outlet_pair is rasterizer.rasterize_outlet_pair
-        assert patches.precompute_raster_dataset is rasterizer.precompute_raster_dataset
-        assert rasterization.precompute_raster_dataset is rasterizer.precompute_raster_dataset
+        assert patches.precompute_raster_dataset is earth_batch.precompute_raster_dataset
+        assert rasterization.precompute_raster_dataset is earth_batch.precompute_raster_dataset
+        assert callable(rasterizer.precompute_raster_dataset)
         assert rasterizer.raster_quality_flags is earth_patches.raster_quality_flags
         assert patches.raster_quality_flags is rasterizer.raster_quality_flags
         assert rasterization.raster_quality_flags is rasterizer.raster_quality_flags

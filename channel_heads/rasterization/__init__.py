@@ -1,13 +1,13 @@
 """Rasterization layer: patch generation + shared drawing primitives.
 
-Earth/Mars-compatible 5-class 128x128 patches for the CNN. The Earth
-implementation still lives in :mod:`channel_heads.rasterizer` for now
-(preserved as the frozen contract); this subpackage is the curated public
-surface.
+Earth/Mars-compatible 5-class 128x128 patches for the CNN. Earth patch
+rasterization and batch precompute are package-resident here; legacy imports
+from :mod:`channel_heads.rasterizer` remain compatibility shims.
 """
 
 from channel_heads.rasterization import (
     drawing,
+    earth_batch,
     earth_patches,
     manifest,
     mars_patches,
@@ -41,6 +41,7 @@ from channel_heads.rasterization.schema import (
 
 __all__ = [
     "drawing",
+    "earth_batch",
     "earth_patches",
     "patches",
     "schema",

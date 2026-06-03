@@ -4,6 +4,50 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Raster R3: move Earth raster batch precompute
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `c086259`
+- **Task:** Move Earth batch raster precompute into the rasterization package
+  after R2, preserving output paths, filenames, debug patch behavior,
+  status/error strings, QA semantics, and DataFrame columns exactly.
+- **Files created:**
+  - `channel_heads/rasterization/earth_batch.py` — canonical home for
+    `precompute_raster_dataset`, with an internal injectable helper used by the
+    legacy shim.
+- **Files updated:**
+  - `channel_heads/rasterizer.py` — now delegates `precompute_raster_dataset`
+    to `rasterization.earth_batch` while passing the legacy module globals
+    through, preserving old import and monkeypatch behavior.
+  - `channel_heads/rasterization/patches.py` and
+    `channel_heads/rasterization/__init__.py` — re-export the canonical package
+    batch precompute function and expose the new `earth_batch` module.
+  - `tests/test_rasterizer.py` — updates the public-surface assertion for the
+    package canonical batch function while keeping legacy wrapper behavior
+    covered by existing batch QA tests.
+  - `AGENT_STATE.md`, `AGENT_BACKLOG.md`, `AGENT_RUN_LOG.md`.
+- **Not changed:** single-patch raster pixels, QA flag definitions, Mars patch
+  rendering behavior, regime patch scripts, notebooks, `data/`, root
+  `/models/`, trained artifacts, generated outputs.
+- **Validation:** import checks passed for `channel_heads.rasterizer`,
+  `channel_heads.rasterization`, legacy `rasterize_outlet_pair` /
+  `precompute_raster_dataset`, and package `rasterize_outlet_pair` /
+  `precompute_raster_dataset`. Targeted pytest (`tests/test_rasterizer.py
+  tests/test_mars_patches.py tests/test_cnn_model.py
+  tests/test_cnn_consolidation.py`) → **101 passed, 1 warning**. Full pytest →
+  **513 passed, 17 skipped, 1 warning**. `git diff --check` clean. `ruff` was
+  requested but unavailable (`python -m ruff` reported no installed module and
+  no `ruff` binary was on `PATH`).
+- **Risks:** Low. The implementation moved structurally; loader signature,
+  basin config lookup, output directory/filename, debug saves, `raster_path`
+  gating, status/error strings, and output columns are preserved. Package
+  callers now get the canonical function; legacy `rasterizer` callers get a
+  wrapper to keep historical monkeypatch behavior.
+- **Next step:** Rasterization extraction is complete for the audited
+  `rasterizer.py` implementation. Recommended next bounded task is the backlog
+  data cleanup dry-run report, or an explicit `inference/regime.py`
+  consolidation slice from `AGENT_AUDIT_EARTH_REGIME.md`.
+
 ## 2026-06-03 — Raster R2: move Earth patch rasterization into package
 
 - **Branch:** `refactor/package-first-architecture`
