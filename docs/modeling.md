@@ -49,6 +49,12 @@ Use the threshold-sensitivity and Dd-calibration notebooks
 ([notebooks.md](notebooks.md)) to pick and justify the Mars operating
 threshold — treat it as a scientific decision, not a copied constant.
 
+## Regime calibration
+
+The three regime presets (regA/B/C) that re-run Earth training at different
+network complexities are documented in [REGIME_SELECTION.md](REGIME_SELECTION.md).
+Those parameters are frozen upstream of all trained regime models.
+
 ## Known scientific risks
 
 The geometric/units risk register (S1–S8, e.g. the `upstream_distance()` unit

@@ -380,13 +380,20 @@ were deliberately **not** merged — they encode different loading contracts.
 The package-first refactor is **complete**. No shims remain except the two
 intentional compatibility surfaces listed above. Scientific pipeline work is next.
 
-See `STAGE_45_PLANNING.md` for the full plan. Immediate sequence:
+See `STAGE_45_PLANNING.md` for the full plan.
 
-1. **Audit `notebooks/regime/00_calibration_overview.ipynb`** — verify imports
-   work after the canonical-import rewrite; confirm the notebook is the
-   canonical record for Stage 4 regime selection.
-2. **Write `docs/REGIME_SELECTION.md`** — freeze the Stage 4 regime-choice
-   rationale in prose.
-3. **Write `notebooks/analysis/05_earth_network_qa.ipynb`** — Stage 5 QA
-   gate: per-basin outlet counts, touching ratios, DEM overlays for flagged
-   basins. Reads tabular data only; safe to write now (rasters not needed).
+**Completed (Stage 4):**
+- `notebooks/regime/00_calibration_overview.ipynb` — fixed import block:
+  replaced `from build_earth_features_regime import (DEM_TO_BASIN, REGIMES,
+  stratified_subsample_negatives)` with canonical
+  `from channel_heads.regimes import REGIMES` +
+  `from channel_heads.training.regime import DEM_TO_BASIN, stratified_subsample_negatives`.
+  Removed obsolete `scripts/` sys.path insert. Updated 4 run_script paths to
+  `scripts/cli/`.
+- `docs/REGIME_SELECTION.md` — created; freezes regime parameters, calibration
+  rationale, evidence pointers, and downstream artifact map.
+
+**Next (Stage 5):**
+- **Write `notebooks/analysis/05_earth_network_qa.ipynb`** — per-basin outlet
+  counts, touching ratios, flagged-basin DEM overlays. Reads tabular data only;
+  safe to write and run now.

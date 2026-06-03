@@ -30,6 +30,7 @@ if uncertain about scientific behavior.
 | **Package-first architecture + public API (start here)** | [docs/architecture.md](docs/architecture.md) |
 | Stage-by-stage pipeline (inputs/outputs/deps) | [docs/pipeline.md](docs/pipeline.md) |
 | Model variants + Mars threshold issue | [docs/modeling.md](docs/modeling.md) |
+| Regime calibration rationale (frozen parameters) | [docs/REGIME_SELECTION.md](docs/REGIME_SELECTION.md) |
 | Data categories + safe cleanup | [docs/data_management.md](docs/data_management.md) |
 | Notebook catalogue | [docs/notebooks.md](docs/notebooks.md) |
 | Package API, ML pipeline, testing, conventions | [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) |
