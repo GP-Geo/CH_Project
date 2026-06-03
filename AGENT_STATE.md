@@ -3,7 +3,7 @@
 Snapshot for resuming the package-first refactor without chat history.
 Update this file after every completed slice.
 
-_Last updated: 2026-06-03 (post-cleanup)_
+_Last updated: 2026-06-03 (Stage 7 regeneration plan)_
 
 ## Git
 
@@ -400,8 +400,22 @@ See `STAGE_45_PLANNING.md` for the full plan.
   per regime, no NaN in feature columns. Soft warnings: basins <10 pairs,
   touching ratio outside [0.05, 0.95]. Writes `stage5_earth_network_qa_report.csv`
   on PASS. `STAGE_ASSET_MAP.md` updated: Stage 5 ❌ → 🔶.
+- `data/results/stage5_earth_network_qa_report.csv` exists and records a PASS:
+  hard flags = 0, soft warnings = 6. Non-blocking warnings are yoro low pair
+  counts in regA/regB and low regC touching ratios for finisterre, luliang,
+  sierramadre, and vallefertil.
+
+**Completed (Stage 7 planning):**
+- `AGENT_STAGE7_REGENERATION_PLAN.md` created as a report-only plan for Earth
+  model-input regeneration after Stage 4 regime selection and Stage 5 QA pass.
+  It lists required inputs, stale/generated outputs, canonical `scripts/cli/`
+  commands to run later, risk controls, validation gates, and the decision gate
+  before Stage 8/9. No data, models, notebooks, rasters, embeddings,
+  predictions, training outputs, or package code were modified.
 
 **Next:**
-- **Run `notebooks/analysis/05_earth_network_qa.ipynb`** and confirm PASS.
-  This clears the gate for Stage 7 (raster regeneration) and Stage 8 (retraining).
-- Or: proceed to Stage 12 (Mars threshold sensitivity notebook).
+- Either archive stale generated Earth model-input artifacts listed in
+  `AGENT_STAGE7_REGENERATION_PLAN.md`, or run the Stage 7 regeneration commands
+  from that plan.
+- Do not proceed to Stage 8 model training/retraining or Stage 9 validation
+  until Stage 7 regenerated patches/manifests pass validation.

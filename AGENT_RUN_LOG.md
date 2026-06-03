@@ -4,6 +4,35 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Stage 7 Earth model-input regeneration plan
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit:** `1341bfe` (Stage 5 Earth network QA gate)
+- **Task:** Report-only Stage 7 regeneration plan after the Stage 5 Earth
+  network QA pass. No regeneration, source edits, notebook edits, data changes,
+  model changes, deletes, archives, or real pipeline runs.
+- **Actions taken:**
+  1. Created `AGENT_STAGE7_REGENERATION_PLAN.md` with purpose, readiness
+     status, exact Stage 7 inputs, outputs to regenerate, stale/generated output
+     classification, canonical `scripts/cli/` command sequence to run later,
+     risk controls, validation plan, decision gate, and recommended next action.
+  2. Updated `AGENT_STATE.md` to record that Stage 5 passed and Stage 7 now has
+     a report-only regeneration plan.
+- **Readiness recorded:** Stage 4 rationale exists; Stage 5 QA report exists at
+  `data/results/stage5_earth_network_qa_report.csv`; hard flags = 0; soft
+  warnings = 6 and non-blocking.
+- **Noted input mismatch:** request named `docs/STAGE_ASSET_MAP.md`, but the
+  file present in this checkout is `STAGE_ASSET_MAP.md` at repo root. The plan
+  uses the root file and marks the path mismatch as documentation cleanup.
+- **Not touched:** `data/`, root `models/`, notebooks, generated outputs,
+  package code, scripts, rasters, embeddings, predictions, training outputs.
+- **Validation:** `git diff --check` clean.
+- **Next step:** Stage 7 execution slice: archive stale generated Earth
+  model-input artifacts or run the planned regeneration commands, then validate
+  manifests/patches before Stage 8 training.
+
+---
+
 ## 2026-06-03 — Stage 5 Earth network QA gate
 
 - **Branch:** `refactor/package-first-architecture`
