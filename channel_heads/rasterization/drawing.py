@@ -2,7 +2,7 @@
 
 Low-level helpers used by the Mars patch rasterizer
 (:mod:`channel_heads.rasterization.mars_patches`): Bresenham lines (from the
-Earth :mod:`channel_heads.rasterizer`), projected-metres↔image-coord conversion,
+Earth patch implementation), projected-metres↔image-coord conversion,
 confluence-centred rotation, and polyline drawing with branch protection.
 """
 
@@ -12,7 +12,7 @@ import math
 
 import numpy as np
 
-from channel_heads.rasterizer import bresenham_line
+from channel_heads.rasterization.earth_patches import bresenham_line
 
 
 def xy_to_rc(x_m: float, y_m: float, cell_size_m: float) -> tuple[float, float]:

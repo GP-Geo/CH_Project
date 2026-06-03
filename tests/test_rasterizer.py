@@ -514,19 +514,26 @@ class TestConstants:
 
     def test_rasterization_public_surfaces_reexport_same_objects(self):
         import channel_heads.rasterization as rasterization
+        import channel_heads.rasterization.earth_patches as earth_patches
         import channel_heads.rasterization.manifest as manifest
         import channel_heads.rasterization.patches as patches
         import channel_heads.rasterization.schema as schema
         import channel_heads.models.cnn as cnn
         import channel_heads.rasterizer as rasterizer
 
+        assert rasterizer.rasterize_outlet_pair is earth_patches.rasterize_outlet_pair
         assert patches.rasterize_outlet_pair is rasterizer.rasterize_outlet_pair
         assert rasterization.rasterize_outlet_pair is rasterizer.rasterize_outlet_pair
         assert patches.precompute_raster_dataset is rasterizer.precompute_raster_dataset
         assert rasterization.precompute_raster_dataset is rasterizer.precompute_raster_dataset
+        assert rasterizer.raster_quality_flags is earth_patches.raster_quality_flags
         assert patches.raster_quality_flags is rasterizer.raster_quality_flags
         assert rasterization.raster_quality_flags is rasterizer.raster_quality_flags
+        assert rasterizer.bresenham_line is earth_patches.bresenham_line
         assert rasterization.bresenham_line is rasterizer.bresenham_line
+        assert rasterizer._compute_rotation_angle is earth_patches._compute_rotation_angle
+        assert rasterizer._rotate_coordinates is earth_patches._rotate_coordinates
+        assert rasterizer._component_count is earth_patches._component_count
         assert (
             schema.NUM_CLASSES
             == patches.NUM_CLASSES

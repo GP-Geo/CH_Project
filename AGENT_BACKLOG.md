@@ -263,7 +263,14 @@ Standard tests:
 > No Earth rasterization or batch-precompute implementation moved.
 > Commit: `refactor(rasterization): extract shared raster schema constants`.
 
-## Raster Slice R2 — Move Earth single-patch rasterization implementation
+## Raster Slice R2 — Move Earth single-patch rasterization implementation (DONE)
+
+> Completed — see `AGENT_RUN_LOG.md`. Moved the Earth single-patch
+> implementation and required helpers into
+> `channel_heads/rasterization/earth_patches.py`. `channel_heads/rasterizer.py`
+> re-exports the moved names and still owns only Earth batch precompute in this
+> area. `rasterization.patches` remains the curated public re-export surface.
+> Commit: `refactor(rasterization): move Earth patch rasterization into package`.
 
 - **Goal:** Move the Earth single-patch rasterization implementation into
   `channel_heads/rasterization/earth_patches.py`, while preserving behavior

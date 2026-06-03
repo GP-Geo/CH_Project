@@ -17,16 +17,18 @@ from channel_heads.rasterization.schema import (
     NUM_CLASSES,
     OTHER_STREAMS,
 )
-from channel_heads.rasterizer import (
-    precompute_raster_dataset,
+from channel_heads.rasterization.earth_patches import (
+    bresenham_line,
     raster_quality_flags,
     rasterize_outlet_pair,
 )
+from channel_heads.rasterizer import precompute_raster_dataset
 
 __all__ = [
     "rasterize_outlet_pair",
     "precompute_raster_dataset",
     "raster_quality_flags",
+    "bresenham_line",
     "BACKGROUND",
     "BRANCH_A",
     "BRANCH_B",

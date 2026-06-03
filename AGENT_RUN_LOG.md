@@ -4,6 +4,50 @@ Append one entry per completed slice (newest at top). Keep entries short.
 
 ---
 
+## 2026-06-03 — Raster R2: move Earth patch rasterization into package
+
+- **Branch:** `refactor/package-first-architecture`
+- **Base commit before this entry:** `b70b817`
+- **Task:** Move only the Earth single-patch rasterization implementation into
+  the rasterization package. Leave Earth batch precompute for R3.
+- **Files created:**
+  - `channel_heads/rasterization/earth_patches.py` — canonical home for
+    `bresenham_line`, `_project_to_target_grid`, `_draw_path_on_target_grid`,
+    `_draw_edges_on_target_grid`, `_component_count`, `raster_quality_flags`,
+    `_get_rc`, `_compute_rotation_angle`, `_rotate_coordinates`, and
+    `rasterize_outlet_pair` (moved behavior-preserving).
+- **Files updated:**
+  - `channel_heads/rasterizer.py` — now re-exports the moved single-patch
+    symbols and keeps `precompute_raster_dataset` in place. The pinned private
+    `_trace_full_path` compatibility name remains available from this module.
+  - `channel_heads/rasterization/patches.py` and
+    `channel_heads/rasterization/__init__.py` — re-export the canonical
+    single-patch implementation while continuing to expose batch precompute.
+  - `channel_heads/rasterization/drawing.py` — imports `bresenham_line` from the
+    canonical Earth patch module.
+  - `tests/test_rasterizer.py` — pins old/new/package import identity for the
+    moved single-patch helpers.
+  - `AGENT_STATE.md`, `AGENT_BACKLOG.md`, `AGENT_RUN_LOG.md`.
+- **Not changed:** `precompute_raster_dataset` behavior/location, Mars patch
+  rendering behavior, regime patch scripts, notebooks, `data/`, root
+  `/models/`, trained artifacts, generated outputs.
+- **Validation:** import checks passed for `channel_heads.rasterizer`,
+  `channel_heads.rasterization`, `channel_heads.rasterization.patches`,
+  `channel_heads.rasterization.schema`, `channel_heads.rasterization.earth_patches`,
+  legacy `rasterize_outlet_pair` / `precompute_raster_dataset`, and package
+  `rasterize_outlet_pair`. Targeted pytest (`tests/test_rasterizer.py
+  tests/test_mars_patches.py tests/test_cnn_model.py
+  tests/test_cnn_consolidation.py`) → **101 passed, 1 warning**. Full pytest →
+  **513 passed, 17 skipped, 1 warning**. `git diff --check` clean. `ruff` was
+  requested but unavailable (`python -m ruff` reported no installed module and
+  no `ruff` binary was on `PATH`).
+- **Risks:** Low. The single-patch implementation moved without changing the
+  direct-final-grid projection, dtype, target size, padding, draw order, branch
+  protection, confluence overwrite, QA flag semantics, or public imports.
+- **Next step:** Raster R3 — move `precompute_raster_dataset` into the
+  rasterization package while preserving output paths, filenames, status/error
+  strings, debug patch behavior, and DataFrame columns exactly.
+
 ## 2026-06-03 — Raster R1: extract shared raster schema constants
 
 - **Branch:** `refactor/package-first-architecture`

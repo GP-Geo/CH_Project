@@ -6,7 +6,14 @@ implementation still lives in :mod:`channel_heads.rasterizer` for now
 surface.
 """
 
-from channel_heads.rasterization import drawing, manifest, mars_patches, patches, schema
+from channel_heads.rasterization import (
+    drawing,
+    earth_patches,
+    manifest,
+    mars_patches,
+    patches,
+    schema,
+)
 from channel_heads.rasterization.drawing import bresenham_line
 from channel_heads.rasterization.manifest import (
     build_patch_manifest,
@@ -34,6 +41,7 @@ from channel_heads.rasterization.schema import (
 
 __all__ = [
     "drawing",
+    "earth_patches",
     "patches",
     "schema",
     "manifest",

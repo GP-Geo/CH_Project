@@ -8,10 +8,10 @@ _Last updated: 2026-06-03_
 ## Git
 
 - **Current branch:** `refactor/package-first-architecture`
-- **Latest stable commit:** Shared raster schema constants extracted
-  (Raster Slice R1; see `AGENT_RUN_LOG.md`); prior was Slice 14 repointing
-  internal imports off the `geometric_analysis` shim.
-- **Working tree:** clean at time of writing after the Raster R1 commit.
+- **Latest stable commit:** Earth single-patch rasterization moved into the
+  rasterization package (Raster Slice R2; see `AGENT_RUN_LOG.md`); prior was
+  Raster R1 shared schema extraction.
+- **Working tree:** clean at time of writing after the Raster R2 commit.
 - Slices are committed directly to this branch (not a per-slice branch). Do not
   merge into `main`; do not push.
 
@@ -44,8 +44,11 @@ _Last updated: 2026-06-03_
   extraction. Implementation source remains untouched.
 - **Rasterization schema constants:** shared 5-class patch constants,
   `CLASS_LABELS`, and `PATCH_FLAG_COLUMNS` are canonical in
-  `channel_heads/rasterization/schema.py` (Raster R1). Earth rasterization logic
-  has not moved yet.
+  `channel_heads/rasterization/schema.py` (Raster R1).
+- **Earth single-patch rasterization:** direct-final-grid Earth patch
+  implementation now lives in `channel_heads/rasterization/earth_patches.py`
+  (Raster R2). `channel_heads/rasterizer.py` re-exports the moved helpers and
+  still owns Earth batch precompute until Raster R3.
 
 ## Canonical ownership (current truth)
 
@@ -72,7 +75,8 @@ _Last updated: 2026-06-03_
 | Unit conversions | `channel_heads/units.py` | `geometric_analysis.py` and `dd_calibration.py` re-export selected helpers |
 | Shared raster patch schema (`BACKGROUND`, `BRANCH_A`, `BRANCH_B`, `OTHER_STREAMS`, `CONFLUENCE_MARKER`, `NUM_CLASSES`, `CLASS_LABELS`, `PATCH_FLAG_COLUMNS`) | `channel_heads/rasterization/schema.py` | `channel_heads/rasterizer.py`, `channel_heads/rasterization/patches.py`, and `channel_heads/rasterization` re-export compatibility values |
 | Mars CNN patch generation | `channel_heads/rasterization/mars_patches.py` | `scripts/build_mars_cnn_patches_5class.py` wrapper |
-| Earth 5-class patch rasterization | `channel_heads/rasterizer.py` for now | `channel_heads/rasterization/patches.py` re-export surface |
+| Earth 5-class single-patch rasterization (`bresenham_line`, direct final-grid helpers, `raster_quality_flags`, `rasterize_outlet_pair`) | `channel_heads/rasterization/earth_patches.py` | `channel_heads/rasterizer.py`, `channel_heads/rasterization/patches.py`, and `channel_heads/rasterization` re-export compatibility surfaces |
+| Earth raster batch precompute (`precompute_raster_dataset`) | `channel_heads/rasterizer.py` for now | `channel_heads/rasterization/patches.py` and `channel_heads/rasterization` re-export surface |
 
 ## Model-layer status
 
@@ -321,22 +325,30 @@ _Last updated: 2026-06-03_
   consumers (`models.cnn`, `training.cnn`, `models.mars_combined`,
   `rasterization.mars_patches`, and `rasterization.manifest`) now import from
   schema where safe. No raster drawing or precompute implementation moved.
-- `rasterizer.py` — audited in Slice 7 and behavior-pinned in Slice 8. Keep
-  as the Earth implementation for now; future recommendation is to move Earth
-  single-patch rasterization and batch precompute into
-  `channel_heads/rasterization/`, then leave `rasterizer.py` as a shim.
+- **Earth single-patch rasterization move (Raster R2): DONE.**
+  `channel_heads/rasterization/earth_patches.py` now owns `bresenham_line`,
+  `_project_to_target_grid`, `_draw_path_on_target_grid`,
+  `_draw_edges_on_target_grid`, `_component_count`, `raster_quality_flags`,
+  `_get_rc`, `_compute_rotation_angle`, `_rotate_coordinates`, and
+  `rasterize_outlet_pair`. `channel_heads/rasterizer.py` re-exports all moved
+  names, including the pinned private `_trace_full_path` compatibility name, and
+  still owns `precompute_raster_dataset`. `channel_heads/rasterization/patches`
+  remains the curated public surface.
+- `rasterizer.py` — audited in Slice 7 and behavior-pinned in Slice 8. It is now
+  a partial shim plus the Earth batch precompute implementation. Future
+  recommendation is to move `precompute_raster_dataset` into
+  `channel_heads/rasterization/`, then leave `rasterizer.py` as a pure shim.
 - `scripts/` — cleanup pass complete as of Slice 4. Scripts may still import
   transitional modules directly when that is the canonical current surface
   (notably `channel_heads.inference.regime`); no dead scripts were archived.
 
 ## Next recommended task
 
-**Raster Slice R2 — move Earth single-patch rasterization into the package.**
-Move the Earth single-patch implementation and required helpers into
-`channel_heads/rasterization/earth_patches.py`, keep
-`channel_heads/rasterization/patches.py` as a curated re-export surface, and
-keep `channel_heads/rasterizer.py` as the compatibility surface. Do not move
-`precompute_raster_dataset` until Raster R3.
+**Raster Slice R3 — move Earth batch precompute into the rasterization package.**
+Move `precompute_raster_dataset` into `channel_heads/rasterization/earth_patches.py`
+or a dedicated `earth_batch.py`, preserving loader signature, output directory,
+filenames, debug patch behavior, status/error strings, QA columns, and old
+imports from `channel_heads.rasterizer`.
 
 The backlog's standalone **data cleanup dry-run (report-only)** item remains
 open as a later task; do not delete, move, or mutate any data/model/generated
