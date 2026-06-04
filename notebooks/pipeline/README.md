@@ -1,11 +1,13 @@
 # Pipeline notebooks (one per stage, 00–14)
 
 A clean, **enumerated walkthrough of the whole pipeline** — one notebook per
-stage in `docs/PIPELINE_DESIGN.md` / `STAGE_ASSET_MAP.md`. Each notebook is
-**lightweight and executable**: it imports the canonical `channel_heads` package
-and loads the artifacts already on disk to verify/visualize that stage. It does
-**not** re-run heavy compute — use the `channel-heads` CLI for that
-(`python -m channel_heads <command>`).
+stage in `docs/PIPELINE_DESIGN.md` / `STAGE_ASSET_MAP.md`. Each is an
+**informative, executable research notebook**: scientific narrative (what the
+stage does and why it matters for Earth→Mars coupling detection) + substantive
+analysis and visualization using the canonical `channel_heads` package and the
+on-disk artifacts, with interpretation. Heavy rebuilds run via the `channel-heads`
+CLI (each stage lists its command); a couple of topo/stream cells run on one
+representative basin to stay fast.
 
 These are the canonical map of the pipeline. The pre-existing themed notebooks
 (`analysis/`, `training/`, `mars/`, `regime/`, `diagnostics/`, `interpretation/`,
