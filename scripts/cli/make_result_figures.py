@@ -29,7 +29,7 @@ import xgboost as xgb  # noqa: E402
 from channel_heads.eval import outlet_group_holdout  # noqa: E402
 from channel_heads.viz import roc_curve_panel  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]  # scripts/cli/ -> repo root
 FIG_M = ROOT / "data/results/figures_models"
 FIG_MARS = ROOT / "data/Mars/model_outputs/figures_combined"
 FIG_M.mkdir(parents=True, exist_ok=True)

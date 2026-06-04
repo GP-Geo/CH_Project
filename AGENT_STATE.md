@@ -45,35 +45,36 @@ Key facts:
   the old stale numbers within noise (all single-split Δ < 0.03; largest mover is
   regA LOBO fold-AUC −0.028, still sub-threshold). Frozen production artifacts
   verified untouched. See `AGENT_STAGE_8_9_RETRAIN.md`.
-- **Stages 10–11:** ⚠️ **stale — Mars re-inference pending.** Mars predictions in
-  `data/Mars/model_outputs/` still come from the pre-retrain regime models; refresh
-  them next (`run_mars_combined_regime.py`) now that Stages 8–9 are clean. Usable
-  for structural testing only until re-run.
-- **Stages 12–14:** 🔶 threshold sensitivity, interpretation, and figures
-  notebooks in `notebooks/mars/`, `notebooks/interpretation/`, and
-  `notebooks/presentation/` — runnable on current (stale) predictions; refresh
-  after the retrain.
+- **Stages 10–11:** ✅ **Mars re-inference done 2026-06-04.** Mars 5-class patches
+  regenerated with the current rasterizer (3,682 ok / 103 invalid), embeddings +
+  `tabular_plus_cnn` refreshed via the frozen `cnn_outlet_final.pt`, and combined
+  inference re-run (baseline + regA/B/C). Coupling rates moved < 1.6 pp vs stale;
+  regime ordering preserved. See `AGENT_STAGE_10_14_MARS.md`.
+- **Stages 12–14:** ✅ **refreshed 2026-06-04.** Threshold-sensitivity sweep +
+  interpretation written (`mars_threshold_sensitivity.csv/.png`,
+  `mars_regime_interpretation.csv`); 18 figures regenerated (vector contact sheets,
+  per-outlet drawings, network map, ROC, variant scatters). Mars operating
+  threshold kept precision-oriented (documented, not the Earth F1 point).
 
 ## Current phase (2026-06-04)
 
-**Stages 0–9 complete; Mars re-inference (10–11) is the next wave.**
+**Pipeline end-to-end current on the reconciled rasters (Stages 0–14).**
 Foundation (0–3) verified with S1 resolved, regimes frozen (4), Earth networks +
-pairs + labels done (5–6), regime rasters reconciled (7), and the regime
-**models + validation are now retrained on the clean rasters (8–9)** — see
-`AGENT_STAGE_8_9_RETRAIN.md`. Only the downstream Mars chain (10–11) and the
-figures (12–14) still reflect the pre-retrain models.
+pairs + labels done (5–6), regime rasters reconciled (7), regime models +
+validation retrained (8–9, `AGENT_STAGE_8_9_RETRAIN.md`), and the **Mars chain +
+analysis + figures are refreshed on the retrained models (10–14,
+`AGENT_STAGE_10_14_MARS.md`)**. No stage is now built on pre-rewrite data.
 
-## Next actions (Stage 10 → 11 Mars re-inference)
+## Next actions (final review / publication)
 
-Stage 7 rasters/manifests and the Stage 8–9 regime models are clean — **do not**
-regenerate them unless a regime parameter changes. The patch builder supports
-`--workers N`; `scripts/run_regime_pipeline.sh <regA|regB|regC> [full|retrain]`
-now has a `retrain`-only mode (Steps 4–5) and accepts regC.
+The compute pipeline is complete and self-consistent. Remaining items are
+judgement / polish, not rebuilds:
 
-1. Rerun Mars inference per regime: `run_mars_combined_regime.py --regime reg{A,B,C}`
-   (regenerates Mars 5-class patches → embeddings via the **frozen**
-   `cnn_outlet_final.pt` → combined predictions). Choose the Mars operating
-   threshold deliberately (precision-oriented + Dd-calibration) — do **not** copy
-   the Earth F1 threshold.
-2. Re-run Stage 12–14 notebooks (threshold sensitivity, interpretation, figures)
-   on the refreshed predictions.
+1. **Mars operating threshold** — currently precision-oriented (max-precision@
+   recall≥0.5) per regime. If a different precision/recall balance is wanted for
+   the final result, read it off `data/Mars/model_outputs/mars_threshold_sensitivity.csv`
+   and document the choice (a deliberate scientific decision — not the Earth F1 point).
+2. **Optional robustness:** regA multi-seed CNN check (`train_cnn_multiseed.py`)
+   if the Stage-9 regA LOBO fold-AUC mover (−0.028, sub-threshold) needs tightening.
+3. Final figure/poster polish via `notebooks/presentation/` if presentation-ready
+   styling is needed beyond the headless renders.

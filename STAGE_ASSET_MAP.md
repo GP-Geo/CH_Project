@@ -164,7 +164,13 @@ on the retrained models; operating thresholds kept precision-oriented
 
 ---
 
-## Stage 10 — Final Mars model-input generation ⚠️
+## Stage 10 — Final Mars model-input generation ✅
+
+**Regenerated 2026-06-04** with the current rasterizer: 5-class patches (3,682 ok /
+103 invalid), `mars_cnn_patch_index.parquet`, embeddings + `tabular_plus_cnn` via
+the frozen `cnn_outlet_final.pt`. Old artifacts archived in
+`data/_mars_stage10_archive_20260604_040046/`. See `AGENT_STAGE_10_14_MARS.md`.
+
 
 | Asset | Location |
 |---|---|
@@ -175,7 +181,12 @@ on the retrained models; operating thresholds kept precision-oriented
 
 ---
 
-## Stage 11 — Mars inference ⚠️
+## Stage 11 — Mars inference ✅
+
+**Re-run 2026-06-04** on the new patches: regime combined (regA/B/C) + baseline
+combined. Coupling rates 53.0% / 64.1% / 38.6% (regA/B/C), within < 1.6 pp of the
+stale run; regime ordering preserved. See `AGENT_STAGE_10_14_MARS.md`.
+
 
 | Asset | Location |
 |---|---|
@@ -204,7 +215,13 @@ on the retrained models; operating thresholds kept precision-oriented
 
 ---
 
-## Stage 14 — Figures, poster, and reporting 🔶
+## Stage 14 — Figures, poster, and reporting ✅
+
+**Refreshed 2026-06-04** on the new predictions: 18 figures (vector contact sheets,
+per-outlet drawings, network map, ROC, variant scatters, threshold-sensitivity
+sweep) via the headless render scripts. Fixed a `parents[1]` root bug in
+`make_result_figures.py`. See `AGENT_STAGE_10_14_MARS.md`.
+
 
 | Asset | Location |
 |---|---|
@@ -229,8 +246,8 @@ on the retrained models; operating thresholds kept precision-oriented
 | 7 | ✅ | Reconciled 2026-06-04: regA regenerated, regB/regC restored; manifests resolve 0-missing |
 | 8 | ✅ | Regime CNN/XGBoost **retrained 2026-06-04** on reconciled rasters; metrics ≈ prior within noise |
 | 9 | ✅ | LOBO + thresholds + ALL_MODELS_METRICS **refreshed 2026-06-04**; path bug fixed |
-| 10 | ⚠️ | Stale Mars inputs; re-run next (Mars wave) now that Stage 8–9 are clean |
-| 11 | ⚠️ | Stale predictions; re-run after Stage 10 |
-| 12 | ✅ | Threshold sensitivity notebook complete |
-| 13 | ✅ | Scientific summary notebook complete |
-| 14 | 🔶 | Notebooks present; figures need refresh after Stage 11 |
+| 10 | ✅ | Mars patches/embeddings **regenerated 2026-06-04** (current rasterizer); old archived |
+| 11 | ✅ | Mars inference **re-run 2026-06-04** (baseline + regA/B/C); rates ≈ stale within 1.6 pp |
+| 12 | ✅ | Threshold sensitivity **refreshed** (`mars_threshold_sensitivity.csv/.png`) |
+| 13 | ✅ | Interpretation **refreshed** (`mars_regime_interpretation.csv`; 64.7% cross-regime consensus) |
+| 14 | ✅ | 18 figures **refreshed 2026-06-04**; `make_result_figures.py` root bug fixed |

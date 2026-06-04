@@ -20,6 +20,13 @@ a clean rebuild knows what to keep, what to regenerate, and what is stale.
 > `xgb_geom_plus_cnn_emb_reg*.json`, `master_dataset_reg*_with_emb.csv`) flipped
 > `STALE_AFTER_RASTER_FIX` → `CAN_REGENERATE`. Baseline (`*_final`, `v4_cnn_full`)
 > stays as-is (frozen, not retrained). See `AGENT_STAGE_8_9_RETRAIN.md`.
+>
+> **Update 2026-06-04 (MARS REFRESHED):** Stage 10–14 re-ran on the retrained
+> models — Mars 5-class patches regenerated with the current rasterizer, embeddings
+> /`tabular_plus_cnn` + all combined predictions (baseline + regA/B/C) refreshed,
+> and 18 figures rebuilt. The Mars patch/embedding/prediction chain flipped
+> `STALE_AFTER_RASTER_FIX` → `CAN_REGENERATE`; old artifacts archived in
+> `data/_mars_stage10_archive_20260604_040046/`. See `AGENT_STAGE_10_14_MARS.md`.
 
 ## Legend
 
@@ -42,9 +49,9 @@ a clean rebuild knows what to keep, what to regenerate, and what is stale.
 | `data/Mars/` DEM + MOLA hillshade | `RAW_KEEP` | Mars inputs. |
 | `data/Mars/topology/*.gpkg` | `CAN_REGENERATE` | From `scripts/cli/run_mars_pipeline.py --stage topology` -> `--stage pairs`. |
 | `data/Mars/model_inputs/mars_pair_features_5feat*.parquet` | `CAN_REGENERATE` | Tabular features (`scripts/cli/run_mars_pipeline.py --stage features`). Raster-independent. |
-| `data/Mars/model_inputs/cnn_patches_5class/` | `STALE_AFTER_RASTER_FIX` | 5-class patches, regenerate via `scripts/cli/run_mars_pipeline.py --stage patches`. |
-| `data/Mars/model_inputs/mars_cnn_patch_index.parquet`, `*_tabular_plus_cnn.parquet` | `STALE_AFTER_RASTER_FIX` | Depend on the patches / embeddings. |
-| `data/Mars/model_outputs/` predictions + figures | `CAN_REGENERATE` | Inference outputs; the combined/emb ones depend on the (stale) embeddings. |
+| `data/Mars/model_inputs/cnn_patches_5class/` | `CAN_REGENERATE` | 5-class patches — **regenerated 2026-06-04** (current rasterizer; 3,682 ok / 103 invalid). Rebuild via `run_mars_pipeline.py --stage patches`. |
+| `data/Mars/model_inputs/mars_cnn_patch_index.parquet`, `*_tabular_plus_cnn.parquet`, `mars_cnn_embeddings.parquet` | `CAN_REGENERATE` | **Regenerated 2026-06-04** from the new patches (`--stage patches`/`embeddings`). |
+| `data/Mars/model_outputs/` predictions + figures | `CAN_REGENERATE` | Inference outputs; **refreshed 2026-06-04** on the new patches/embeddings (baseline + regA/B/C + 18 figures). |
 | `data/results/<basin>/` per-basin dirs | `CAN_REGENERATE` | Earth pipeline outputs. |
 | `data/results/<basin>/rasters/`, `data/results/_rasters_reg{A,B,C}/` | `STALE_AFTER_RASTER_FIX` | Pre-rewrite rasters. |
 | `data/results/master_dataset_v2.csv`, 5-feature tables, geom-only XGBoost inputs | `CAN_REGENERATE` | Tabular-only — **unaffected** by the raster fix. |
