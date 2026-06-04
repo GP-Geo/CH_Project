@@ -47,8 +47,8 @@ a clean rebuild knows what to keep, what to regenerate, and what is stale.
 | `data/cropped_DEMs/*.tif` (17 Earth DEMs) | `RAW_KEEP` | Per-basin Earth inputs. |
 | `data/final_valleys/` | `RAW_KEEP` | Mars valley-network vectors (input). |
 | `data/Mars/` DEM + MOLA hillshade | `RAW_KEEP` | Mars inputs. |
-| `data/Mars/topology/*.gpkg` | `CAN_REGENERATE` | From `scripts/cli/run_mars_pipeline.py --stage topology` -> `--stage pairs`. |
-| `data/Mars/model_inputs/mars_pair_features_5feat*.parquet` | `CAN_REGENERATE` | Tabular features (`scripts/cli/run_mars_pipeline.py --stage features`). Raster-independent. |
+| `data/Mars/topology/*.gpkg` | `CAN_REGENERATE` | From `channel_heads/cli/run_mars_pipeline.py --stage topology` -> `--stage pairs`. |
+| `data/Mars/model_inputs/mars_pair_features_5feat*.parquet` | `CAN_REGENERATE` | Tabular features (`channel_heads/cli/run_mars_pipeline.py --stage features`). Raster-independent. |
 | `data/Mars/model_inputs/cnn_patches_5class/` | `CAN_REGENERATE` | 5-class patches — **regenerated 2026-06-04** (current rasterizer; 3,682 ok / 103 invalid). Rebuild via `run_mars_pipeline.py --stage patches`. |
 | `data/Mars/model_inputs/mars_cnn_patch_index.parquet`, `*_tabular_plus_cnn.parquet`, `mars_cnn_embeddings.parquet` | `CAN_REGENERATE` | **Regenerated 2026-06-04** from the new patches (`--stage patches`/`embeddings`). |
 | `data/Mars/model_outputs/` predictions + figures | `CAN_REGENERATE` | Inference outputs; **refreshed 2026-06-04** on the new patches/embeddings (baseline + regA/B/C + 18 figures). |

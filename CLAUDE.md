@@ -7,7 +7,7 @@ trained on Earth and applied to Mars. Full documentation lives in [`docs/`](docs
 
 See [`STAGE_ASSET_MAP.md`](STAGE_ASSET_MAP.md) for the current per-stage
 coverage. The package-first refactor is **complete**; all core logic lives in
-`channel_heads/`; scripts in `scripts/cli/` are thin wrappers.
+`channel_heads/`; the CLI lives in the `channel_heads/cli/` package — run `python -m channel_heads <command>` (or the `channel-heads` console script).
 
 ## Start here
 

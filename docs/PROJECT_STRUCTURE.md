@@ -70,7 +70,7 @@ Public API is re-exported from each subpackage's `__init__.py`.
 ## 3. `scripts/` inventory
 
 Partially organized: `rendering/` and `diagnostics/` are subfolders. The
-maintained Mars CLI is `scripts/cli/run_mars_pipeline.py`; old root-level Mars
+maintained Mars CLI is `channel_heads/cli/run_mars_pipeline.py`; old root-level Mars
 wrappers are archived under `scripts/_archive/`. Earth/regime training scripts
 remain root-level compatibility entry points.
 Categories: CLI = maintained command entry point · MARS = Mars cross-planet ·
@@ -106,7 +106,7 @@ QA = diagnostics · MAINT = maintenance.
 
 ### Run order — Mars cross-planet (Phases 1–6C)
 ```
-scripts/cli/run_mars_pipeline.py --stage all
+channel_heads/cli/run_mars_pipeline.py --stage all
 
 # Per-stage equivalents:
 topology -> pairs -> features -> xgb -> patches -> embeddings -> combined
@@ -136,7 +136,7 @@ which the in-notebook root-resolution cells assume — keep new notebooks at tha
 
 | Home | Contents |
 |------|----------|
-| `training/` | Earth training pipeline `00_pair_sample_qa` → `05_cnn_quick_eval`; referenced by `scripts/cli/train_*`, `build_*`. |
+| `training/` | Earth training pipeline `00_pair_sample_qa` → `05_cnn_quick_eval`; referenced by `channel_heads/cli/train_*`, `build_*`. |
 | `analysis/` | Earth basin QA/exploration: `01_earth_source_data_qa`, `02_earth_network_explorer`, `05_earth_network_qa`. |
 | `mars/` | Mars cross-planet exploration (`dd_hull_mars_vs_earth_complexity`). |
 | `regime/` | Regime calibration: `00_calibration_overview`, `01_mars_inference` (→ `channel_heads.inference`). |
@@ -167,7 +167,7 @@ absent.
 | `presentation/result_figures` | `make_result_figures.py` | `viz`, `eval`, `inference` |
 
 **A-class (kept CLI-only — heavy compute / model-producing / orchestration):**
-`scripts/cli/run_mars_pipeline.py`, `build_earth_features_regime`,
+`channel_heads/cli/run_mars_pipeline.py`, `build_earth_features_regime`,
 `build_cnn_patches_regime`, `train_cnn_*`, `train_combined_xgb_*`,
 `run_*_pipeline.sh`, `run_full_rebuild.sh`, `clean-cache.sh`,
 `setup-hooks.sh`.

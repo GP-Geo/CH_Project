@@ -88,7 +88,7 @@ _Last updated: 2026-06-04_
 | Asset | Location |
 |---|---|
 | **QA gate notebook** | `notebooks/analysis/05_earth_network_qa.ipynb` |
-| Script | `scripts/cli/build_earth_features_regime.py` |
+| Script | `channel_heads/cli/build_earth_features_regime.py` |
 | Package | `channel_heads/training/regime.py`, `channel_heads/features/earth_enrichment.py` |
 | QA report | `data/results/stage5_earth_network_qa_report.csv` (0 hard flags) |
 
@@ -110,7 +110,7 @@ _Last updated: 2026-06-04_
 
 | Asset | Location |
 |---|---|
-| Script | `scripts/cli/build_cnn_patches_regime.py` (now supports `--workers` N) |
+| Script | `channel_heads/cli/build_cnn_patches_regime.py` (now supports `--workers` N) |
 | Package | `channel_heads/rasterization/earth_patches.py`, `earth_batch.py` (multiprocess per-basin/chunk render, `n_workers`) |
 | Notebooks | `notebooks/training/03_feature_engineering.ipynb`, `notebooks/diagnostics/rasterization_diagnostics.ipynb` |
 | Data | `data/results/_rasters_reg{A,B,C}/` — on disk, manifests resolve 0-missing (backup retained in `data/_stage7_archive_20260603_231506/`) |
@@ -138,7 +138,7 @@ See `AGENT_STAGE_8_9_RETRAIN.md`.
 
 | Asset | Location |
 |---|---|
-| Scripts | `scripts/cli/train_cnn_regime.py`, `train_combined_xgb_regime.py`, `train_cnn_baseline.py`, `train_combined_xgb_phase6b.py` |
+| Scripts | `channel_heads/cli/train_cnn_regime.py`, `train_combined_xgb_regime.py`, `train_cnn_baseline.py`, `train_combined_xgb_phase6b.py` |
 | Orchestrator | `scripts/run_regime_pipeline.sh <regA\|regB\|regC> [full\|retrain]` (regC + retrain-only mode) |
 | Package | `channel_heads/training/cnn.py`, `channel_heads/training/xgboost.py`, `channel_heads/training/datasets.py` |
 | Notebooks | `notebooks/training/02_train_classifier.ipynb`, `04_cnn_embeddings.ipynb`, `05_cnn_quick_eval.ipynb` |
@@ -157,7 +157,7 @@ on the retrained models; operating thresholds kept precision-oriented
 
 | Asset | Location |
 |---|---|
-| Script | `scripts/cli/eval_lobo_cv.py`, `scripts/cli/retune_threshold_regime.py` |
+| Script | `channel_heads/cli/eval_lobo_cv.py`, `channel_heads/cli/retune_threshold_regime.py` |
 | Package | `channel_heads/eval/lobo.py` |
 | Notebooks | `notebooks/diagnostics/lobo_cv.ipynb`, `notebooks/regime/02_threshold_retune.ipynb` |
 | Metrics | `models/lobo_cv_metrics.csv`, `models/ALL_MODELS_METRICS.csv` ✅ refreshed 2026-06-04 |
@@ -174,7 +174,7 @@ the frozen `cnn_outlet_final.pt`. Old artifacts archived in
 
 | Asset | Location |
 |---|---|
-| CLI | `scripts/cli/run_mars_pipeline.py --stage topology\|pairs\|features\|patches\|embeddings` |
+| CLI | `channel_heads/cli/run_mars_pipeline.py --stage topology\|pairs\|features\|patches\|embeddings` |
 | Package | `channel_heads/mars/topology.py`, `mars/pairs.py`, `channel_heads/features/mars_features.py`, `channel_heads/rasterization/mars_patches.py`, `channel_heads/models/embeddings.py` |
 | Notebooks | `notebooks/mars/02_first_meet_pairs.ipynb`, `03_pair_features.ipynb` |
 | Data | `data/Mars/model_inputs/mars_pair_features_5feat*.parquet`, `mars_cnn_patch_index.parquet` ⚠️ stale |
@@ -190,7 +190,7 @@ stale run; regime ordering preserved. See `AGENT_STAGE_10_14_MARS.md`.
 
 | Asset | Location |
 |---|---|
-| CLI | `scripts/cli/run_mars_pipeline.py --stage combined`, `scripts/cli/run_mars_combined_regime.py` |
+| CLI | `channel_heads/cli/run_mars_pipeline.py --stage combined`, `channel_heads/cli/run_mars_combined_regime.py` |
 | Package | `channel_heads/models/mars_combined.py`, `channel_heads/models/mars_inference.py` |
 | Notebook | `notebooks/regime/01_mars_inference.ipynb` |
 | Predictions | `data/Mars/model_outputs/mars_combined_reg{A,B,C}_predictions.*` ⚠️ stale |
@@ -226,7 +226,7 @@ sweep) via the headless render scripts. Fixed a `parents[1]` root bug in
 | Asset | Location |
 |---|---|
 | Notebooks | `notebooks/presentation/mars_contact_sheets.ipynb`, `per_outlet_touching_pairs.ipynb`, `result_figures.ipynb` |
-| Scripts | `scripts/cli/generate_poster_figures.py`, `scripts/cli/make_result_figures.py` |
+| Scripts | `channel_heads/cli/generate_poster_figures.py`, `channel_heads/cli/make_result_figures.py` |
 | Rendering | `scripts/rendering/render_mars_combined_contact_sheets_vector.py`, `render_mars_outlet_touching_pairs.py` |
 | Data | `data/exports/*.pdf`, `data/results/figures_models/` ⚠️ stale |
 

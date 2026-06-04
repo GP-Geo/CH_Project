@@ -16,7 +16,7 @@ features are **dimensionless**, the Earth-trained model transfers to Martian
 valley networks without retraining (Earth→Mars transfer learning).
 
 The project is **package-first**: all logic lives in `channel_heads/` and runs
-through `channel_heads.pipelines`; notebooks and `scripts/cli/` are thin layers
+through `channel_heads.pipelines`; notebooks and the `channel_heads.cli` package are thin layers
 on top. See [docs/architecture.md](docs/architecture.md).
 
 ## Install
@@ -55,7 +55,7 @@ Batch CLI: `ch-analyze data/cropped_DEMs/Inyo_strm_crop.tif -o out.csv --thresho
 from channel_heads import pipelines
 pipelines.run_full_mars_pipeline()   # Phase 1 -> 6C; outputs under data/Mars/
 ```
-…or per stage: `python scripts/cli/run_mars_pipeline.py --stage topology`.
+…or per stage: `python -m channel_heads run-mars-pipeline --stage topology`.
 Outputs land under `data/Mars/` and `data/results/` (all regenerable; see
 [docs/data_management.md](docs/data_management.md)).
 

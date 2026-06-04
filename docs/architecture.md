@@ -1,9 +1,10 @@
 # Architecture (package-first)
 
 The project is understandable through two things: the **`channel_heads/`
-package** and the **notebooks**. `scripts/` is no longer part of the
-architecture — it holds thin wrappers plus non-Mars transitional stage
-implementations pending extraction.
+package** and the **notebooks**. The CLI is part of the package
+(`channel_heads/cli/`, run via `python -m channel_heads <command>`). `scripts/`
+now holds only shell orchestrators (`run_regime_pipeline.sh`,
+`run_full_rebuild.sh`), diagnostics, and figure-render helpers.
 
 > Read `channel_heads/pipelines/mars.py` top to bottom and you have the whole
 > Earth→Mars inference pipeline without opening a single script.
@@ -74,10 +75,10 @@ from channel_heads import models   # models.xgboost / thresholds / comparison / 
 | Mars CNN patches (4) | ✅ migrated | `channel_heads/rasterization/mars_patches.py` |
 | Mars CNN embeddings (5) | ✅ migrated | `channel_heads/models/embeddings.py` |
 | Mars combined inference (6C) | ✅ migrated | `channel_heads/models/mars_combined.py` |
-| Earth training | ✅ package-resident | `channel_heads/training/{cnn,xgboost,datasets}.py`; `scripts/cli/train_*` are thin wrappers |
-| Regime calibration | ✅ package-resident | `channel_heads/training/regime.py`; `scripts/cli/*_regime.py` are thin wrappers |
+| Earth training | ✅ package-resident | `channel_heads/training/{cnn,xgboost,datasets}.py`; `channel_heads/cli/train_*` (run via `python -m channel_heads train-*`) |
+| Regime calibration | ✅ package-resident | `channel_heads/training/regime.py`; `channel_heads/cli/*_regime.py` (run via `python -m channel_heads *-regime`) |
 
-The full pipeline is now package-resident. `scripts/cli/` contains thin CLI
+The full pipeline is now package-resident. `channel_heads/cli/` is the CLI package (dispatcher + one module per command)
 wrappers that call package functions — the implementation no longer lives in
 scripts. `channel_heads/pipelines/earth.py` invokes the Earth training wrappers
 in-process via `runpy`.

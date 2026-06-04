@@ -1,4 +1,5 @@
-"""Tests for channel_heads.inference — shared XGBoost inference helpers.
+"""Tests for the shared XGBoost inference helpers (canonical:
+``channel_heads.models.xgboost`` / ``channel_heads.models.device``).
 
 These helpers were extracted from the three Mars inference scripts
 (``run_mars_xgb_inference_5feat``, ``run_mars_combined_xgb_inference`` and
@@ -16,8 +17,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from channel_heads import inference
-from channel_heads.inference import (
+from channel_heads.models.device import pick_device
+from channel_heads.models.xgboost import (
     load_feature_columns,
     load_threshold,
     load_xgb_model,
@@ -138,24 +139,24 @@ class TestModelHelpers:
 
 
 # --------------------------------------------------------------------------
-# Package surface
+# Package surface (canonical locations)
 # --------------------------------------------------------------------------
 class TestPackageSurface:
     def test_pick_device_returns_known(self):
-        assert inference.pick_device() in {"mps", "cuda", "cpu"}
+        assert pick_device() in {"mps", "cuda", "cpu"}
 
     def test_canonical_location_is_models_xgboost(self):
-        """The implementation lives in models.xgboost; inference re-exports it."""
+        """The implementation lives in models.xgboost."""
         from channel_heads.models import xgboost as xgb_new
 
         assert load_feature_columns is xgb_new.load_feature_columns
         assert predict_with_threshold is xgb_new.predict_with_threshold
 
     def test_pick_device_canonical_location_is_models_device(self):
-        """pick_device lives in models.device; inference re-exports it."""
+        """pick_device lives in models.device and is re-exported by models."""
         from channel_heads.models import device as device_new
 
-        assert inference.pick_device is device_new.pick_device
+        assert pick_device is device_new.pick_device
         import channel_heads.models as models
 
         assert models.pick_device is device_new.pick_device

@@ -222,7 +222,7 @@ def train_variant(
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-def main() -> None:
+def main(argv=None) -> None:
     setup_logging()
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -156,6 +156,11 @@ def make_networks(n_panels: int = 6):
     print("Wrote", out)
 
 
-if __name__ == "__main__":
+def main(argv=None) -> int:
     make_roc()
     make_networks()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

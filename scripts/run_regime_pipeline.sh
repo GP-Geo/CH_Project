@@ -40,13 +40,13 @@ echo "=== run_regime_pipeline: regime=$REGIME mode=$MODE ==="
 
 if [ "$MODE" = "full" ]; then
   echo "=== Step 2: Earth features (regime=$REGIME) ==="
-  python scripts/cli/build_earth_features_regime.py \
+  python -m channel_heads build-earth-features \
       --regime "$REGIME" -v \
       > "$LOG_DIR/step2_features.log" 2>&1
   tail -20 "$LOG_DIR/step2_features.log"
 
   echo "=== Step 3: CNN patches (regime=$REGIME) ==="
-  python scripts/cli/build_cnn_patches_regime.py \
+  python -m channel_heads build-cnn-patches \
       --regime "$REGIME" -v \
       > "$LOG_DIR/step3_patches.log" 2>&1
   tail -20 "$LOG_DIR/step3_patches.log"
@@ -56,20 +56,20 @@ else
 fi
 
 echo "=== Step 4: Train CNN (regime=$REGIME) ==="
-python scripts/cli/train_cnn_regime.py \
+python -m channel_heads train-cnn-regime \
     --regime "$REGIME" -v \
     > "$LOG_DIR/step4_cnn.log" 2>&1
 tail -30 "$LOG_DIR/step4_cnn.log"
 
 echo "=== Step 5: Train combined XGBoost (regime=$REGIME) ==="
-python scripts/cli/train_combined_xgb_regime.py \
+python -m channel_heads train-combined-xgb-regime \
     --regime "$REGIME" -v \
     > "$LOG_DIR/step5_xgb.log" 2>&1
 tail -30 "$LOG_DIR/step5_xgb.log"
 
 if [ "$MODE" = "full" ]; then
   echo "=== Step 6: Mars inference (regime=$REGIME) ==="
-  python scripts/cli/run_mars_combined_regime.py \
+  python -m channel_heads run-mars-combined-regime \
       --regime "$REGIME" -v \
       > "$LOG_DIR/step6_mars.log" 2>&1
   tail -30 "$LOG_DIR/step6_mars.log"

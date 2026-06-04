@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import importlib.util
 import sys
 import types
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -271,20 +269,7 @@ class TestRegimePatchBuild:
         pd.testing.assert_frame_equal(pd.read_csv(manifest_path), df)
 
     def test_script_import_smoke_and_default_target_size(self, tmp_path, monkeypatch):
-        script_path = (
-            Path(__file__).resolve().parents[1]
-            / "scripts"
-            / "cli"
-            / "build_cnn_patches_regime.py"
-        )
-        spec = importlib.util.spec_from_file_location(
-            "build_cnn_patches_regime_smoke",
-            script_path,
-        )
-        assert spec is not None
-        assert spec.loader is not None
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        import channel_heads.cli.build_cnn_patches_regime as module
 
         (tmp_path / "master_dataset_regA.csv").write_text(
             "basin,outlet,confluence,head_1,head_2,y\n"
@@ -535,20 +520,8 @@ class TestRegimeFeatureBuild:
         tmp_path,
         monkeypatch,
     ):
-        script_path = (
-            Path(__file__).resolve().parents[1]
-            / "scripts"
-            / "cli"
-            / "build_earth_features_regime.py"
-        )
-        spec = importlib.util.spec_from_file_location(
-            "build_earth_features_regime_smoke",
-            script_path,
-        )
-        assert spec is not None
-        assert spec.loader is not None
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        import channel_heads.cli.build_earth_features_regime as module
+
         calls = {}
 
         def fake_build(regime_cfg, **kwargs):

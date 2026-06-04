@@ -36,7 +36,7 @@ DATASETS = lobo_mod.lobo_dataset_paths(ROOT)
 lobo = lobo_mod.lobo_xgb_report
 
 
-def main() -> int:
+def main(argv=None) -> int:
     rows = []
     for name, path in DATASETS.items():
         if not path.exists():

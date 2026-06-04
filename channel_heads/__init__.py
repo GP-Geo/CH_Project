@@ -42,6 +42,7 @@ __author__ = "Guy Pinkas"
 __license__ = "MIT"
 
 # Basin configuration data from Goren & Shelef (2024)
+from . import io, mars, models, pipelines, rasterization
 from .basin_config import (
     BASIN_CONFIG,
     LOCAL_TO_PAPER_BASIN,
@@ -50,25 +51,12 @@ from .basin_config import (
     get_z_th,
     list_basins,
 )
-from .io.paths import (
-    CROPPED_DEMS_DIR,
-    DATA_DIR,
-    EXAMPLE_DEMS,
-    OUTPUTS_DIR,
-    PROJECT_ROOT,
-    get_experiment_output_dir,
-    get_output_dir,
-    list_available_dems,
-    resolve_dem_path,
-)
-from . import io, mars, models, pipelines, rasterization
 from .coupling_analysis import CouplingAnalyzer, PairTouchResult
-from .pairing.earth import first_meet_pairs_for_outlet
 
 # Geometric analysis (asymmetry, geometric features, CSV enrichment).
-# Imported from the canonical feature/training modules; the
-# ``channel_heads.geometric_analysis`` module remains a compatibility shim that
-# re-exports the same objects.
+# Canonical implementations live in ``channel_heads.features.*`` and are
+# re-exported here. (The former ``channel_heads.geometric_analysis`` shim has
+# been removed — import from the package root or the ``features`` submodules.)
 from .features.asymmetry import (
     LengthwiseAsymmetryAnalyzer,
     PairAsymmetryResult,
@@ -83,9 +71,19 @@ from .features.earth_geometry import (
     PairGeometricResult,
     merge_geometric_features,
 )
-from .training.labeling import filter_hard_negatives, generate_labeled_dataset
-from .units import compute_meters_per_degree, compute_pixel_size_meters, km2_to_cells
+from .io.paths import (
+    CROPPED_DEMS_DIR,
+    DATA_DIR,
+    EXAMPLE_DEMS,
+    OUTPUTS_DIR,
+    PROJECT_ROOT,
+    get_experiment_output_dir,
+    get_output_dir,
+    list_available_dems,
+    resolve_dem_path,
+)
 from .logging_config import get_logger, setup_logging
+from .pairing.earth import first_meet_pairs_for_outlet
 from .pruning import apply_strategy, build_stream_graph, prune_by_order_gap
 from .rasterization.schema import (
     BACKGROUND,
@@ -95,14 +93,16 @@ from .rasterization.schema import (
     NUM_CLASSES,
     OTHER_STREAMS,
 )
+from .training.labeling import filter_hard_negatives, generate_labeled_dataset
+from .units import compute_meters_per_degree, compute_pixel_size_meters, km2_to_cells
 
 # Rasterization (no PyTorch dependency)
 try:
+    from .rasterization.earth_batch import precompute_raster_dataset
     from .rasterization.earth_patches import (
         raster_quality_flags,
         rasterize_outlet_pair,
     )
-    from .rasterization.earth_batch import precompute_raster_dataset
 except ModuleNotFoundError as exc:
     if exc.name != "skimage":
         raise

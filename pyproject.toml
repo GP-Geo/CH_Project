@@ -73,7 +73,8 @@ Repository = "https://github.com/yourusername/channel-heads"
 Issues = "https://github.com/yourusername/channel-heads/issues"
 
 [project.scripts]
-ch-analyze = "channel_heads.cli:main"
+channel-heads = "channel_heads.cli:main"
+ch-analyze = "channel_heads.cli._analyze:main"
 
 [tool.setuptools.packages.find]
 include = ["channel_heads*"]

@@ -8,15 +8,15 @@ from pathlib import Path
 import pandas as pd
 import topotoolbox as tt3
 
-from .coupling_analysis import CouplingAnalyzer
-from .logging_config import get_logger, setup_logging
-from .pairing.earth import first_meet_pairs_for_outlet
-from .stream_utils import outlet_node_ids_from_streampoi
+from channel_heads.coupling_analysis import CouplingAnalyzer
+from channel_heads.logging_config import get_logger, setup_logging
+from channel_heads.pairing.earth import first_meet_pairs_for_outlet
+from channel_heads.stream_utils import outlet_node_ids_from_streampoi
 
 logger = get_logger(__name__)
 
 
-def main():
+def main(argv=None):
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description="Analyze channel head coupling in drainage networks",
@@ -64,7 +64,7 @@ Examples:
         "-v", "--verbose", action="store_true", help="Print detailed progress information"
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Configure logging based on verbosity
     log_level = logging.DEBUG if args.verbose else logging.INFO

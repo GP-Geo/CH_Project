@@ -11,7 +11,7 @@ from __future__ import annotations
 from channel_heads import pipelines
 
 
-def main() -> None:
+def main(argv=None) -> None:
     out = pipelines.generate_poster_figures()
     print(f"Figures written under: {out}")
 

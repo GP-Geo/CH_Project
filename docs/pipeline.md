@@ -9,7 +9,7 @@ from channel_heads import pipelines
 pipelines.train_earth_models()       # Earth training (produces the models)
 pipelines.run_full_mars_pipeline()   # Mars inference (consumes them)
 ```
-…or per stage via `scripts/cli/run_mars_pipeline.py --stage <name>`.
+…or per stage via `channel_heads/cli/run_mars_pipeline.py --stage <name>`.
 
 ## Dependency graph
 

@@ -25,10 +25,10 @@ STAGES = {
 }
 
 
-def main() -> None:
+def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--stage", choices=[*STAGES, "all"], default="all")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
     if args.stage == "all":
         pipelines.run_full_mars_pipeline()
     else:

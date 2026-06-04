@@ -48,10 +48,10 @@ GEOM_FEATURES = [
 EMB_FEATURES = [f"emb_{i}" for i in range(4)]
 
 
-def main() -> int:
+def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--regime", required=True, choices=sorted(REGIMES.keys()))
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     regime = REGIMES[args.regime]
 
     csv = PROJECT_ROOT / "data/results" / f"master_dataset_{regime.name}_with_emb.csv"

@@ -42,10 +42,10 @@ for ext in parquet csv gpkg; do
 done
 
 # ========================= BASELINE (production) ==========================
-step "baseline:train_cnn"        "$LOG_DIR/b1_cnn.log"        -- python scripts/cli/train_cnn_baseline.py -v
-step "baseline:combined_xgb"     "$LOG_DIR/b2_xgb.log"        -- python scripts/cli/train_combined_xgb_phase6b.py
-step "baseline:mars_embeddings"  "$LOG_DIR/b3_mars_emb.log"   -- python scripts/cli/cli/run_mars_pipeline.py --stage embeddings
-step "baseline:mars_combined"    "$LOG_DIR/b4_mars_comb.log"  -- python scripts/cli/cli/run_mars_pipeline.py --stage combined
+step "baseline:train_cnn"        "$LOG_DIR/b1_cnn.log"        -- python -m channel_heads train-cnn-baseline -v
+step "baseline:combined_xgb"     "$LOG_DIR/b2_xgb.log"        -- python -m channel_heads train-combined-xgb-phase6b
+step "baseline:mars_embeddings"  "$LOG_DIR/b3_mars_emb.log"   -- python -m channel_heads run-mars-pipeline --stage embeddings
+step "baseline:mars_combined"    "$LOG_DIR/b4_mars_comb.log"  -- python -m channel_heads run-mars-pipeline --stage combined
 
 # ============================= REGIMES ====================================
 for R in regA regB regC; do
@@ -54,10 +54,10 @@ for R in regA regB regC; do
     echo "!!! Missing $MASTER — skipping $R (run build_earth_features_regime.py --regime $R)"
     continue
   fi
-  step "$R:patches"        "$LOG_DIR/${R}_1_patches.log"  -- python scripts/cli/build_cnn_patches_regime.py --regime "$R" -v
-  step "$R:train_cnn"      "$LOG_DIR/${R}_2_cnn.log"      -- python scripts/cli/train_cnn_regime.py --regime "$R" -v
-  step "$R:combined_xgb"   "$LOG_DIR/${R}_3_xgb.log"      -- python scripts/cli/train_combined_xgb_regime.py --regime "$R" -v
-  step "$R:mars_combined"  "$LOG_DIR/${R}_4_mars.log"     -- python scripts/cli/run_mars_combined_regime.py --regime "$R" -v
+  step "$R:patches"        "$LOG_DIR/${R}_1_patches.log"  -- python -m channel_heads build-cnn-patches --regime "$R" -v
+  step "$R:train_cnn"      "$LOG_DIR/${R}_2_cnn.log"      -- python -m channel_heads train-cnn-regime --regime "$R" -v
+  step "$R:combined_xgb"   "$LOG_DIR/${R}_3_xgb.log"      -- python -m channel_heads train-combined-xgb-regime --regime "$R" -v
+  step "$R:mars_combined"  "$LOG_DIR/${R}_4_mars.log"     -- python -m channel_heads run-mars-combined-regime --regime "$R" -v
 done
 
 echo "=================== FULL REBUILD COMPLETE ==================="

@@ -9,12 +9,15 @@ _Last updated: 2026-06-04_
 
 ## Refactor status: COMPLETE
 
-The package-first refactor is done (commit `77a80c1`). All core logic lives in
-`channel_heads/`; `scripts/cli/` contains thin wrappers only. Two intentional
-compatibility surfaces remain:
+The package-first refactor is done. All logic lives in `channel_heads/`,
+**including the CLI**: the former `scripts/cli/*` wrappers are now the
+`channel_heads/cli/` package (a dispatcher + one module per command), run via
+`python -m channel_heads <command>` or the `channel-heads` console script.
 
-- `channel_heads/geometric_analysis.py` — pure re-export shim
-- `channel_heads/inference/__init__.py` — thin re-export over `models.*`
+The previous compatibility shims have been **removed** (2026-06-04): the
+`channel_heads/geometric_analysis.py` and `channel_heads/inference/` re-export
+shims are gone — import from the canonical `channel_heads.features.*` /
+`channel_heads.models.*` modules.
 
 ## Pipeline status
 
