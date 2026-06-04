@@ -27,7 +27,6 @@ Run::
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
 import pandas as pd
 from sklearn.metrics import f1_score, precision_score, recall_score
@@ -38,10 +37,9 @@ from channel_heads.eval import (
     f1_optimal_threshold,
     outlet_group_holdout,
 )
+from channel_heads.io.paths import PROJECT_ROOT
 from channel_heads.models.xgboost import load_feature_columns
 from channel_heads.regimes import REGIMES
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 GEOM_FEATURES = [
     "orientation_diff_deg", "headhead_dist_norm", "apex_angle_deg",

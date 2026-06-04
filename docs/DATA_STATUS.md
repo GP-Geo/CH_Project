@@ -14,6 +14,12 @@ a clean rebuild knows what to keep, what to regenerate, and what is stale.
 > restored from `data/_stage7_archive_20260603_231506/`, which is retained as
 > backup). These manifests are now valid inputs for Stage 8. See `AGENT_STATE.md`
 > Stage 7.
+>
+> **Update 2026-06-04 (RETRAINED):** Stage 8–9 ran on these reconciled rasters —
+> the regime CNN/XGBoost chains (`cnn_outlet_reg*.pt`,
+> `xgb_geom_plus_cnn_emb_reg*.json`, `master_dataset_reg*_with_emb.csv`) flipped
+> `STALE_AFTER_RASTER_FIX` → `CAN_REGENERATE`. Baseline (`*_final`, `v4_cnn_full`)
+> stays as-is (frozen, not retrained). See `AGENT_STAGE_8_9_RETRAIN.md`.
 
 ## Legend
 
@@ -42,10 +48,12 @@ a clean rebuild knows what to keep, what to regenerate, and what is stale.
 | `data/results/<basin>/` per-basin dirs | `CAN_REGENERATE` | Earth pipeline outputs. |
 | `data/results/<basin>/rasters/`, `data/results/_rasters_reg{A,B,C}/` | `STALE_AFTER_RASTER_FIX` | Pre-rewrite rasters. |
 | `data/results/master_dataset_v2.csv`, 5-feature tables, geom-only XGBoost inputs | `CAN_REGENERATE` | Tabular-only — **unaffected** by the raster fix. |
-| `data/results/master_dataset_*_with_emb.csv`, `*_v4_cnn_full.csv` | `STALE_AFTER_RASTER_FIX` | Carry CNN embeddings. |
+| `data/results/master_dataset_reg{A,B,C}_with_emb.csv` | `CAN_REGENERATE` | Regime CNN embeddings — **regenerated 2026-06-04** (Stage 8 retrain). |
+| `data/results/master_dataset_v4_cnn_full.csv` | `STALE_AFTER_RASTER_FIX` | Baseline CNN embeddings — frozen baseline, **not** retrained this wave. |
 | `data/results/raster_manifest*.csv` | `STALE_AFTER_RASTER_FIX` | Index of pre-rewrite rasters. |
 | `models/xgb_*_geom_only*.json`, tabular-only models + threshold/feature-col files | `CAN_REGENERATE` | Geometry-only — unaffected by the raster fix. |
-| `models/cnn_outlet_*.pt`, `models/xgb_geom_plus_cnn_*` (emb/logit + regime) | `STALE_AFTER_RASTER_FIX` | CNN / CNN-derived — regenerate after patches. |
+| `models/cnn_outlet_reg{A,B,C}.pt`, `models/xgb_geom_plus_cnn_emb_reg{A,B,C}.json` (+ thresholds/feature-cols/metrics) | `CAN_REGENERATE` | Regime CNN / CNN-derived — **retrained 2026-06-04** on reconciled rasters (Stage 8–9). See `AGENT_STAGE_8_9_RETRAIN.md`. |
+| `models/cnn_outlet_final.pt`, `models/xgb_geom_plus_cnn_{emb,logit}.json` (baseline) | `STALE_AFTER_RASTER_FIX` | Frozen/baseline CNN-derived — preserved as-is, regenerate only via an explicit baseline rebuild. |
 | `data/exports/*.pdf`, `data/results/figures_*`, `data/Mars/model_outputs/figures*` | `REPORT` | Regenerate from `presentation/` notebooks or render scripts. |
 | `data/outputs/` | `LEGACY` | Duplicate of `data/results/` (not read by `config.py`). Archive. |
 | `data/archive/` | `LEGACY` | Archive holding area (gitignored as of 2026-06-02). |

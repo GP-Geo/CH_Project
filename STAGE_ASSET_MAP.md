@@ -129,26 +129,38 @@ training can now consume these manifests. See `AGENT_STATE.md`.
 
 ---
 
-## Stage 8 — Model training ⚠️
+## Stage 8 — Model training ✅
+
+**Retrained 2026-06-04** on the reconciled Stage-7 rasters (regA/regB/regC CNN +
+combined geom+CNN-emb XGBoost); new metrics reproduce the prior numbers within
+noise. Frozen `cnn_outlet_final.pt` / `xgb_touching_classifier.json` untouched.
+See `AGENT_STAGE_8_9_RETRAIN.md`.
 
 | Asset | Location |
 |---|---|
 | Scripts | `scripts/cli/train_cnn_regime.py`, `train_combined_xgb_regime.py`, `train_cnn_baseline.py`, `train_combined_xgb_phase6b.py` |
+| Orchestrator | `scripts/run_regime_pipeline.sh <regA\|regB\|regC> [full\|retrain]` (regC + retrain-only mode) |
 | Package | `channel_heads/training/cnn.py`, `channel_heads/training/xgboost.py`, `channel_heads/training/datasets.py` |
 | Notebooks | `notebooks/training/02_train_classifier.ipynb`, `04_cnn_embeddings.ipynb`, `05_cnn_quick_eval.ipynb` |
-| Models | `models/cnn_outlet_reg{A,B,C}.pt`, `models/xgb_geom_plus_cnn_emb_reg{A,B,C}.json` ⚠️ stale |
+| Models | `models/cnn_outlet_reg{A,B,C}.pt`, `models/xgb_geom_plus_cnn_emb_reg{A,B,C}.json` ✅ retrained 2026-06-04 |
 | Thresholds | `models/optimal_threshold_*.txt`, `models/feature_columns_*.txt` |
 
 ---
 
-## Stage 9 — Earth model validation and tuning ⚠️
+## Stage 9 — Earth model validation and tuning ✅
+
+**Refreshed 2026-06-04.** LOBO CV + thresholds + `ALL_MODELS_METRICS.csv` rebuilt
+on the retrained models; operating thresholds kept precision-oriented
+(max-precision@recall≥0.5), F1-optimal recorded as alternative. Fixed a
+`parents[1]` project-root bug in `eval_lobo_cv.py` / `retune_threshold_regime.py`
+(exposed when the refactor moved them into `scripts/cli/`).
 
 | Asset | Location |
 |---|---|
 | Script | `scripts/cli/eval_lobo_cv.py`, `scripts/cli/retune_threshold_regime.py` |
 | Package | `channel_heads/eval/lobo.py` |
 | Notebooks | `notebooks/diagnostics/lobo_cv.ipynb`, `notebooks/regime/02_threshold_retune.ipynb` |
-| Metrics | `models/lobo_cv_metrics.csv`, `models/ALL_MODELS_METRICS.csv` ⚠️ stale |
+| Metrics | `models/lobo_cv_metrics.csv`, `models/ALL_MODELS_METRICS.csv` ✅ refreshed 2026-06-04 |
 
 ---
 
@@ -215,9 +227,9 @@ training can now consume these manifests. See `AGENT_STATE.md`.
 | 5 | ✅ | QA gate passed, 0 hard flags |
 | 6 | ✅ | `00_pair_sample_qa.ipynb` added |
 | 7 | ✅ | Reconciled 2026-06-04: regA regenerated, regB/regC restored; manifests resolve 0-missing |
-| 8 | ⚠️ | Stale models (pre-rewrite); **Stage 7 now reconciled → ready to retrain** (next step) |
-| 9 | ⚠️ | Stale LOBO metrics; re-run after Stage 8 |
-| 10 | ⚠️ | Stale Mars inputs; re-run after Stage 8 |
+| 8 | ✅ | Regime CNN/XGBoost **retrained 2026-06-04** on reconciled rasters; metrics ≈ prior within noise |
+| 9 | ✅ | LOBO + thresholds + ALL_MODELS_METRICS **refreshed 2026-06-04**; path bug fixed |
+| 10 | ⚠️ | Stale Mars inputs; re-run next (Mars wave) now that Stage 8–9 are clean |
 | 11 | ⚠️ | Stale predictions; re-run after Stage 10 |
 | 12 | ✅ | Threshold sensitivity notebook complete |
 | 13 | ✅ | Scientific summary notebook complete |

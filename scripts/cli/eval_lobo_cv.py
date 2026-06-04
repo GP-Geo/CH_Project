@@ -18,13 +18,10 @@ headless wrapper that persists ``models/lobo_cv_metrics.csv``.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pandas as pd
 
 from channel_heads.eval import lobo as lobo_mod
-
-ROOT = Path(__file__).resolve().parents[1]
+from channel_heads.io.paths import PROJECT_ROOT as ROOT
 
 GEOM = lobo_mod.GEOM
 EMB = lobo_mod.EMB

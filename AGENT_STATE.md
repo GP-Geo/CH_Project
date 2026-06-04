@@ -38,11 +38,17 @@ Key facts:
     serial path. Verified output-identical on real data (regA `inyo`, and
     finisterre 900-pair byte-for-byte), with ~2.4× speedup at 4 workers
     (process-based to sidestep the GIL; threads gave no gain).
-- **Stages 8–11:** ⚠️ **stale — retrain pending.** Model artifacts and Mars
-  predictions exist in `models/` and `data/Mars/model_outputs/`, but the regime
-  CNN/XGBoost variants were trained on the *old* (pre-rewrite / interrupted)
-  rasters. Now that Stage 7 is reconciled, these are the next thing to refresh.
-  Usable for structural testing only until retrained.
+- **Stages 8–9:** ✅ **retrained + validated 2026-06-04** on the reconciled
+  Stage-7 rasters. All three regime CNNs (`cnn_outlet_reg{A,B,C}.pt`) and combined
+  geom+CNN-emb XGBoosts (`xgb_geom_plus_cnn_emb_reg{A,B,C}.json`) were retrained;
+  LOBO CV + thresholds + `ALL_MODELS_METRICS.csv` refreshed. New metrics reproduce
+  the old stale numbers within noise (all single-split Δ < 0.03; largest mover is
+  regA LOBO fold-AUC −0.028, still sub-threshold). Frozen production artifacts
+  verified untouched. See `AGENT_STAGE_8_9_RETRAIN.md`.
+- **Stages 10–11:** ⚠️ **stale — Mars re-inference pending.** Mars predictions in
+  `data/Mars/model_outputs/` still come from the pre-retrain regime models; refresh
+  them next (`run_mars_combined_regime.py`) now that Stages 8–9 are clean. Usable
+  for structural testing only until re-run.
 - **Stages 12–14:** 🔶 threshold sensitivity, interpretation, and figures
   notebooks in `notebooks/mars/`, `notebooks/interpretation/`, and
   `notebooks/presentation/` — runnable on current (stale) predictions; refresh
@@ -50,23 +56,24 @@ Key facts:
 
 ## Current phase (2026-06-04)
 
-**Foundation verified + Stage 7 reconciled; ready for a clean Stage 8 retrain.**
-Stages 0–7 are complete/verified: foundation (0–3) checked with S1 resolved,
-regimes frozen (4), Earth networks + pairs + labels done (5–6), and all three
-regime raster sets + manifests are clean (7, resolve 0-missing). The regime
-*models* (8) and everything downstream (9–11) are still trained on pre-rewrite
-data, so the next bounded step is to retrain on the reconciled rasters.
+**Stages 0–9 complete; Mars re-inference (10–11) is the next wave.**
+Foundation (0–3) verified with S1 resolved, regimes frozen (4), Earth networks +
+pairs + labels done (5–6), regime rasters reconciled (7), and the regime
+**models + validation are now retrained on the clean rasters (8–9)** — see
+`AGENT_STAGE_8_9_RETRAIN.md`. Only the downstream Mars chain (10–11) and the
+figures (12–14) still reflect the pre-retrain models.
 
-## Next actions (Stage 8 → 11 retrain)
+## Next actions (Stage 10 → 11 Mars re-inference)
 
-Stage 7 rasters/manifests are already reconciled — **do not** regenerate them
-unless a regime parameter changes. The patch builder now supports
-`--workers N` (multiprocess) if you ever do regenerate.
+Stage 7 rasters/manifests and the Stage 8–9 regime models are clean — **do not**
+regenerate them unless a regime parameter changes. The patch builder supports
+`--workers N`; `scripts/run_regime_pipeline.sh <regA|regB|regC> [full|retrain]`
+now has a `retrain`-only mode (Steps 4–5) and accepts regC.
 
-1. Retrain per regime: `train_cnn_regime.py` then `train_combined_xgb_regime.py`
-   for regA / regB / regC (or `scripts/run_regime_pipeline.sh regA|regB`).
-2. Validate: `eval_lobo_cv.py` + `retune_threshold_regime.py`; refresh
-   `models/ALL_MODELS_METRICS.csv`.
-3. Rerun Mars inference per regime: `run_mars_combined_regime.py`.
-4. Re-run Stage 12–14 notebooks (threshold sensitivity, interpretation, figures)
+1. Rerun Mars inference per regime: `run_mars_combined_regime.py --regime reg{A,B,C}`
+   (regenerates Mars 5-class patches → embeddings via the **frozen**
+   `cnn_outlet_final.pt` → combined predictions). Choose the Mars operating
+   threshold deliberately (precision-oriented + Dd-calibration) — do **not** copy
+   the Earth F1 threshold.
+2. Re-run Stage 12–14 notebooks (threshold sensitivity, interpretation, figures)
    on the refreshed predictions.

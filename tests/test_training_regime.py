@@ -291,10 +291,13 @@ class TestRegimePatchBuild:
         )
         calls = {}
 
-        def fake_build(regime_cfg, *, results_dir, target_size, log_override):
+        def fake_build(
+            regime_cfg, *, results_dir, target_size, log_override, n_workers=1, **_
+        ):
             calls["regime"] = regime_cfg.name
             calls["results_dir"] = results_dir
             calls["target_size"] = target_size
+            calls["n_workers"] = n_workers
             calls["log_name"] = log_override.name
             return pd.DataFrame(), tmp_path / "raster_manifest_regA.csv"
 
@@ -306,6 +309,7 @@ class TestRegimePatchBuild:
             "regime": "regA",
             "results_dir": tmp_path,
             "target_size": 128,
+            "n_workers": 1,
             "log_name": "build_cnn_patches_regime",
         }
 
