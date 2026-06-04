@@ -532,7 +532,12 @@ def mars_network_geometry(
         lines: list[npt.NDArray[np.floating]] = []
         for geom in sub.geometry:
             lines.extend(_network_line_coords(geom))
-        length_km = float(sub["Length(km)"].sum())
+        if "Length(km)" in sub.columns:
+            length_km = float(sub["Length(km)"].sum())
+        elif "total_length_m" in sub.columns:
+            length_km = float(sub["total_length_m"].sum()) / 1000.0
+        else:
+            length_km = float("nan")
         if not lines:
             out[int(nid)] = {
                 "lines": [],
