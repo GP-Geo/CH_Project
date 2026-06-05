@@ -429,8 +429,9 @@ for i in range(5):
         ax.text(j, i, f'{corr.iloc[i,j]:.2f}', ha='center', va='center', fontsize=7)
 plt.colorbar(im, shrink=0.7); ax.set_title('feature correlation'); plt.show()"""),
     M("### 3 · Real confluence geometry — touching vs non-touching"),
-    C("""# Rebuild one basin's pruned network and rasterize a few real pairs.
-from channel_heads.features.earth_enrichment import default_stream_loader
+    C("""# Rebuild one basin's REGIME-PRUNED network (so the pair node IDs resolve)
+# and rasterize a few real pairs.
+from channel_heads.training.regime import make_regime_stream_loader
 from channel_heads.units import km2_to_cells
 from channel_heads.rasterization.earth_patches import rasterize_outlet_pair
 from channel_heads.regimes import REGIMES
@@ -438,7 +439,8 @@ from channel_heads.basin_config import get_basin_config
 from matplotlib.colors import ListedColormap
 BASIN = 'inyo'; regime = REGIMES['regA']
 cfg = get_basin_config(BASIN); lat, z_th = cfg['lat'], cfg['z_th']
-res = default_stream_loader(BASIN, lat, z_th, km2_to_cells(regime.threshold_km2, lat))
+loader = make_regime_stream_loader(regime)
+res = loader(BASIN, lat=lat, z_th=z_th, threshold=km2_to_cells(regime.threshold_km2, lat))
 db = d[d.basin == BASIN]
 cmap = ListedColormap([[0.9,0.9,0.9],[0.20,0.47,0.71],[0.89,0.10,0.11],[0.30,0.69,0.29],[1.0,0.5,0.0]])
 if res is not None and not db.empty:
