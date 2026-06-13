@@ -67,10 +67,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/channel-heads"
-Documentation = "https://github.com/yourusername/channel-heads/blob/main/CLAUDE.md"
-Repository = "https://github.com/yourusername/channel-heads"
-Issues = "https://github.com/yourusername/channel-heads/issues"
+Homepage = "https://github.com/GP-Geo/CH_Project"
+Documentation = "https://github.com/GP-Geo/CH_Project/blob/main/CLAUDE.md"
+Repository = "https://github.com/GP-Geo/CH_Project"
+Issues = "https://github.com/GP-Geo/CH_Project/issues"
 
 [project.scripts]
 channel-heads = "channel_heads.cli:main"

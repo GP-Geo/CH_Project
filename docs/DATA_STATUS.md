@@ -12,21 +12,20 @@ a clean rebuild knows what to keep, what to regenerate, and what is stale.
 > their `raster_manifest_reg*.csv` resolve with **0 missing** (regA freshly
 > regenerated with the current rasterizer: 23,742 ok / 0 failed; regB/regC
 > restored from `data/_stage7_archive_20260603_231506/`, which is retained as
-> backup). These manifests are now valid inputs for Stage 8. See `AGENT_STATE.md`
-> Stage 7.
+> backup). These manifests are now valid inputs for Stage 8.
 >
 > **Update 2026-06-04 (RETRAINED):** Stage 8–9 ran on these reconciled rasters —
 > the regime CNN/XGBoost chains (`cnn_outlet_reg*.pt`,
 > `xgb_geom_plus_cnn_emb_reg*.json`, `master_dataset_reg*_with_emb.csv`) flipped
 > `STALE_AFTER_RASTER_FIX` → `CAN_REGENERATE`. Baseline (`*_final`, `v4_cnn_full`)
-> stays as-is (frozen, not retrained). See `AGENT_STAGE_8_9_RETRAIN.md`.
+> stays as-is (frozen, not retrained).
 >
 > **Update 2026-06-04 (MARS REFRESHED):** Stage 10–14 re-ran on the retrained
 > models — Mars 5-class patches regenerated with the current rasterizer, embeddings
 > /`tabular_plus_cnn` + all combined predictions (baseline + regA/B/C) refreshed,
 > and 18 figures rebuilt. The Mars patch/embedding/prediction chain flipped
 > `STALE_AFTER_RASTER_FIX` → `CAN_REGENERATE`; old artifacts archived in
-> `data/_mars_stage10_archive_20260604_040046/`. See `AGENT_STAGE_10_14_MARS.md`.
+> `data/_mars_stage10_archive_20260604_040046/`.
 
 ## Legend
 
@@ -59,10 +58,10 @@ a clean rebuild knows what to keep, what to regenerate, and what is stale.
 | `data/results/master_dataset_v4_cnn_full.csv` | `STALE_AFTER_RASTER_FIX` | Baseline CNN embeddings — frozen baseline, **not** retrained this wave. |
 | `data/results/raster_manifest*.csv` | `STALE_AFTER_RASTER_FIX` | Index of pre-rewrite rasters. |
 | `models/xgb_*_geom_only*.json`, tabular-only models + threshold/feature-col files | `CAN_REGENERATE` | Geometry-only — unaffected by the raster fix. |
-| `models/cnn_outlet_reg{A,B,C}.pt`, `models/xgb_geom_plus_cnn_emb_reg{A,B,C}.json` (+ thresholds/feature-cols/metrics) | `CAN_REGENERATE` | Regime CNN / CNN-derived — **retrained 2026-06-04** on reconciled rasters (Stage 8–9). See `AGENT_STAGE_8_9_RETRAIN.md`. |
+| `models/cnn_outlet_reg{A,B,C}.pt`, `models/xgb_geom_plus_cnn_emb_reg{A,B,C}.json` (+ thresholds/feature-cols/metrics) | `CAN_REGENERATE` | Regime CNN / CNN-derived — **retrained 2026-06-04** on reconciled rasters (Stage 8–9). |
 | `models/cnn_outlet_final.pt`, `models/xgb_geom_plus_cnn_{emb,logit}.json` (baseline) | `STALE_AFTER_RASTER_FIX` | Frozen/baseline CNN-derived — preserved as-is, regenerate only via an explicit baseline rebuild. |
 | `data/exports/*.pdf`, `data/results/figures_*`, `data/Mars/model_outputs/figures*` | `REPORT` | Regenerate from `presentation/` notebooks or render scripts. |
-| `data/outputs/` | `LEGACY` | Duplicate of `data/results/` (not read by `config.py`). Archive. |
+| `data/outputs/` | `LEGACY` | Duplicate of `data/results/` (not read by `channel_heads.io.paths`). Archive. |
 | `data/archive/` | `LEGACY` | Archive holding area (gitignored as of 2026-06-02). |
 | `data/_rebuild_backup_20260531/` (~97 MB) | `BACKUP` | Pre-rebuild snapshot (gitignored). Keep off-repo. |
 
@@ -73,8 +72,8 @@ a clean rebuild knows what to keep, what to regenerate, and what is stale.
 
 ## Key invariant — the rasterizer rewrite
 
-`channel_heads/rasterizer.py` was rewritten to **direct final-grid**
-rasterization. Any artifact in the raster → CNN → CNN-embedding → combined-model
+`channel_heads/rasterization/` (formerly `rasterizer.py`) does **direct
+final-grid** rasterization. Any artifact in the raster → CNN → CNN-embedding → combined-model
 chain built before that change is `STALE_AFTER_RASTER_FIX`. **Tabular-only**
 artifacts (geometry features, geom-only XGBoost, the 5-feature Mars tables) are
 unaffected and stay `CAN_REGENERATE`.

@@ -25,7 +25,7 @@ channel_heads/
 │
 ├── pairing/             # graph-agnostic first-meet core (Earth + Mars share this)
 ├── features/            # dimensionless feature math (geometry, paths)
-├── rasterization/       # 5-class patch generation + drawing primitives (over rasterizer.py)
+├── rasterization/       # 5-class patch generation + drawing primitives
 ├── models/              # xgboost.py, thresholds.py, comparison.py, cnn.py, embeddings.py
 ├── viz/                 # vector figures (contact sheets, ROC, per-outlet)
 │
@@ -34,15 +34,19 @@ channel_heads/
 │   ├── earth.py         #   train_earth_cnn -> train_earth_xgb_variants
 │   └── poster.py        #   generate_poster_figures
 │
-└── (core: coupling_analysis, geometric_analysis, units, regimes, dd_calibration,
-         pruning, basin_config, config, logging_config, cli)
+├── eval/                # threshold tuning, metrics, grouped/LOBO splits
+├── training/            # Earth CNN/XGBoost training loops + dataset/regime builders
+├── cli/                 # CLI package: dispatcher + one module per command
+│
+└── (core modules: coupling_analysis, units, regimes, dd_calibration,
+         pruning, basin_config, stream_utils, logging_config)
 ```
 
-`models/`, `rasterization/`, `io.paths` are **curated surfaces** over existing
-implementation modules (`inference/`, `eval/`, `cnn_*`, `rasterizer.py`,
-`config.py`); the implementations are preserved as-is so the frozen production
-artifacts (`xgb_touching_classifier.json` @ 0.577406, `cnn_outlet_final.pt`) and
-the 5-class raster contract are untouched.
+The model/raster/feature logic lives directly in `models/`, `rasterization/`,
+`features/`, and `training/`; the frozen production artifacts
+(`xgb_touching_classifier.json` @ 0.577406, `cnn_outlet_final.pt`) and the 5-class
+raster contract are preserved as-is, with research/regime variants alongside them
+under explicit suffixes.
 
 ## Public API entry points
 

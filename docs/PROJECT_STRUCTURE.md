@@ -7,7 +7,7 @@ Repo map, scripts inventory, and data inventory — consolidated from the former
 > [ROADMAP_AND_RISKS.md](ROADMAP_AND_RISKS.md) for the refactor plan and
 > [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for the package API.
 >
-> Last consolidated: 2026-06-01.
+> Last consolidated: 2026-06-13 (package-first CLI; modules in subpackages).
 
 ---
 
@@ -47,85 +47,82 @@ channel-heads/
 | Module | Role |
 |--------|------|
 | `coupling_analysis.py` | `CouplingAnalyzer` (coupling detection, mask cache, stream-crossing gate). |
-| `first_meet_pairs_for_outlet.py` | Compatibility shim for the Earth first-meet adapter in `pairing/earth.py`. |
-| `geometric_analysis.py` | Asymmetry + geometric features + labeling + CSV enrichment. |
-| `rasterizer.py` | 5-class 128×128 patch rasterization (direct final-grid); shared `bresenham_line`. |
-| `cnn_features.py`, `cnn_model.py`, `cnn_training.py` | CNN dataset + `OutletCNN` + embedding extraction + shared training loop/defaults. |
+| `features/` | Dimensionless feature math: `asymmetry.py` (ΔL), `geometry.py` (angle/azimuth/proximity), `paths.py` (direction/sampling), `earth_enrichment.py` (CSV enrichment), `mars_features.py`. |
+| `pairing/` | First-meet pairing: graph-agnostic core (`dag.py`), Earth/TopoToolbox adapter (`earth.py`, exports `first_meet_pairs_for_outlet`), Mars-graph helpers (`mars_graph.py`), hard-negative `filtering.py`. |
+| `rasterization/` | 5-class 128×128 patch rasterization (`patches.py`, direct final-grid), `drawing.py` (shared `bresenham_line`), `manifest.py`, class `schema.py`. |
+| `models/` | XGBoost load/verify/predict (`xgboost.py`), `thresholds.py`, `comparison.py`, CNN (`cnn.py` `OutletCNN`, `cnn_features.py`, `embeddings.py`), `device.py` (`pick_device`), Mars `mars_inference.py`/`mars_combined.py`, `regime.py` (regime-CNN embedding attach). |
+| `training/` | Earth training: `cnn.py` (loop/defaults), `xgboost.py` (variants), `datasets.py`, `labeling.py`, `regime.py` (regime dataset builders). |
+| `eval/` | `metrics.py` (F1-opt / max-precision threshold, classification metrics), `splitting.py` / `lobo.py` (`outlet_group_holdout`, `leave_one_group_out_oof`, LOBO CV), `diagnostics.py`. |
+| `io/` | `paths.py` (canonical paths), `tables.py` (parquet/CSV), `geopackage.py`, `cleanup.py` (generated-data manifest). |
+| `pipelines/` | Readable top layer — one function per stage: `earth.py`, `mars.py`, `poster.py`. |
+| `viz/` | Earth DEM/basin plotting (`earth.py`) plus vector figures: `contact_sheet.py`, `curves.py` (ROC), `per_outlet.py`, `stream_crossing.py`, `calibration.py`. |
+| `cli/` | CLI package: subcommand dispatcher (`__init__.py`) + one module per command; run via `python -m channel_heads <command>`. |
 | `dd_calibration.py` | Drainage-density / threshold calibration. |
 | `pruning.py` | Strahler-strip + order-gap pruning. |
 | `units.py` | Unit conversions (single source of truth). |
 | `regimes.py` | `Regime` dataclass + `REGIMES` presets (regA/B/C). |
-| `pairing/` | First-meet pairing package: graph-agnostic core (`dag.py`), Earth/TopoToolbox adapter (`earth.py`), and Mars-graph helpers (`mars_graph.py`). |
-| `features/` | Dimensionless feature math: `geometry.py` (angle/azimuth/proximity), `paths.py` (direction/sampling). |
-| `inference/` | XGBoost glue: `xgb.py` (load/verify/predict), `device.py` (`pick_device`), `regime.py` (regime-CNN embedding attach). |
-| `eval/` | `metrics.py` (F1-opt / max-precision threshold, classification metrics), `splitting.py` (`outlet_group_holdout`, `leave_one_group_out_oof`). |
-| `viz/` | Earth DEM/basin plotting (`earth.py`) plus vector figures: `contact_sheet.py`, `curves.py` (ROC), `per_outlet.py`, `stream_crossing.py`. |
-| `basin_config.py`, `io/paths.py`, `config.py`, `logging_config.py`, `cli.py`, `stream_utils.py` | Basin params / canonical paths / legacy path shim / logging / CLI / helpers. |
+| `basin_config.py`, `logging_config.py`, `stream_utils.py` | Basin params / logging / `outlet_node_ids_from_streampoi`. |
 
-`io.paths.RESULTS_DIR == config.RESULTS_DIR == OUTPUTS_DIR == data/results` (canonical output dir).
+`io.paths.RESULTS_DIR == OUTPUTS_DIR == data/results` (canonical output dir).
 Public API is re-exported from each subpackage's `__init__.py`.
 
 ---
 
 ## 3. `scripts/` inventory
 
-Partially organized: `rendering/` and `diagnostics/` are subfolders. The
-maintained Mars CLI is `channel_heads/cli/run_mars_pipeline.py`; old root-level Mars
-wrappers are archived under `scripts/_archive/`. Earth/regime training scripts
-remain root-level compatibility entry points.
-Categories: CLI = maintained command entry point · MARS = Mars cross-planet ·
-REGIME = regime calibration · TRAIN = Earth training · RENDER = visualization ·
-QA = diagnostics · MAINT = maintenance.
+The command-line surface now lives **in the package**: `channel_heads/cli/` (run
+via `python -m channel_heads <command>` or the `channel-heads` console script;
+`python -m channel_heads --help` lists all commands). `scripts/` holds only
+**shell orchestrators, headless diagnostics, rendering helpers, and archive** —
+no Python CLI entry points and no pipeline/model implementation.
 
-| Script | Category | Phase/Step | Purpose |
-|--------|----------|-----------|---------|
-| `cli/run_mars_pipeline.py` | CLI | 1-6C | Maintained Mars stage/all runner over `channel_heads.pipelines`. |
-| `_archive/extract_mars_outlet_candidates.py` | MARS | pre-1 | Archived outlet-candidate prototype; superseded by package topology logic. |
-| `_archive/build_mars_network_topology.py` | MARS | 1 | Archived root wrapper; use `cli/run_mars_pipeline.py --stage topology`. |
-| `_archive/extract_mars_first_meet_pairs.py` | MARS | 2B | Archived root wrapper; use `cli/run_mars_pipeline.py --stage pairs`. |
-| `_archive/build_mars_pair_features_5feat.py` | MARS | 3A | Archived root wrapper; use `cli/run_mars_pipeline.py --stage features`. |
-| `_archive/run_mars_xgb_inference_5feat.py` | MARS | 3B | Archived root wrapper; use `cli/run_mars_pipeline.py --stage xgb`. |
-| `_archive/build_mars_cnn_patches_5class.py` | MARS | 4 | Archived root wrapper; use `cli/run_mars_pipeline.py --stage patches`. |
-| `_archive/extract_mars_cnn_embeddings.py` | MARS | 5 | Archived root wrapper; use `cli/run_mars_pipeline.py --stage embeddings`. |
-| `_archive/run_mars_combined_xgb_inference.py` | MARS | 6C | Archived root wrapper; use `cli/run_mars_pipeline.py --stage combined`. |
-| `train_combined_xgb_phase6b.py` | TRAIN | 6B | Train+persist 3 Earth XGBoost variants. |
-| `build_earth_features_regime.py` | REGIME | 2 | Per-basin Earth features under a regime; consumes `channel_heads.regimes`. |
-| `build_cnn_patches_regime.py` | REGIME | 3 | Regime CNN patches; consumes `channel_heads.regimes`. |
-| `train_cnn_regime.py` | REGIME | 4 | Train per-regime `OutletCNN`. |
-| `train_combined_xgb_regime.py` | REGIME | 5 | Train per-regime geom+emb XGBoost. |
-| `run_mars_combined_regime.py` | REGIME | 6 | Mars inference under a regime. |
-| `retune_threshold_regime.py` | REGIME | aux | Re-tune a regime threshold to F1-optimal. |
-| `run_regime_pipeline.sh` | REGIME | orchestrator | Runs regime Steps 2→6. **Refs 5 scripts by path.** |
-| `rendering/render_mars_combined_contact_sheets_vector.py` | RENDER | — | Phase 6C contact sheets (vector). |
-| `rendering/render_mars_high_conf_emb_contact_sheet.py` | RENDER | — | Top-20 emb-probability pairs. |
-| `rendering/render_mars_outlet_touching_pairs.py` | RENDER | — | Per-outlet touching-pair figures. |
-| `diagnostics/qa_mars_stream_crossing_filter.py` | QA | — | QA of stream-crossing-dropped pairs. |
-| `diagnostics/diag_regB_threshold.py` | QA | — | regB threshold diagnostic. |
-| `diagnostics/calibrate_stream_threshold_by_mars_dd.py` | QA | — | Earth Dd calibration across thresholds. |
-| `clean-cache.sh`, `setup-hooks.sh` | MAINT | — | Cache cleanup; install pre-push hook. |
+Categories: SHELL = orchestration runner · QA = diagnostics · RENDER =
+visualization · MAINT = maintenance · ARCHIVE = retained, not maintained.
+
+| Script | Category | Purpose |
+|--------|----------|---------|
+| `run_regime_pipeline.sh` | SHELL | Regime Steps 2→6; invokes the package CLI (`channel-heads build-earth-features → … → run-mars-combined-regime`) by command name. |
+| `run_full_rebuild.sh` | SHELL | Baseline + regime rebuild batch runner over the package CLI. |
+| `clean-cache.sh` | MAINT | Cache cleanup; used by the generated pre-push hook. |
+| `setup-hooks.sh` | MAINT | Installs a pre-push hook that calls `./scripts/clean-cache.sh`. |
+| `diagnostics/calibrate_stream_threshold_by_mars_dd.py` | QA | Earth Dd calibration across thresholds (`channel_heads.dd_calibration`). |
+| `diagnostics/diag_regB_threshold.py` | QA | regB threshold diagnostic (`channel_heads.eval` + model loaders). |
+| `diagnostics/qa_mars_stream_crossing_filter.py` | QA | QA of stream-crossing-dropped pairs (`channel_heads.pairing` + `viz`). |
+| `rendering/render_mars_combined_contact_sheets_vector.py` | RENDER | Phase 6C contact sheets, vector (`channel_heads.viz`). |
+| `rendering/render_mars_high_conf_emb_contact_sheet.py` | RENDER | Top-20 emb-probability pairs. |
+| `rendering/render_mars_outlet_touching_pairs.py` | RENDER | Per-outlet touching-pair figures. |
+| `_archive/*` | ARCHIVE | Superseded Mars wrappers + one-off experiments; use the package CLI / `channel_heads.pipelines` instead. |
+
+The former `scripts/cli/*` wrappers and root-level Mars/Earth/regime training
+scripts are now `channel_heads/cli/` commands (e.g. `run-mars-pipeline`,
+`train-cnn-regime`, `train-combined-xgb-phase6b`, `eval-lobo-cv`,
+`retune-threshold-regime`, `make-result-figures`, `generate-poster-figures`).
 
 ### Run order — Mars cross-planet (Phases 1–6C)
 ```
-channel_heads/cli/run_mars_pipeline.py --stage all
+python -m channel_heads run-mars-pipeline --stage all
 
 # Per-stage equivalents:
 topology -> pairs -> features -> xgb -> patches -> embeddings -> combined
 ```
 ### Run order — regime calibration
 ```
-scripts/run_regime_pipeline.sh regA   # = build_earth_features_regime → build_cnn_patches_regime
-scripts/run_regime_pipeline.sh regB   #   → train_cnn_regime → train_combined_xgb_regime → run_mars_combined_regime
+scripts/run_regime_pipeline.sh regA   # = build-earth-features → build-cnn-patches
+scripts/run_regime_pipeline.sh regB   #   → train-cnn-regime → train-combined-xgb-regime → run-mars-combined-regime
 ```
 
 ### Known path couplings (verify before moving)
-1. `run_regime_pipeline.sh` invokes 5 regime scripts as `scripts/<name>.py`.
-2. Most non-wrapper scripts compute `PROJECT_ROOT = Path(__file__).resolve().parents[1]` — moving one level deeper needs `parents[2]` (done for the moved render/diagnostics scripts).
+1. `run_regime_pipeline.sh` / `run_full_rebuild.sh` invoke the package CLI by
+   command name (`python -m channel_heads <command>`); they break only if a
+   command is renamed/removed, not if a file moves.
+2. The remaining `scripts/{diagnostics,rendering}/*.py` compute `PROJECT_ROOT =
+   Path(__file__).resolve().parents[2]` (depth-2 under `scripts/`).
 3. `clean-cache.sh`/`setup-hooks.sh` use `cd "$(dirname $0)/.."`; `setup-hooks.sh` generates a hook hardcoding `./scripts/clean-cache.sh`.
 
 ### Migration status
-- ✅ Applied: Mars Phases 1-6C are package-resident; root Mars scripts are wrappers.
-- ✅ Applied: `rendering/` (3), `diagnostics/` (3) — `parents[1]`→`[2]` fixed; no inbound refs. Regime presets and CNN training helpers now live in `channel_heads/`, removing the former sibling-import coupling.
-- ⏳ Deferred (path-coupled): `regime/`, `training/`, `maintenance/`.
+- ✅ Complete: the CLI lives in `channel_heads/cli/`; all Mars/Earth/regime
+  pipeline + training logic is package-resident. `scripts/` retains only shell
+  orchestrators, diagnostics, rendering, and archive.
 
 ---
 
@@ -139,37 +136,37 @@ which the in-notebook root-resolution cells assume — keep new notebooks at tha
 | `training/` | Earth training pipeline `00_pair_sample_qa` → `05_cnn_quick_eval`; referenced by `channel_heads/cli/train_*`, `build_*`. |
 | `analysis/` | Earth basin QA/exploration: `01_earth_source_data_qa`, `02_earth_network_explorer`, `05_earth_network_qa`. |
 | `mars/` | Mars cross-planet exploration (`dd_hull_mars_vs_earth_complexity`). |
-| `regime/` | Regime calibration: `00_calibration_overview`, `01_mars_inference` (→ `channel_heads.inference`). |
+| `regime/` | Regime calibration: `00_calibration_overview`, `01_mars_inference` (→ `channel_heads.models`). |
 | `diagnostics/` | QA / investigative (`rasterization_diagnostics`, `earth_network_pruning_experiments` — source of `channel_heads/pruning.py`). |
 | `presentation/` | Presentation / figure generation (`simple_mars_earth_dd_presentation`, result figures, contact sheets). |
 | `archive/` | Superseded one-offs (`experiment_*`, `optimization_review.md`). See `notebooks/archive/README.md`. |
 
-### Script ↔ notebook primary-interface map (Phase 6)
+### Notebook ↔ command primary-interface map
 
-Each B-class script is now a thin batch wrapper; the notebook is the primary,
-documented interface and calls `channel_heads.*` only. Notebooks execute
+The notebook is the primary, documented interface and calls `channel_heads.*`
+only; the matching CLI command (`python -m channel_heads <command>`) or
+diagnostics/rendering script is the batch counterpart. Notebooks execute
 read-only (no output regeneration) and are guarded when model artifacts are
 absent.
 
-| Notebook (primary) | Wrapper script | Package modules called |
-|--------------------|----------------|------------------------|
-| `mars/02_first_meet_pairs` | `cli/run_mars_pipeline.py --stage pairs` | `pairing` |
-| `mars/03_pair_features` | `cli/run_mars_pipeline.py --stage features` | `features` |
-| `mars/04_xgb_inference_5feat` | `cli/run_mars_pipeline.py --stage xgb` | `inference` |
-| `regime/01_mars_inference` | `run_mars_combined_regime.py` | `inference`, `inference.regime` |
-| `regime/02_threshold_retune` | `retune_threshold_regime.py` | `eval`, `inference` |
-| `diagnostics/lobo_cv` | `eval_lobo_cv.py` | `eval` |
-| `diagnostics/regB_threshold` | `diagnostics/diag_regB_threshold.py` | `eval`, `inference` |
-| `diagnostics/stream_crossing_qa` | `diagnostics/qa_mars_stream_crossing_filter.py` | `pairing`, `viz` |
-| `diagnostics/dd_threshold_calibration` | `diagnostics/calibrate_stream_threshold_by_mars_dd.py` | `dd_calibration` |
-| `presentation/mars_contact_sheets` | `rendering/render_mars_*_contact_sheet*.py` | `viz` |
-| `presentation/per_outlet_touching_pairs` | `rendering/render_mars_outlet_touching_pairs.py` | `viz` |
-| `presentation/result_figures` | `make_result_figures.py` | `viz`, `eval`, `inference` |
+| Notebook (primary) | CLI command / script | Package modules called |
+|--------------------|----------------------|------------------------|
+| `mars/02_first_meet_pairs` | `run-mars-pipeline --stage pairs` | `pairing` |
+| `mars/03_pair_features` | `run-mars-pipeline --stage features` | `features` |
+| `mars/04_xgb_inference_5feat` | `run-mars-pipeline --stage xgb` | `models` |
+| `regime/01_mars_inference` | `run-mars-combined-regime` | `models`, `models.regime` |
+| `regime/02_threshold_retune` | `retune-threshold-regime` | `eval`, `models` |
+| `diagnostics/lobo_cv` | `eval-lobo-cv` | `eval` |
+| `diagnostics/regB_threshold` | `scripts/diagnostics/diag_regB_threshold.py` | `eval`, `models` |
+| `diagnostics/stream_crossing_qa` | `scripts/diagnostics/qa_mars_stream_crossing_filter.py` | `pairing`, `viz` |
+| `diagnostics/dd_threshold_calibration` | `scripts/diagnostics/calibrate_stream_threshold_by_mars_dd.py` | `dd_calibration` |
+| `presentation/mars_contact_sheets` | `scripts/rendering/render_mars_*_contact_sheet*.py` | `viz` |
+| `presentation/per_outlet_touching_pairs` | `scripts/rendering/render_mars_outlet_touching_pairs.py` | `viz` |
+| `presentation/result_figures` | `make-result-figures` | `viz`, `eval`, `models` |
 
-**A-class (kept CLI-only — heavy compute / model-producing / orchestration):**
-`channel_heads/cli/run_mars_pipeline.py`, `build_earth_features_regime`,
-`build_cnn_patches_regime`, `train_cnn_*`, `train_combined_xgb_*`,
-`run_*_pipeline.sh`, `run_full_rebuild.sh`, `clean-cache.sh`,
+**CLI-only (heavy compute / model-producing / orchestration):** `run-mars-pipeline`,
+`build-earth-features`, `build-cnn-patches`, `train-cnn-*`, `train-combined-xgb-*`,
+`run_regime_pipeline.sh`, `run_full_rebuild.sh`, `clean-cache.sh`,
 `setup-hooks.sh`.
 
 **C-class (deletion candidate):** `exp_calibration_standardize.py` (dropped per-basin
@@ -190,13 +187,13 @@ All of `data/` and `models/` is **gitignored**. Canonical output dir is
 | `data/Mars/` | Mars DEM + MOLA hillshade + topology/model_inputs/model_outputs. | active |
 | `data/final_valleys/` | Mars valley-network vectors. | input (Mars) |
 | `data/results/` | **Canonical** Earth/regime outputs; per-basin dirs, `master_dataset_v2.csv`, `raster_manifest*.csv`, regime rasters. | active |
-| `data/outputs/` | Legacy duplicate (not read by `config.py`). | LEGACY (archive candidate) |
+| `data/outputs/` | Legacy duplicate (not read by `channel_heads.io.paths`). | LEGACY (archive candidate) |
 | `data/exports/` | Rendered PDFs. | reports |
 | `data/archive/` | Archive policy + holding area (empty). | policy |
 | `data/_rebuild_backup_20260531/` | Pre-rebuild backup of old `models/`, Mars outputs, derived datasets (~97 MB). | backup (do not commit) |
 
 ### Rasterization-fix note
-`channel_heads/rasterizer.py` was rewritten to direct final-grid rasterization.
+`channel_heads/rasterization/` (formerly `rasterizer.py`) does direct final-grid rasterization.
 Raster patches / CNN embeddings / models built before that change are
 regeneration candidates: `data/results/<basin>/rasters/`,
 `data/results/_rasters_reg{A,B,C}/`, `data/Mars/model_inputs/cnn_patches_5class/`,

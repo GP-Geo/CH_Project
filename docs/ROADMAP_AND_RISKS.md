@@ -17,13 +17,13 @@ the highest priority** and is the motivation for centralizing unit logic in
 | # | File | Issue | Severity | Status |
 |---|------|-------|----------|--------|
 | **S1** | `features/asymmetry.py` / `units.py` | **`upstream_distance()` unit assumption.** ΔL assumes `s.upstream_distance()` returns map units (arc-degrees for SRTM). If TopoToolbox returns pixel/edge counts, the meters conversion is wrong by ~`cellsize_deg` (≈1/3600), making ΔL ~3600× off. Verify against TopoToolbox docs/source. | **Critical** | **Verified 2026-06-04 — arc-degrees confirmed.** CalnAlpine: `s.upstream_distance().max() = 0.2404` (arc-degrees); `LengthwiseAsymmetryAnalyzer.meters_per_unit = 97309 m/deg` (= `compute_meters_per_degree(39.69°)`, cellsize 0.000833 < 1 branch taken). ΔL conversion is correct. Not a bug. |
-| S2 | `geometric_analysis.py` | Geometric mean in `compute_meters_per_degree` biases near-E–W / N–S paths. Acceptable for elongated ranges; document. | Low | Documented |
-| S3 | `geometric_analysis.py` | `_trace_path_downstream` greedy child choice could follow wrong branch on unexpected topology. | Low | Manual |
+| S2 | `units.py` | Geometric mean in `compute_meters_per_degree` biases near-E–W / N–S paths. Acceptable for elongated ranges; document. | Low | Documented |
+| S3 | `features/earth_paths.py` | `_trace_path_downstream` greedy child choice could follow wrong branch on unexpected topology. | Low | Manual |
 | S4 | `coupling_analysis.py` | Pre-filter distance threshold (`multiplier·√threshold`) is geometrically optimistic for elongated basins — may skip real touching pairs. | Medium | Manual |
 | S5 | `coupling_analysis.py` | `contact_px` double-counts diagonal contacts under 8-connectivity (≈2×). `touching` bool is still correct. | Medium | Manual |
-| S6 | `geometric_analysis.py` | `strahler_order_diff` uses the branch parent's order, not the head's. Defensible; document. | Low | Manual |
+| S6 | `features/earth_geometry.py` | `strahler_order_diff` uses the branch parent's order, not the head's. Defensible; document. | Low | Manual |
 | S7 | `pairing/dag.py` via `pairing/earth.py` | O(k²) pairs at highly-branched confluences (e.g. Taiwan). Correct but can be slow. | Low | Monitor |
-| S8 | `geometric_analysis.py` | `filter_hard_negatives` on the full dataset before LOBO CV → mild train/test leakage. Call per fold. | Medium | Manual |
+| S8 | `training/labeling.py` | `filter_hard_negatives` on the full dataset before LOBO CV → mild train/test leakage. Call per fold. | Medium | Manual |
 
 **S1 verification recipe:**
 ```python
@@ -52,9 +52,9 @@ print(s.upstream_distance().max())   # ~0.01–0.5 → arc-degrees; ~300–5000 
 ### Duplication clusters dissolved (Phases 2–6, all ✅)
 1. **Feature math** → `channel_heads/features/` (`geometry.py`, `paths.py`).
 2. **First-meet pairing** → `channel_heads/pairing/` (`dag.py`, `mars_graph.py`).
-3. **Rasterization** → `rasterizer.bresenham_line` (shared; larger polyline draw kept separate by design).
+3. **Rasterization** → `channel_heads/rasterization/` (`earth_patches.bresenham_line` shared; larger polyline draw kept separate by design).
 4. **Unit conversions** → `channel_heads/units.py`.
-5. **XGBoost inference glue** (loaders / verify / predict / regime embeddings) → `channel_heads/inference/`.
+5. **XGBoost inference glue** (loaders / verify / predict / regime embeddings) → `channel_heads/models/`.
 6. **Evaluation** (thresholding, metrics, grouped/LOBO splits) → `channel_heads/eval/`.
 7. **Vector figures** (contact sheets, ROC, per-outlet, stream-crossing QA) → `channel_heads/viz/`.
 
@@ -67,10 +67,10 @@ and calls `channel_heads.*` only (no duplicated cell logic). See
 
 ## 3. Architecture / engineering improvements (from review)
 
-- **W1** Split `geometric_analysis.py` (2200-line monolith) into `asymmetry_analysis.py`, `geometric_features.py`, `labeling.py`, `csv_enrichment.py` with a re-export shim. *Highest-priority architectural item.*
+- ~~**W1** Split `geometric_analysis.py` (2200-line monolith).~~ **✅ Done** — split into `features/{asymmetry,geometry,earth_geometry,paths,earth_paths}.py`, `training/labeling.py`, `pairing/filtering.py`, and `features/earth_enrichment.py`; the monolith and its re-export shim are removed.
 - **W2** Unify the duplicated `_build_children_from_parents` (basin-scoped vs global).
-- **E5** Lazy-import `topotoolbox` in `cli.py` (try/except with helpful message).
-- **E6** Update placeholder GitHub URLs in `pyproject.toml`.
+- **E5** Lazy-import `topotoolbox` in `cli/_analyze.py` (try/except with helpful message).
+- ~~**E6** Update placeholder GitHub URLs in `pyproject.toml`.~~ **✅ Done** — point to `github.com/GP-Geo/CH_Project`.
 - Remove deprecated no-op `use_meters` parameter (next major version).
 - Validate `CHANNEL_HEADS_ROOT` path existence in `io.paths`.
 

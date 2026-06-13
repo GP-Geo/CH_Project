@@ -44,21 +44,21 @@ conda run -n ch-heads ruff check <files>      # targeted; repo-wide has known pr
 | Module | Role |
 |--------|------|
 | `coupling_analysis.py` | `CouplingAnalyzer` — basin coupling detection (parallel-safe, cached masks, stream-crossing gate). |
-| `pairing/earth.py` | Earth/TopoToolbox first-meet adapter; legacy `first_meet_pairs_for_outlet.py` re-exports this module. |
-| `geometric_analysis.py` | Lengthwise asymmetry (ΔL), geometric features, labeling/filtering, CSV enrichment. *(Large; split is a planned refactor — see ROADMAP.)* |
-| `rasterizer.py` | 5-class 128×128 patch rasterization (direct final-grid). Canonical for both Earth and Mars. |
-| `cnn_features.py`, `cnn_model.py`, `cnn_training.py` | `OutletCNN` (5→…→4-dim embedding), dataset, embedding extraction, shared CNN training loop/defaults. |
+| `features/` | Dimensionless feature math: `asymmetry.py` (lengthwise ΔL), `geometry.py` / `paths.py` (angles, azimuth, proximity, sampling), `earth_enrichment.py` (CSV enrichment), `mars_features.py`. |
+| `pairing/` | First-meet pairing: graph-agnostic core (`dag.py`), Earth/TopoToolbox adapter (`earth.py`, exports `first_meet_pairs_for_outlet`), Mars-graph helpers (`mars_graph.py`), hard-negative `filtering.py`. |
+| `rasterization/` | 5-class 128×128 patch generation (`patches.py`, Earth + Mars), drawing primitives (`drawing.py`), `manifest.py`, and the class `schema.py`. Canonical for both planets. |
+| `models/` | XGBoost load/verify/predict (`xgboost.py`), `thresholds.py`, model `comparison.py`, CNN (`cnn.py` `OutletCNN` 5→…→4-dim, `cnn_features.py`, `embeddings.py`), `device.py` (`pick_device`), Mars `mars_inference.py` / `mars_combined.py`, regime-CNN embedding attach (`regime.py`). |
+| `training/` | Earth training: shared CNN loop (`cnn.py`), XGBoost variants (`xgboost.py`), dataset prep (`datasets.py`), labeling/filtering (`labeling.py`), regime dataset builders (`regime.py`). |
+| `eval/` | Threshold tuning + classification metrics (`metrics.py`), grouped/LOBO splits (`splitting.py`, `lobo.py`), `diagnostics.py`. |
+| `io/` | Canonical paths (`paths.py`), parquet/CSV table I/O (`tables.py`), GeoPackage I/O (`geopackage.py`), generated-data cleanup manifest (`cleanup.py`). |
+| `pipelines/` | Readable top layer — one function per stage (`earth.py`, `mars.py`, `poster.py`). |
+| `viz/` | Earth DEM/basin plotting plus vector figures: contact sheets, ROC curves, per-outlet, stream-crossing QA, calibration. |
+| `cli/` | CLI package: subcommand dispatcher + one module per command (run via `python -m channel_heads <command>` or the `channel-heads` / `ch-analyze` console scripts). |
 | `dd_calibration.py` | Drainage-density / threshold calibration helpers. |
 | `pruning.py` | Strahler-strip + order-gap network pruning (regime pipeline). |
 | `units.py` | **Single source of truth for unit conversions** (added Phase 2 — see §6). |
 | `regimes.py` | `Regime` dataclass + `REGIMES` presets (regA/B/C). |
-| `pairing/` | Graph-agnostic first-meet core, Earth/TopoToolbox adapter, and Mars-graph helpers. |
-| `features/` | Dimensionless feature math (`geometry`, `paths`). |
-| `inference/` | XGBoost load/verify/predict, device pick, regime-CNN embedding attach. |
-| `eval/` | Threshold tuning, classification metrics, grouped/LOBO splits. |
-| `viz/` | Earth DEM/basin plotting plus vector figures: contact sheets, ROC curves, per-outlet, stream-crossing QA. |
-| `basin_config.py`, `io/paths.py`, `config.py`, `logging_config.py`, `cli.py` | Basin params, canonical paths, legacy path shim, logging, CLI. |
-| `stream_utils.py` | `outlet_node_ids_from_streampoi`. |
+| `basin_config.py`, `logging_config.py`, `stream_utils.py` | Basin params (z-thresholds, example DEMs), logging, `outlet_node_ids_from_streampoi`. |
 
 Public API is re-exported from each subpackage's `__init__.py`.
 
@@ -122,8 +122,8 @@ Single source of truth for all unit handling (added in the Phase 2 refactor):
 meters/degree, DEM pixel size (geographic vs projected), km²↔pixel-cells,
 stream length (km), basin & hull area (km²), drainage density, and the
 documented resolution of the `upstream_distance()` unit question (**risk S1**).
-Former call sites in `dd_calibration.py` and `geometric_analysis.py` re-export
-from here; behavior is unchanged. See ROADMAP_AND_RISKS.md for S1.
+Former call sites (`dd_calibration.py`, `features/asymmetry.py`) route through
+`units.py`; behavior is unchanged. See ROADMAP_AND_RISKS.md for S1.
 
 ## 7. Testing
 
@@ -145,7 +145,7 @@ PROJECT_STRUCTURE.md.
 
 - PEP 8, type hints (mypy in CI), NumPy-style docstrings, `black`, `ruff`.
 - Prefer vectorized numpy/pandas over Python loops.
-- Use `channel_heads.io.paths` paths, never hardcode. `channel_heads.config` remains a compatibility shim.
+- Use `channel_heads.io.paths` paths, never hardcode.
 - Call `clear_cache()` between outlets; use `evaluate_pairs_for_outlet_parallel`
   for large outlets.
 - Never delete data; mark legacy instead (see PROJECT_STRUCTURE.md / archive policy).

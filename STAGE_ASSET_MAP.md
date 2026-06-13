@@ -125,7 +125,7 @@ failed). **regB/regC** were restored from `data/_stage7_archive_20260603_231506/
 as backup. The rasterizer now supports optional **multiprocess** per-basin/chunk
 rendering (`n_workers` / CLI `--workers`); default 1 is bit-identical to the serial
 path (verified output-identical on real data; ~2.4× at 4 workers). Stage 8
-training can now consume these manifests. See `AGENT_STATE.md`.
+training can now consume these manifests.
 
 ---
 
@@ -134,7 +134,6 @@ training can now consume these manifests. See `AGENT_STATE.md`.
 **Retrained 2026-06-04** on the reconciled Stage-7 rasters (regA/regB/regC CNN +
 combined geom+CNN-emb XGBoost); new metrics reproduce the prior numbers within
 noise. Frozen `cnn_outlet_final.pt` / `xgb_touching_classifier.json` untouched.
-See `AGENT_STAGE_8_9_RETRAIN.md`.
 
 | Asset | Location |
 |---|---|
@@ -153,7 +152,7 @@ See `AGENT_STAGE_8_9_RETRAIN.md`.
 on the retrained models; operating thresholds kept precision-oriented
 (max-precision@recall≥0.5), F1-optimal recorded as alternative. Fixed a
 `parents[1]` project-root bug in `eval_lobo_cv.py` / `retune_threshold_regime.py`
-(exposed when the refactor moved them into `scripts/cli/`).
+(exposed when the refactor moved them into `channel_heads/cli/`).
 
 | Asset | Location |
 |---|---|
@@ -169,7 +168,7 @@ on the retrained models; operating thresholds kept precision-oriented
 **Regenerated 2026-06-04** with the current rasterizer: 5-class patches (3,682 ok /
 103 invalid), `mars_cnn_patch_index.parquet`, embeddings + `tabular_plus_cnn` via
 the frozen `cnn_outlet_final.pt`. Old artifacts archived in
-`data/_mars_stage10_archive_20260604_040046/`. See `AGENT_STAGE_10_14_MARS.md`.
+`data/_mars_stage10_archive_20260604_040046/`.
 
 
 | Asset | Location |
@@ -185,7 +184,7 @@ the frozen `cnn_outlet_final.pt`. Old artifacts archived in
 
 **Re-run 2026-06-04** on the new patches: regime combined (regA/B/C) + baseline
 combined. Coupling rates 53.0% / 64.1% / 38.6% (regA/B/C), within < 1.6 pp of the
-stale run; regime ordering preserved. See `AGENT_STAGE_10_14_MARS.md`.
+stale run; regime ordering preserved.
 
 
 | Asset | Location |
@@ -220,7 +219,7 @@ stale run; regime ordering preserved. See `AGENT_STAGE_10_14_MARS.md`.
 **Refreshed 2026-06-04** on the new predictions: 18 figures (vector contact sheets,
 per-outlet drawings, network map, ROC, variant scatters, threshold-sensitivity
 sweep) via the headless render scripts. Fixed a `parents[1]` root bug in
-`make_result_figures.py`. See `AGENT_STAGE_10_14_MARS.md`.
+`make_result_figures.py`.
 
 
 | Asset | Location |

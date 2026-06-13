@@ -1,92 +1,69 @@
-# scripts/ — CLI, diagnostics, and archive layer
+# scripts/ — shell orchestrators, diagnostics, rendering, and archive
 
-This repository is package-first: all pipeline/model/raster/training logic lives
-in `channel_heads/`. The `scripts/` tree holds thin CLI wrappers, orchestration
-shell scripts, diagnostics utilities, and archive.
+This repository is **package-first**: all pipeline/model/raster/training logic —
+**including the command-line surface** — lives in `channel_heads/`. The CLI is the
+`channel_heads/cli/` package, run via:
 
-**Refactor complete.** No implementation lives in scripts. All `scripts/cli/`
-files call `channel_heads.*` directly.
+```bash
+python -m channel_heads <command> [args]   # e.g. run-mars-pipeline --stage all
+channel-heads <command> [args]             # console script
+channel-heads --help                       # list all commands
+```
 
-## Categories
+`scripts/` therefore holds **no Python CLI entry points and no implementation** —
+only shell orchestrators, headless diagnostics, rendering helpers, and archive.
 
-- **Maintained CLI:** preferred human-facing command entry point.
-- **Wrapper over package API:** thin CLI whose logic is entirely package-owned.
-- **Diagnostics utility:** headless analysis, QA, or reporting helper.
-- **Shell/orchestration entry point:** batch runner that invokes other scripts.
-- **Historical/archive candidate:** retained for provenance, not maintained.
+> The former `scripts/cli/*` wrappers and the root-level Mars/Earth/regime
+> training scripts were collapsed into `channel_heads/cli/` commands (e.g.
+> `run-mars-pipeline`, `train-cnn-regime`, `train-combined-xgb-phase6b`,
+> `eval-lobo-cv`, `retune-threshold-regime`, `make-result-figures`,
+> `generate-poster-figures`). See [`docs/PROJECT_STRUCTURE.md §3`](../docs/PROJECT_STRUCTURE.md)
+> for the full inventory and the notebook ↔ command map.
 
-## CLI Entry Points (`scripts/cli/`)
+## Contents
 
-All new command-line work should use or add to `scripts/cli/`.
+### Shell / orchestration
+| Script | Notes |
+|--------|-------|
+| `run_regime_pipeline.sh <regA\|regB\|regC> [full\|retrain]` | Regime Steps 2→6; invokes the package CLI by command name. |
+| `run_full_rebuild.sh` | Baseline + regime rebuild batch runner over the package CLI. |
+| `clean-cache.sh` | Cache cleanup; used by the generated pre-push hook. |
+| `setup-hooks.sh` | Installs a pre-push hook that calls `./scripts/clean-cache.sh`. |
 
-| Script | Category | Canonical package API |
-|--------|----------|-----------------------|
-| `cli/run_mars_pipeline.py` | maintained CLI | `channel_heads.pipelines.run_full_mars_pipeline` + per-stage functions |
-| `cli/run_mars_inference.py` | maintained CLI | `channel_heads.pipelines.run_mars_combined_inference` |
-| `cli/run_mars_combined_regime.py` | maintained CLI | `channel_heads.models.regime` + `channel_heads.models.xgboost` |
-| `cli/generate_poster_figures.py` | maintained CLI | `channel_heads.pipelines.generate_poster_figures` |
-| `cli/build_earth_features_regime.py` | wrapper | `channel_heads.training.regime.build_regime_feature_dataset` |
-| `cli/build_cnn_patches_regime.py` | wrapper | `channel_heads.training.regime.build_regime_patch_dataset` |
-| `cli/train_cnn_baseline.py` | wrapper | `channel_heads.training.cnn.train_cnn` + `channel_heads.training.datasets` |
-| `cli/train_cnn_regime.py` | wrapper | `channel_heads.training.cnn.train_cnn` + regime/dataset helpers |
-| `cli/train_cnn_multiseed.py` | wrapper | `channel_heads.training.cnn.train_cnn` + deterministic split helpers |
-| `cli/train_combined_xgb_phase6b.py` | wrapper | `channel_heads.training.xgboost` |
-| `cli/train_combined_xgb_regime.py` | wrapper | `channel_heads.training.xgboost` + regime paths |
-| `cli/eval_lobo_cv.py` | diagnostics / wrapper | `channel_heads.eval.lobo` |
-| `cli/retune_threshold_regime.py` | diagnostics utility | `channel_heads.eval` + `channel_heads.models.xgboost` |
-| `cli/make_result_figures.py` | diagnostics utility | `channel_heads.viz` + `channel_heads.eval` |
+### Diagnostics (`diagnostics/`)
+Headless QA / reporting helpers; each has a read-only notebook counterpart.
+| Script | Package modules |
+|--------|-----------------|
+| `calibrate_stream_threshold_by_mars_dd.py` | `channel_heads.dd_calibration` |
+| `diag_regB_threshold.py` | `channel_heads.eval` + model loaders |
+| `qa_mars_stream_crossing_filter.py` | `channel_heads.pairing`, `channel_heads.viz` |
 
-## Diagnostics and Rendering
+### Rendering (`rendering/`)
+Batch figure writers over `channel_heads.viz`.
+| Script | Purpose |
+|--------|---------|
+| `render_mars_combined_contact_sheets_vector.py` | Phase 6C contact sheets (vector polylines). |
+| `render_mars_high_conf_emb_contact_sheet.py` | Top-20 embedding-probability pairs. |
+| `render_mars_outlet_touching_pairs.py` | Per-outlet touching-pair figures. |
 
-These scripts are intentionally headless batch utilities. Most have a primary
-notebook for exploratory/read-only use and a script for writing report, QA, or
-figure outputs.
+### Archive (`_archive/`)
+Retained for provenance, **not maintained**. Each is superseded by a
+`run-mars-pipeline --stage <…>` command or `channel_heads.pipelines` function:
+`build_mars_network_topology.py` (topology), `extract_mars_first_meet_pairs.py`
+(pairs), `build_mars_pair_features_5feat.py` (features),
+`run_mars_xgb_inference_5feat.py` (xgb), `build_mars_cnn_patches_5class.py`
+(patches), `extract_mars_cnn_embeddings.py` (embeddings),
+`run_mars_combined_xgb_inference.py` (combined),
+`extract_mars_outlet_candidates.py` (→ `channel_heads.mars.topology`), and
+`old_experiments/exp_calibration_standardize.py`.
 
-| Script | Category | Canonical package alternative |
-|--------|----------|-------------------------------|
-| `retune_threshold_regime.py` | diagnostics utility | `channel_heads.eval` threshold/metric helpers and `channel_heads.models.xgboost` loaders |
-| `make_result_figures.py` | diagnostics utility | `channel_heads.viz`, `channel_heads.eval`, and model loaders |
-| `diagnostics/calibrate_stream_threshold_by_mars_dd.py` | diagnostics utility | `channel_heads.dd_calibration` |
-| `diagnostics/diag_regB_threshold.py` | diagnostics utility | `channel_heads.eval` and model/inference helpers |
-| `diagnostics/qa_mars_stream_crossing_filter.py` | diagnostics utility | `channel_heads.pairing` and `channel_heads.viz` helpers |
-| `rendering/render_mars_combined_contact_sheets_vector.py` | diagnostics/rendering utility | `channel_heads.viz.render_contact_sheet` |
-| `rendering/render_mars_high_conf_emb_contact_sheet.py` | diagnostics/rendering utility | `channel_heads.viz.render_pair_panel` |
-| `rendering/render_mars_outlet_touching_pairs.py` | diagnostics/rendering utility | `channel_heads.viz.render_outlet_touching_pairs` |
+## Policy
 
-## Shell and Maintenance Entry Points
-
-| Script | Category | Notes |
-|--------|----------|-------|
-| `run_full_rebuild.sh` | shell/orchestration entry point | Path-coupled batch runner for baseline and regime rebuild steps. Keep root script paths stable unless the shell is updated in the same slice. |
-| `run_regime_pipeline.sh` | shell/orchestration entry point | Path-coupled regime Step 2-6 runner. It intentionally remains useful as a top-level batch entry point. |
-| `clean-cache.sh` | shell/orchestration entry point | Maintenance helper used by the generated pre-push hook. |
-| `setup-hooks.sh` | shell/orchestration entry point | Installs a hook that calls `./scripts/clean-cache.sh`; keep path stable. |
-
-## Archive
-
-Archived scripts are retained, not deleted. They are not maintained command
-surfaces and should not be used for new workflows.
-
-| Script | Category | Reason |
-|--------|----------|--------|
-| `_archive/build_mars_network_topology.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage topology` and `channel_heads.pipelines.build_mars_topology`. |
-| `_archive/extract_mars_first_meet_pairs.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage pairs` and `channel_heads.pipelines.extract_mars_pairs`. |
-| `_archive/build_mars_pair_features_5feat.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage features` and `channel_heads.pipelines.build_mars_features`. |
-| `_archive/run_mars_xgb_inference_5feat.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage xgb` and `channel_heads.pipelines.run_mars_xgb_inference`. |
-| `_archive/build_mars_cnn_patches_5class.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage patches` and `channel_heads.pipelines.build_mars_cnn_patches`. |
-| `_archive/extract_mars_cnn_embeddings.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage embeddings` and `channel_heads.pipelines.extract_mars_cnn_embeddings`. |
-| `_archive/run_mars_combined_xgb_inference.py` | historical/archive candidate | Superseded by `scripts/cli/run_mars_pipeline.py --stage combined` and `channel_heads.pipelines.run_mars_combined_inference`. |
-| `_archive/extract_mars_outlet_candidates.py` | historical/archive candidate | Superseded by `channel_heads.mars.topology`; standalone output is no longer consumed. |
-| `_archive/old_experiments/exp_calibration_standardize.py` | historical/archive candidate | Dropped per-basin standardization experiment retained for provenance. |
-
-## Move Policy
-
-- Do not move a script if docs, shell scripts, notebooks, or tests reference its
-  current path.
-- Do not move a script just because it is thin; root compatibility wrappers are
-  allowed when they preserve documented commands.
-- New general-purpose CLIs should prefer `scripts/cli/`.
-- New diagnostics should prefer `scripts/diagnostics/` or `scripts/rendering/`.
-- Obsolete scripts may move to `scripts/_archive/` only after `rg` confirms no
-  live references need updating.
-- Never delete scripts permanently in cleanup slices.
+- Add new command-line work as a `channel_heads/cli/` command, not a script here.
+- New diagnostics → `scripts/diagnostics/`; new figure writers → `scripts/rendering/`.
+- The `scripts/{diagnostics,rendering}/*.py` resolve the project root via
+  `Path(__file__).resolve().parents[2]`; keep them at depth 2 under `scripts/`.
+- `run_regime_pipeline.sh` / `run_full_rebuild.sh` call the CLI by command name —
+  they break only if a command is renamed, not if a file moves.
+- Never delete scripts permanently; move to `_archive/` after confirming no live
+  references.

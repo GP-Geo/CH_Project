@@ -1,10 +1,44 @@
 # Notebooks
 
-Notebooks are organised by pipeline stage (see [`docs/PIPELINE_DESIGN.md`](PIPELINE_DESIGN.md)).
-Each calls `channel_heads.*` — no duplicated logic. All root-path resolution
-uses `pathlib`; no `sys.path` hacks needed.
+Every notebook calls `channel_heads.*` — no duplicated logic. All root-path
+resolution uses `pathlib`; no `sys.path` hacks needed.
 
-## Pipeline notebooks (numbered by stage)
+There are two tiers:
+
+1. **`notebooks/pipeline/00–14` — the canonical deep dive.** One enumerated,
+   self-contained notebook per stage of [`docs/PIPELINE_DESIGN.md`](PIPELINE_DESIGN.md)
+   / [`STAGE_ASSET_MAP.md`](../STAGE_ASSET_MAP.md). **Start here.**
+2. **Themed folders (`analysis/`, `mars/`, `regime/`, `training/`,
+   `diagnostics/`, `presentation/`, `interpretation/`)** — kept as supporting /
+   historical material, no longer the canonical reference.
+
+## Pipeline notebooks (`notebooks/pipeline/` — canonical, one per stage)
+
+Each stage notebook is the authoritative, executable treatment of its stage:
+scientific narrative + analysis/visualization over the canonical package and
+on-disk artifacts. Heavy rebuilds run via the `channel-heads` CLI (each notebook
+lists its command). See [`notebooks/pipeline/README.md`](../notebooks/pipeline/README.md);
+regenerate the set with `notebooks/pipeline/_build_pipeline_notebooks.py`.
+
+| Stage | Notebook | Builds with (CLI) |
+|---|---|---|
+| 0 | `00_project_setup_and_assumptions` | — (paths/regimes/units) |
+| 1 | `01_earth_source_data_exploration` | — (RAW_KEEP DEMs) |
+| 2 | `02_earth_interactive_network_exploration` | — |
+| 3 | `03_mars_interactive_network_exploration` | `run-mars-pipeline --stage topology` |
+| 4 | `04_earth_mars_regime_calibration` | — (frozen regimes) |
+| 5 | `05_final_earth_network_generation_and_qa` | `build-earth-features --regime <r>` |
+| 6 | `06_earth_pair_and_label_generation` | (pairing/labeling) |
+| 7 | `07_earth_model_input_construction` | `build-cnn-patches --regime <r>` |
+| 8 | `08_model_training` | `train-cnn-regime`, `train-combined-xgb-regime` |
+| 9 | `09_earth_model_validation_and_tuning` | `eval-lobo-cv`, `retune-threshold-regime` |
+| 10 | `10_final_mars_model_input_generation` | `run-mars-pipeline --stage patches/embeddings` |
+| 11 | `11_mars_inference` | `run-mars-combined-regime --regime <r>` |
+| 12 | `12_mars_threshold_and_prediction_analysis` | (threshold sweep) |
+| 13 | `13_scientific_interpretation` | (interpretation) |
+| 14 | `14_figures_poster_and_reporting` | `make-result-figures`, `generate-poster-figures` |
+
+## Themed notebooks (supporting references)
 
 ### `notebooks/analysis/` — Earth data QA and exploration
 | Notebook | Stage | Type | Purpose |
