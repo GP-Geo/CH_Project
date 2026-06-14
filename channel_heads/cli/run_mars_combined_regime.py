@@ -22,16 +22,18 @@ Outputs (per regime):
 
 Primary interface
 -----------------
-``notebooks/regime/01_mars_inference.ipynb`` is the primary, documented way to
-understand this step; it calls the same shared package functions
+``notebooks/archive/regime/01_mars_inference.ipynb`` (archived) documents this
+step; the canonical walkthrough is Stage-11
+``notebooks/pipeline/11_mars_inference.ipynb``. Both call the same shared
+package functions
 (``channel_heads.inference.regime.attach_regime_embeddings`` plus the
 ``channel_heads.inference`` loaders / predict helpers). This script is the
 headless batch wrapper that writes the per-regime prediction tables.
 
 Run::
 
-    python scripts/run_mars_combined_regime.py --regime regA
-    python scripts/run_mars_combined_regime.py --regime regB
+    python -m channel_heads run-mars-combined-regime --regime regA
+    python -m channel_heads run-mars-combined-regime --regime regB
 """
 
 from __future__ import annotations
@@ -67,7 +69,7 @@ OUTPUT_DIR = PROJECT_ROOT / "data/Mars/model_outputs"
 HIGH_CONF_PROB_MIN = 0.80
 
 # Regime CNN embedding extraction + patch-index merge live in
-# channel_heads.models.regime (shared with notebooks/regime/;
+# channel_heads.models.regime (shared with notebooks/archive/regime/;
 # channel_heads.inference.regime remains a compatibility shim).
 
 

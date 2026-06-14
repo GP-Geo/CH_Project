@@ -2,9 +2,9 @@
 
 The per-regime Mars inference step overrides the baseline ``emb_0..emb_N``
 columns with embeddings from that regime's CNN, then runs the regime's combined
-XGBoost. The embedding-extraction + patch-index merge glue was inline in
-``scripts/run_mars_combined_regime.py``; it now lives here so that script and
-``notebooks/regime/`` call the same implementation.
+XGBoost. The embedding-extraction + patch-index merge glue was inline in the
+``run-mars-combined-regime`` command; it now lives here so that command and
+``notebooks/archive/regime/`` call the same implementation.
 
 This is the canonical home for the regime inference helpers;
 :mod:`channel_heads.inference.regime` re-exports them as a compatibility shim.

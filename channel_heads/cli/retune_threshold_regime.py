@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Re-tune a regime's combined-emb XGBoost threshold to the F1-optimal point.
 
-Reproduces the same GroupShuffleSplit as
-``scripts/train_combined_xgb_regime.py``, predicts on the test set, finds the
+Reproduces the same GroupShuffleSplit as the
+``train-combined-xgb-regime`` command, predicts on the test set, finds the
 threshold maximising F1, and overwrites the regime's
 ``optimal_threshold_geom_plus_cnn_emb_<regime>.txt``.
 
@@ -12,8 +12,8 @@ threshold=0.9915 -> only 3.8% Mars touching).
 
 Primary interface
 -----------------
-``notebooks/regime/02_threshold_retune.ipynb`` is the primary, documented way to
-explore this step (read-only — it does not overwrite the threshold file); it
+``notebooks/archive/regime/02_threshold_retune.ipynb`` (archived) documents this
+step (read-only — it does not overwrite the threshold file); it
 calls the same shared package functions (``channel_heads.eval`` —
 ``outlet_group_holdout``, ``f1_optimal_threshold``, ``classification_metrics``;
 ``channel_heads.inference``). This script is the headless wrapper that persists
@@ -21,7 +21,7 @@ the re-tuned threshold.
 
 Run::
 
-    python scripts/retune_threshold_regime.py --regime regA
+    python -m channel_heads retune-threshold-regime --regime regA
 """
 
 from __future__ import annotations
