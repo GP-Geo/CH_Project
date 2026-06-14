@@ -44,3 +44,20 @@ def test_earth_and_mars_stages_are_callable():
     for name in ("train_earth_cnn", "train_earth_xgb_variants", "generate_poster_figures",
                  "extract_mars_cnn_embeddings", "run_mars_combined_inference"):
         assert callable(getattr(pipelines, name))
+
+
+def test_trim_description_matches_pruning_semantics():
+    # pre_remove_max_order: 0 keeps all, 1 drops 1st-order, n drops <= n order.
+    assert pipelines.trim_description(0) == "none"
+    assert pipelines.trim_description(1) == "drop 1st-order"
+    assert "2" in pipelines.trim_description(2)
+
+
+def test_network_variant_and_builders_exposed():
+    assert callable(pipelines.build_earth_network_variants)
+    assert callable(pipelines.build_earth_basin_network)
+    # NetworkVariant carries the exact extraction parameters per setup.
+    assert pipelines.NetworkVariant._fields == (
+        "label", "s", "threshold_cells", "threshold_km2",
+        "pre_remove_max_order", "order_gap_to_prune",
+    )

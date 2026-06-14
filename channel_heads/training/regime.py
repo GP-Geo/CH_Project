@@ -165,7 +165,8 @@ def process_basin(
         # Runtime bounds: drop tiny artifact basins (< min_basin_px pixels)
         # and cap to the N largest by basin pixel count. Without these the
         # pruning regimes blow up on dense initial networks (Taiwan at
-        # T=0.05 km^2 has 647k stream nodes and thousands of outlets).
+        # very low thresholds, e.g. 0.05 km^2, has 647k stream nodes and
+        # thousands of outlets).
         if min_basin_px > 1 or max_outlets is not None:
             valid_dem = ~np.isnan(dem.z)
             n_rows = dem.z.shape[0]

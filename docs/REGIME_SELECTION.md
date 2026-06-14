@@ -6,7 +6,7 @@ models. **Do not change these parameters without a full retrain of every
 downstream artifact** (CNN, XGBoost, thresholds, Mars inference outputs).
 
 The canonical evidence is in
-`notebooks/regime/00_calibration_overview.ipynb` and the calibration data
+`notebooks/pipeline/04_earth_mars_regime_calibration.ipynb` and the calibration data
 under `data/results/drainage_density_calibration/`.
 
 ---
@@ -51,19 +51,32 @@ full network to Strahler ≥ 5, measuring Dd-hull against Mars reference geometr
 
 Canonical code: `channel_heads/regimes.py`, `REGIMES` dict.
 
-| Regime | `threshold_km2` | `pre_remove_max_order` | `order_gap_to_prune` | Network character |
-|--------|-----------------|------------------------|----------------------|-------------------|
-| **regA** | 0.05 km² | ≤ 2 (drop 1st+2nd order) | ≥ 4 | Dense base network, aggressive tip removal |
-| **regB** | 0.25 km² | ≤ 1 (drop 1st order only) | ≥ 4 | Sparse base network, minimal pruning |
-| **regC** | 0.10 km² | ≤ 1 (drop 1st order only) | ≥ 4 | Intermediate density, minimal pruning |
+These are the **top-3 data-driven regimes** by `scientific_score` (lower =
+better) from the eligibility-constrained candidate sweep in
+`notebooks/pipeline/04_earth_mars_regime_calibration.ipynb` (§3), written to
+`selected_regimes_AE.csv`. All three are plain `trim` (drop 1st order only) with
+**no order-gap delta pruning**.
+
+| Regime | `threshold_km2` | `pre_remove_max_order` | `order_gap_to_prune` | `scientific_score` | Network character |
+|--------|-----------------|------------------------|----------------------|--------------------|-------------------|
+| **regA** | 0.20 km² | ≤ 1 (drop 1st order only) | 0 (none) | 3.986 (best) | Intermediate density |
+| **regB** | 0.25 km² | ≤ 1 (drop 1st order only) | 0 (none) | 4.089 | Sparsest base network |
+| **regC** | 0.15 km² | ≤ 1 (drop 1st order only) | 0 (none) | 4.168 | Densest base network |
 
 All three regimes use `coupling_n_workers=4` and `min_prefilter_px=30.0`.
 
-The three regimes **bracket the plausible range** of Earth network complexities
-that match Mars: regB is the sparsest (closest to Mars Dd-hull medians in the
-bulk of the sweep), regA is the densest, and regC sits between them. Running
-all three and comparing Mars inference outputs is the project's approach to
-quantifying calibration uncertainty — no single regime is declared "correct".
+The three regimes are the best-scoring, **scientifically defensible** candidates
+that survived the hard filters (`length_retained ≥ 0.30`, `median Strahler ≥ 2`,
+low-order pruning only) and span the practical threshold neighbourhood
+(0.15–0.25 km²) whose Earth Dd-hull medians sit closest to Mars. Running all
+three and comparing Mars inference outputs quantifies calibration uncertainty —
+no single regime is declared "correct".
+
+> **Prior presets (superseded).** These replace the earlier hand-frozen presets
+> — regA (T=0.05, pre_remove=2, order_gap=4), regB (T=0.25, pre_remove=1,
+> order_gap=4), regC (T=0.10, pre_remove=1, order_gap=4). Every `*_reg{A,B,C}`
+> model artifact was trained on the *old* presets and is **stale** until
+> retrained (see "Downstream artifacts keyed to regime" below).
 
 ---
 
@@ -86,6 +99,32 @@ overlap with Mars.
 
 ---
 
+## Threshold-range robustness (checked 2026-06-14)
+
+The frozen choices were stress-tested by **extending the threshold cap from
+0.5 km² to 1.5 km²** and re-scoring every variant (the recompute
+`regime_optimization/dd_sweep_highthr_to1p5.csv` reproduces the dense-low sweep
+to `diff = 0` at the 0.5 km² overlap). **The three regimes survive unchanged:**
+
+- **`trim` degrades monotonically with threshold** (score 0.5 → 4.64, 0.75 →
+  5.36, 1.0 → 6.00) and becomes **ineligible by ~1.5 km²** (median Strahler < 2).
+  Trimming the 1st-order fringe of an already-coarse network shrinks the convex
+  hull faster than the length, so Dd-hull *rises* (1.37 → 1.88 → 2.13), moving
+  away from Mars (0.224). No better `trim`/`prune` regime exists above 0.5 km².
+- **Delta-3 / delta-4 are inert** at ≥ ~0.15 km²: identical Dd-hull and Strahler,
+  3rd–4th-decimal length change only — the order-gap rule never fires on shallow
+  coarse networks (this confirms §3a of notebook 04 empirically at high
+  thresholds).
+- A `full` (no-pruning) candidate at ~1.0 km² scores 4.079 (≈ regB) but matches
+  Mars by **threshold alone, not pruning** — a different simplification
+  philosophy, still far denser than Mars in absolute Dd. Not adopted; the three
+  `trim` regimes stand.
+
+See [`regimes_summary.md`](regimes_summary.md#threshold-range-robustness-checked-2026-06-14)
+for the at-a-glance version.
+
+---
+
 ## What is frozen
 
 These items are **upstream of all trained models** and must not change without
@@ -103,6 +142,11 @@ The `coupling_n_workers` value affects only runtime performance, not results.
 
 ## Downstream artifacts keyed to regime
 
+> **All of these are STALE** as of the regime-definition change above: they were
+> trained/generated on the prior presets. Regenerate in order (Stage 5 build →
+> CNN → XGBoost → threshold → Mars inference) before regime inference results
+> are valid. See `docs/PIPELINE_RERUN.md`.
+
 | Artifact | Location | Keyed to |
 |----------|----------|----------|
 | Regime feature dataset | `data/results/master_dataset_reg{A,B,C}.csv` | all three |
@@ -119,7 +163,8 @@ See `docs/DATA_STATUS.md` for current status of each artifact.
 
 ## Related docs
 
+- `docs/regimes_summary.md` — at-a-glance quick reference for the three regimes
 - `docs/modeling.md` — model variants and the Mars threshold issue
 - `docs/PIPELINE_RERUN.md` — regeneration order (regimes are Stage 4–5)
-- `notebooks/regime/00_calibration_overview.ipynb` — runnable calibration evidence
+- `notebooks/pipeline/04_earth_mars_regime_calibration.ipynb` — runnable calibration evidence
 - `channel_heads/regimes.py` — canonical code for `Regime` dataclass and `REGIMES` dict

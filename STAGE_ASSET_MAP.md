@@ -75,7 +75,7 @@ _Last updated: 2026-06-04_
 
 | Asset | Location |
 |---|---|
-| **Calibration notebook** | `notebooks/regime/00_calibration_overview.ipynb` |
+| **Calibration + selection notebook** | `notebooks/pipeline/04_earth_mars_regime_calibration.ipynb` (regA–regE → `selected_regimes_AE.csv`) |
 | Frozen presets | `channel_heads/regimes.py` (`regA`, `regB`, `regC`) |
 | Rationale doc | `docs/REGIME_SELECTION.md` |
 | Calibration scripts | `scripts/diagnostics/calibrate_stream_threshold_by_mars_dd.py`, `diag_regB_threshold.py` |
@@ -158,7 +158,7 @@ on the retrained models; operating thresholds kept precision-oriented
 |---|---|
 | Script | `channel_heads/cli/eval_lobo_cv.py`, `channel_heads/cli/retune_threshold_regime.py` |
 | Package | `channel_heads/eval/lobo.py` |
-| Notebooks | `notebooks/diagnostics/lobo_cv.ipynb`, `notebooks/regime/02_threshold_retune.ipynb` |
+| Notebooks | `notebooks/diagnostics/lobo_cv.ipynb`, `notebooks/archive/regime/02_threshold_retune.ipynb` |
 | Metrics | `models/lobo_cv_metrics.csv`, `models/ALL_MODELS_METRICS.csv` ✅ refreshed 2026-06-04 |
 
 ---
@@ -191,7 +191,7 @@ stale run; regime ordering preserved.
 |---|---|
 | CLI | `channel_heads/cli/run_mars_pipeline.py --stage combined`, `channel_heads/cli/run_mars_combined_regime.py` |
 | Package | `channel_heads/models/mars_combined.py`, `channel_heads/models/mars_inference.py` |
-| Notebook | `notebooks/regime/01_mars_inference.ipynb` |
+| Notebook | `notebooks/archive/regime/01_mars_inference.ipynb` |
 | Predictions | `data/Mars/model_outputs/mars_combined_reg{A,B,C}_predictions.*` ⚠️ stale |
 
 ---
@@ -201,7 +201,7 @@ stale run; regime ordering preserved.
 | Asset | Location |
 |---|---|
 | **Threshold notebook** | `notebooks/mars/05_mars_threshold_sensitivity.ipynb` ← sweep threshold, compare regimes |
-| Supporting | `notebooks/mars/04_xgb_inference_5feat.ipynb`, `notebooks/regime/02_threshold_retune.ipynb` |
+| Supporting | `notebooks/mars/04_xgb_inference_5feat.ipynb`, `notebooks/archive/regime/02_threshold_retune.ipynb` |
 | Data | `data/Mars/model_outputs/mars_combined_reg{A,B,C}_predictions.parquet` |
 
 ---

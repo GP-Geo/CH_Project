@@ -19,6 +19,8 @@ import numpy as np
 import pandas as pd
 from shapely.geometry import LineString, MultiLineString
 
+from .poster import frame_only
+
 logger = logging.getLogger(__name__)
 
 
@@ -66,8 +68,7 @@ def render_pair_panel(
     ax.set_xlim(minx - pad, maxx + pad)
     ax.set_ylim(miny - pad, maxy + pad)
     ax.set_aspect("equal")
-    ax.set_xticks([])
-    ax.set_yticks([])
+    frame_only(ax)
     ax.set_title(title, fontsize=title_fontsize)
 
 

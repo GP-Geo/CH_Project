@@ -11,14 +11,29 @@ scripts, and tests can all ``from channel_heads.regimes import REGIMES, Regime``
 
 Regime presets
 --------------
-- ``regA``: T = 0.05 km², pre_remove ≤ 2 (drop 1st+2nd order), order_gap ≥ 4
-- ``regB``: T = 0.25 km², pre_remove ≤ 1 (drop 1st order only), order_gap ≥ 4
-- ``regC``: T = 0.10 km², pre_remove ≤ 1, order_gap ≥ 4
+These are the **top-3 data-driven regimes** selected in
+``notebooks/pipeline/04_earth_mars_regime_calibration.ipynb`` (ranked by
+``scientific_score``, lower = better). All three are plain ``trim`` — drop 1st
+order only, no order-gap delta pruning:
+
+- ``regA``: T = 0.20 km², pre_remove ≤ 1 (drop 1st order only), no order-gap pruning
+- ``regB``: T = 0.25 km², pre_remove ≤ 1 (drop 1st order only), no order-gap pruning
+- ``regC``: T = 0.15 km², pre_remove ≤ 1 (drop 1st order only), no order-gap pruning
+
+.. warning::
+    These definitions replace the prior hand-frozen presets
+    (regA T=0.05/pre_remove=2/order_gap=4; regB T=0.25/pre_remove=1/order_gap=4;
+    regC T=0.10/pre_remove=1/order_gap=4). Every ``*_reg{A,B,C}`` artifact (CNN,
+    XGBoost, optimal thresholds, Mars predictions) was trained on the old
+    presets and is now **stale** — it must be regenerated before regime
+    inference results are valid. See ``docs/REGIME_SELECTION.md``.
 """
 
 from __future__ import annotations
 
+import csv as _csv
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -39,20 +54,71 @@ class Regime:
 REGIMES: dict[str, Regime] = {
     "regA": Regime(
         name="regA",
-        threshold_km2=0.05,
-        pre_remove_max_order=2,
-        order_gap_to_prune=4,
+        threshold_km2=0.20,
+        pre_remove_max_order=1,
+        order_gap_to_prune=0,
     ),
     "regB": Regime(
         name="regB",
         threshold_km2=0.25,
         pre_remove_max_order=1,
-        order_gap_to_prune=4,
+        order_gap_to_prune=0,
     ),
     "regC": Regime(
         name="regC",
-        threshold_km2=0.1,
+        threshold_km2=0.15,
         pre_remove_max_order=1,
-        order_gap_to_prune=4,
+        order_gap_to_prune=0,
     ),
 }
+
+
+def default_selected_regimes_csv() -> Path:
+    """Canonical path of the CSV-selected regimes (regA..regE).
+
+    Lazy import of ``io.paths`` keeps this module import-light and avoids a
+    circular import at module load.
+    """
+    from .io.paths import RESULTS_DIR
+
+    return (
+        RESULTS_DIR
+        / "drainage_density_calibration"
+        / "regime_optimization"
+        / "selected_regimes_AE.csv"
+    )
+
+
+def load_selected_regimes(csv_path: str | Path | None = None) -> dict[str, Regime]:
+    """Load CSV-selected regimes (regA..regE) into ``{name: Regime}``.
+
+    Additive companion to the frozen :data:`REGIMES` dict: it reads the regime
+    table written by Stage-4
+    ``notebooks/pipeline/04_earth_mars_regime_calibration.ipynb`` (regA–regE
+    selection; the archived ``notebooks/archive/regime/03_optimize_regime_candidates.ipynb``
+    is the historical source) so downstream stages can
+    iterate over the *selected* regimes without hard-coding definitions. The
+    frozen :data:`REGIMES` are left untouched.
+
+    The CSV must carry ``name``, ``threshold_km2``, ``pre_remove_max_order`` and
+    ``order_gap_to_prune`` columns; a blank/``NA`` order-gap means no order-gap
+    pruning (0).
+
+    .. warning::
+        Selected regimes may differ from the frozen ``regA/regB/regC`` the
+        production ``*_reg{A,B,C}`` artifacts were trained on. Models must be
+        retrained for these definitions before inference results are valid.
+    """
+    path = Path(csv_path) if csv_path is not None else default_selected_regimes_csv()
+    regimes: dict[str, Regime] = {}
+    with open(path, newline="") as fh:
+        for row in _csv.DictReader(fh):
+            raw_gap = (row.get("order_gap_to_prune") or "").strip()
+            gap = 0 if raw_gap.lower() in ("", "na", "nan", "none") else int(float(raw_gap))
+            regimes[row["name"]] = Regime(
+                name=row["name"],
+                threshold_km2=float(row["threshold_km2"]),
+                pre_remove_max_order=int(float(row["pre_remove_max_order"])),
+                order_gap_to_prune=gap,
+            )
+    return regimes

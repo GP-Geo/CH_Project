@@ -69,7 +69,7 @@ scripts/run_regime_pipeline.sh regA   # then re-invoke for regB
 > (it exits on any other argument). Run regC by invoking the per-step CLI
 > commands above with `--regime regC`.
 Then optionally re-tune a regime threshold: `python -m channel_heads retune-threshold-regime --regime regB`
-(inspect first read-only in `notebooks/regime/02_threshold_retune`).
+(inspect first read-only in `notebooks/archive/regime/02_threshold_retune`).
 
 ## 4. One-shot orchestrator
 

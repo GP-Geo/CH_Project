@@ -12,8 +12,10 @@ representative basin to stay fast.
 **These are the deep dive** — each stage notebook is the authoritative,
 self-contained treatment of its stage (it does not defer to another notebook for
 the "real" analysis). The pre-existing themed notebooks (`analysis/`, `training/`,
-`mars/`, `regime/`, `diagnostics/`, `interpretation/`, `presentation/`) are kept
+`mars/`, `diagnostics/`, `interpretation/`, `presentation/`) are kept
 as historical/scratch material but are no longer the canonical reference.
+(`regime/` is archived under `notebooks/archive/regime/`; its calibration +
+regA–regE selection now live in Stage-4 `04_earth_mars_regime_calibration`.)
 
 | Stage | Notebook | Builds with (CLI) |
 |---|---|---|

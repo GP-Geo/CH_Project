@@ -24,9 +24,14 @@ historical scripts pending a separate refactor (see ``docs/architecture.md``).
 
 from channel_heads.pipelines import earth, mars, poster
 from channel_heads.pipelines.earth import (
+    EarthBasinNetwork,
+    NetworkVariant,
+    build_earth_basin_network,
+    build_earth_network_variants,
     train_earth_cnn,
     train_earth_models,
     train_earth_xgb_variants,
+    trim_description,
 )
 from channel_heads.pipelines.mars import (
     build_mars_cnn_patches,
@@ -56,6 +61,11 @@ __all__ = [
     "compare_mars_model_outputs",
     "run_full_mars_pipeline",
     # Earth training
+    "EarthBasinNetwork",
+    "NetworkVariant",
+    "build_earth_basin_network",
+    "build_earth_network_variants",
+    "trim_description",
     "train_earth_cnn",
     "train_earth_xgb_variants",
     "train_earth_models",

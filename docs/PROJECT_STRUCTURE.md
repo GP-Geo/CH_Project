@@ -136,7 +136,7 @@ which the in-notebook root-resolution cells assume — keep new notebooks at tha
 | `training/` | Earth training pipeline `00_pair_sample_qa` → `05_cnn_quick_eval`; referenced by `channel_heads/cli/train_*`, `build_*`. |
 | `analysis/` | Earth basin QA/exploration: `01_earth_source_data_qa`, `02_earth_network_explorer`, `05_earth_network_qa`. |
 | `mars/` | Mars cross-planet exploration (`dd_hull_mars_vs_earth_complexity`). |
-| `regime/` | Regime calibration: `00_calibration_overview`, `01_mars_inference` (→ `channel_heads.models`). |
+| `archive/regime/` | **Archived** regime calibration notebooks (`00_calibration_overview`, `01_mars_inference`, `02_threshold_retune`, `03_optimize_regime_candidates`) — superseded by Stage-4 `pipeline/04_earth_mars_regime_calibration` (calibration + regA–regE selection). |
 | `diagnostics/` | QA / investigative (`rasterization_diagnostics`, `earth_network_pruning_experiments` — source of `channel_heads/pruning.py`). |
 | `presentation/` | Presentation / figure generation (`simple_mars_earth_dd_presentation`, result figures, contact sheets). |
 | `archive/` | Superseded one-offs (`experiment_*`, `optimization_review.md`). See `notebooks/archive/README.md`. |
@@ -154,8 +154,8 @@ absent.
 | `mars/02_first_meet_pairs` | `run-mars-pipeline --stage pairs` | `pairing` |
 | `mars/03_pair_features` | `run-mars-pipeline --stage features` | `features` |
 | `mars/04_xgb_inference_5feat` | `run-mars-pipeline --stage xgb` | `models` |
-| `regime/01_mars_inference` | `run-mars-combined-regime` | `models`, `models.regime` |
-| `regime/02_threshold_retune` | `retune-threshold-regime` | `eval`, `models` |
+| `archive/regime/01_mars_inference` | `run-mars-combined-regime` | `models`, `models.regime` |
+| `archive/regime/02_threshold_retune` | `retune-threshold-regime` | `eval`, `models` |
 | `diagnostics/lobo_cv` | `eval-lobo-cv` | `eval` |
 | `diagnostics/regB_threshold` | `scripts/diagnostics/diag_regB_threshold.py` | `eval`, `models` |
 | `diagnostics/stream_crossing_qa` | `scripts/diagnostics/qa_mars_stream_crossing_filter.py` | `pairing`, `viz` |

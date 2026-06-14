@@ -140,7 +140,10 @@ def test_render_outlet_touching_pairs_returns_fig_and_handles_empty():
         ("p", "A"): LineString([(0.0, 0.0), (0.5, 1.0)]),
         ("p", "B"): LineString([(1.0, 0.0), (0.5, 1.0)]),
     }
-    df_net = pd.DataFrame([{"pair_id": "p", "pred_touching_emb": 1, "prob_touching_emb": 0.9}])
+    df_net = pd.DataFrame([{
+        "pair_id": "p", "pred_touching_emb": 1, "prob_touching_emb": 0.9,
+        "head_node_id_1": 0, "head_node_id_2": 1,
+    }])
     fig = render_outlet_touching_pairs(
         9,
         df_net,
@@ -151,6 +154,17 @@ def test_render_outlet_touching_pairs_returns_fig_and_handles_empty():
         output=None,
     )
     assert isinstance(fig, Figure)
+    plt.close(fig)
+    # number_heads: unique C# head labels + "Pair k: Ca – Cb" legend, rect frame
+    fig = render_outlet_touching_pairs(
+        9, df_net, _segments(), nodes, (0.5, -1.0), paths, output=None,
+        number_heads=True,
+    )
+    assert isinstance(fig, Figure)
+    ax = fig.axes[0]
+    assert all(sp.get_visible() for sp in ax.spines.values())
+    legend_texts = [t.get_text() for t in ax.get_legend().get_texts()]
+    assert any(t.startswith("Pair 1:") and "C1" in t and "C2" in t for t in legend_texts)
     plt.close(fig)
     # no touching pairs -> returns None
     df_empty = pd.DataFrame([{"pair_id": "p", "pred_touching_emb": 0, "prob_touching_emb": 0.1}])

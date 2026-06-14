@@ -18,6 +18,8 @@ import pandas as pd
 from matplotlib.lines import Line2D
 from shapely.geometry import LineString
 
+from .poster import assign_channel_head_labels, draw_channel_head_labels, frame_only
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,12 +51,21 @@ def render_outlet_touching_pairs(
     touching_col: str = "pred_touching_emb",
     prob_col: str = "prob_touching_emb",
     model_name: str = "geom_plus_cnn_emb",
+    number_heads: bool = False,
+    head_col_1: str = "head_node_id_1",
+    head_col_2: str = "head_node_id_2",
 ):
     """Render one network's predicted-touching pairs.
 
     If ``output`` is given the figure is saved there and closed (returns
     ``None``); if ``output`` is ``None`` the figure is returned for inline
     display. Returns ``None`` (and warns) when the network has no touching pairs.
+
+    When ``number_heads`` is true each participating channel head is given a
+    unique ``C#`` label and the legend lists every predicted pair (sorted by
+    probability) as ``Pair k: Ca – Cb  p=…`` so individual coupled pairs can be
+    identified on a poster. This needs ``head_col_1`` / ``head_col_2`` (channel
+    head node ids) in ``df_net``.
     """
     n_total_pairs = len(df_net)
     touching = df_net[df_net[touching_col] == 1].copy()
@@ -64,8 +75,18 @@ def render_outlet_touching_pairs(
         return None
 
     # Order touching pairs by prob descending so the highest-confidence
-    # pair gets the first (most distinct) palette colour.
+    # pair gets the first (most distinct) palette colour and lowest pair number.
     touching = touching.sort_values(prob_col, ascending=False).reset_index(drop=True)
+
+    # Unique labels (C1, C2, …) for the channel heads that take part in a pair.
+    label_heads = (
+        number_heads and head_col_1 in touching.columns and head_col_2 in touching.columns
+    )
+    label_map: dict[int, str] = {}
+    heads_gdf = None
+    if label_heads:
+        ids = pd.concat([touching[head_col_1], touching[head_col_2]]).astype(int).unique()
+        label_map, heads_gdf = assign_channel_head_labels(nodes_n, only_node_ids=ids)
 
     palette = make_palette(max(n_touch, 1))
     fig, ax = plt.subplots(figsize=(11, 10))
@@ -74,8 +95,10 @@ def render_outlet_touching_pairs(
     # Draw each touching pair's two branches in a distinct colour
     legend_handles: list[Line2D] = []
     legend_labels: list[str] = []
+    legend_cap = n_touch if number_heads else 20
     for i, (_, r) in enumerate(touching.iterrows()):
         pair_id = str(r["pair_id"])
+        num = i + 1
         color = palette[i % len(palette)]
         path_a = paths_lookup.get((pair_id, "A"))
         path_b = paths_lookup.get((pair_id, "B"))
@@ -83,10 +106,14 @@ def render_outlet_touching_pairs(
             continue
         gpd.GeoSeries([path_a]).plot(ax=ax, color=color, linewidth=2.4, zorder=3, alpha=0.92)
         gpd.GeoSeries([path_b]).plot(ax=ax, color=color, linewidth=2.4, zorder=3, alpha=0.92)
-        # only include a legend entry for the top 20 to keep the legend readable
-        if i < 20:
+        if i < legend_cap:
             legend_handles.append(Line2D([0], [0], color=color, lw=2.4))
-            legend_labels.append(f"{pair_id}  p={r[prob_col]:.3f}")
+            if label_heads:
+                la = label_map.get(int(r[head_col_1]), "?")
+                lb = label_map.get(int(r[head_col_2]), "?")
+                legend_labels.append(f"Pair {num}: {la} – {lb}  p={r[prob_col]:.3f}")
+            else:
+                legend_labels.append(f"{pair_id}  p={r[prob_col]:.3f}")
 
     # All channel heads (small black dots) + confluences (orange squares),
     # taken from the network's node layer (not only paired ones).
@@ -126,8 +153,13 @@ def render_outlet_touching_pairs(
             label="_nolegend_",
         )
 
+    # Unique C# labels on the participating channel heads (note: only those in a
+    # predicted pair, to keep the map readable).
+    if label_heads and heads_gdf is not None:
+        draw_channel_head_labels(ax, heads_gdf, label_map, fontsize=7)
+
     ax.set_aspect("equal")
-    ax.tick_params(labelsize=8)
+    frame_only(ax)
     pct_touch = 100.0 * n_touch / n_total_pairs if n_total_pairs else 0
     ax.set_title(
         f"Mars network {nid} — outlet view\n"
@@ -172,10 +204,16 @@ def render_outlet_touching_pairs(
             ),
         ]
         marker_labels = ["channel head", "confluence", "outlet"]
-        legend_title = (
-            f"touching pairs (top {min(20, n_touch)} of {n_touch})\n"
-            f"colour = pair  ·  p = emb probability"
-        )
+        if number_heads:
+            legend_title = (
+                f"predicted pairs (all {n_touch}, by probability)\n"
+                f"Cn = channel head  ·  p = probability"
+            )
+        else:
+            legend_title = (
+                f"touching pairs (top {min(20, n_touch)} of {n_touch})\n"
+                f"colour = pair  ·  p = emb probability"
+            )
         ax.legend(
             legend_handles + marker_handles,
             legend_labels + marker_labels,

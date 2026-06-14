@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
-
 import matplotlib
 import numpy as np
 import pandas as pd
@@ -16,9 +14,13 @@ from matplotlib.figure import Figure  # noqa: E402
 from channel_heads import viz as viz_package  # noqa: E402
 from channel_heads.viz import earth as earth_module  # noqa: E402
 from channel_heads.viz.earth import (  # noqa: E402
+    largest_outlet_bbox,
     plot_all_coupled_pairs_for_outlet,
     plot_all_coupled_pairs_for_outlet_3d,
     plot_coupled_pair,
+    plot_earth_outlet_map,
+    plot_earth_pair_map,
+    plot_network_complexity_comparison,
     plot_outlet_view,
 )
 
@@ -42,10 +44,10 @@ class _Grid:
         y = np.linspace(self.extent[3], self.extent[2], self.shape[0])
         self.coordinates = np.meshgrid(x, y)
 
-    def duplicate_with_new_data(self, new_z: np.ndarray) -> "_Grid":
+    def duplicate_with_new_data(self, new_z: np.ndarray) -> _Grid:
         return _Grid(np.asarray(new_z), extent=self.extent)
 
-    def crop(self, **kwargs) -> "_Grid":
+    def crop(self, **kwargs) -> _Grid:
         return self
 
     def plot(self, ax, cmap="terrain", alpha=1.0, **kwargs):
@@ -87,7 +89,7 @@ class _Stream:
             raise ValueError(key)
         return mask
 
-    def upstreamto(self, mask: np.ndarray) -> "_Stream":
+    def upstreamto(self, mask: np.ndarray) -> _Stream:
         return self
 
     def xy(self):
@@ -201,6 +203,71 @@ def test_plot_all_coupled_pairs_for_outlet_runs_and_handles_empty():
         plot_all_coupled_pairs_for_outlet(flow, stream, dem, analyzer, empty_df, outlet_id=4)
         == (None, None)
     )
+
+
+def test_plot_earth_outlet_map_runs_with_rect_frame():
+    _, stream, dem, _ = _inputs()
+    fig, ax = plt.subplots()
+    plot_earth_outlet_map(ax, stream, dem, outlet_id=4)
+    # rectangular frame: all four spines visible, no ticks
+    assert all(sp.get_visible() for sp in ax.spines.values())
+    assert ax.get_xticks().size == 0 and ax.get_yticks().size == 0
+    assert ax.images  # coloured hillshade drawn
+    plt.close(fig)
+
+
+def test_plot_earth_pair_map_runs():
+    flow, stream, dem, _ = _inputs()
+    fig, ax = plt.subplots()
+    plot_earth_pair_map(ax, flow, stream, dem, confluence_id=2, head_i=0, head_j=1,
+                        title="pair")
+    assert ax.get_title() == "pair"
+    assert all(sp.get_visible() for sp in ax.spines.values())
+    plt.close(fig)
+
+
+def test_plot_earth_pair_map_geographic_axes():
+    flow, stream, dem, _ = _inputs()
+    fig, ax = plt.subplots()
+    plot_earth_pair_map(ax, flow, stream, dem, confluence_id=2, head_i=0, head_j=1,
+                        geographic_axes=True)
+    assert any("°" in t.get_text() for t in ax.get_xticklabels())
+    assert ax.get_xlabel() == "Longitude"
+    plt.close(fig)
+
+
+def test_largest_outlet_bbox_returns_padded_box():
+    _, stream, _, _ = _inputs()
+    bbox = largest_outlet_bbox(stream, pad_frac=0.1)
+    assert bbox is not None and len(bbox) == 4
+    left, right, bottom, top = bbox
+    assert left < right and bottom < top
+
+
+def test_plot_network_complexity_comparison_runs():
+    from channel_heads.pipelines.earth import NetworkVariant
+
+    _, stream, dem, _ = _inputs()
+    variants = [
+        NetworkVariant("Baseline", stream, 145, 0.99, 0, 0),
+        NetworkVariant("regC", stream, 26, 0.15, 1, 0),
+    ]
+    fig = plot_network_complexity_comparison(dem, variants, bbox=None)
+    assert isinstance(fig, Figure)
+    # one visible panel per variant, each a rectangular frame (all spines on)
+    visible = [ax for ax in fig.axes if ax.get_visible()]
+    assert len(visible) == 2
+    assert all(sp.get_visible() for sp in visible[0].spines.values())
+    assert "Baseline" in visible[0].get_title()
+    assert "T = 0.99" in visible[0].get_title()  # threshold shown
+    plt.close(fig)
+
+    # geographic axes path adds degree tick labels
+    fig = plot_network_complexity_comparison(dem, variants, bbox=None,
+                                             geographic_axes=True)
+    vis = [ax for ax in fig.axes if ax.get_visible()]
+    assert any("°" in t.get_text() for t in vis[0].get_xticklabels())
+    plt.close(fig)
 
 
 def test_plot_all_coupled_pairs_for_outlet_3d_runs():

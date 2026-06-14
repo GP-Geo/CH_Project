@@ -16,9 +16,9 @@ def test_expected_regimes_present():
 @pytest.mark.parametrize(
     "name,threshold_km2,pre_remove,order_gap",
     [
-        ("regA", 0.05, 2, 4),
-        ("regB", 0.25, 1, 4),
-        ("regC", 0.10, 1, 4),
+        ("regA", 0.20, 1, 0),
+        ("regB", 0.25, 1, 0),
+        ("regC", 0.15, 1, 0),
     ],
 )
 def test_regime_preset_values(name, threshold_km2, pre_remove, order_gap):

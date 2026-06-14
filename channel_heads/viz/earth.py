@@ -21,7 +21,11 @@ import numpy as np
 import numpy.typing as npt
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
+from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+
+from .poster import colored_hillshade, format_degree_axes, frame_only
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -37,6 +41,10 @@ __all__ = [
     "BBox",
     "plot_coupled_pair",
     "plot_outlet_view",
+    "plot_earth_outlet_map",
+    "plot_earth_pair_map",
+    "plot_network_complexity_comparison",
+    "largest_outlet_bbox",
     "plot_all_coupled_pairs_for_outlet",
     "plot_all_coupled_pairs_for_outlet_3d",
     "_get_rc",
@@ -602,3 +610,283 @@ def plot_all_coupled_pairs_for_outlet_3d(
     ax.legend(handles=patches, frameon=True, fontsize=8, loc="upper right")
     plt.tight_layout()
     return fig, ax
+
+
+# ---------------------------------------------------------------------
+# 4. Poster maps: coloured-hillshade outlet view + touching/non-touching pair
+# ---------------------------------------------------------------------
+
+
+def plot_earth_outlet_map(
+    ax: Axes,
+    s: Any,
+    dem: Any,
+    outlet_id: int,
+    view_mode: ViewMode = "crop",
+    pad_frac: float = 0.06,
+    hs_alpha: float = 0.5,
+    legend: bool = True,
+    stream_color: str = "#1565ff",
+    stream_lw: float = 2.4,
+    geographic_axes: bool = False,
+) -> None:
+    """Draw one outlet's subnetwork on a TopoToolbox-style coloured hillshade.
+
+    Renders the upstream network of ``outlet_id`` over a terrain-coloured
+    hillshade crop, with channel heads, confluences and the outlet marked.
+    Streams are drawn in blue (``stream_color`` / ``stream_lw``). With
+    ``geographic_axes`` the axes show lon/lat degree ticks (the DEM must be in a
+    geographic CRS, e.g. EPSG:4326); otherwise a plain rectangular frame is used.
+    Intended for a single representative outlet rather than a whole basin.
+    """
+    om = s.streampoi("outlets")
+    m = np.zeros_like(om, bool)
+    m[outlet_id] = True
+    s_up = s.upstreamto(m)
+
+    dem_used, (L, R, B, T) = _maybe_crop_dem(dem, s_up, view_mode, pad_frac)
+    colored_hillshade(ax, dem_used.z, extent=dem_used.extent, hs_alpha=hs_alpha)
+    _plot_segments(ax, s_up.xy(), color=stream_color, alpha=0.95, linewidth=stream_lw)
+
+    conf = s_up.streampoi("confluences")
+    heads = s_up.streampoi("channelheads")
+    outs = s_up.streampoi("outlets")
+    xs, ys = _xy_all_nodes(s_up)
+    ax.scatter(xs[heads], ys[heads], s=36, c="black", marker="o", zorder=4)
+    ax.scatter(xs[conf], ys[conf], s=46, c="#ff7f00", marker="s",
+               edgecolor="k", linewidths=0.4, zorder=5)
+    ax.scatter(xs[outs], ys[outs], marker="*", s=240, edgecolor="k",
+               facecolor="red", zorder=6)
+
+    ax.set_xlim(L, R)
+    ax.set_ylim(B, T)
+    ax.set_aspect("equal", "box")
+    if geographic_axes:
+        format_degree_axes(ax)
+    else:
+        frame_only(ax)
+    if legend:
+        handles = [
+            Line2D([0], [0], color=stream_color, lw=2.4, label="valley network"),
+            Line2D([0], [0], marker="o", color="w", markerfacecolor="black",
+                   markersize=8, linestyle="", label="channel head"),
+            Line2D([0], [0], marker="s", color="w", markerfacecolor="#ff7f00",
+                   markeredgecolor="k", markersize=9, linestyle="", label="confluence"),
+            Line2D([0], [0], marker="*", color="w", markerfacecolor="red",
+                   markeredgecolor="k", markersize=14, linestyle="", label="outlet"),
+        ]
+        ax.legend(handles=handles, loc="lower right", fontsize=9, frameon=True,
+                  framealpha=0.85)
+
+
+# Distinct *solid* colours for the two contributing areas + their overlap, and
+# the blue stream colour (kept distinct from the area colours).
+PAIR_AREA_COLOR_1 = "#ef6548"   # head 1 contributing area (orange-red)
+PAIR_AREA_COLOR_2 = "#41ab5d"   # head 2 contributing area (green)
+PAIR_OVERLAP_COLOR = "#6a51a3"  # overlap (purple)
+PAIR_STREAM_COLOR = "#1565ff"   # streams (blue)
+
+
+def plot_earth_pair_map(
+    ax: Axes,
+    fd: Any,
+    s: Any,
+    dem: Any,
+    confluence_id: int,
+    head_i: int,
+    head_j: int,
+    view_mode: ViewMode = "crop",
+    pad_frac: float = 0.6,
+    focus: Literal["points", "masks"] = "masks",
+    stream_color: str = PAIR_STREAM_COLOR,
+    stream_lw: float = 2.2,
+    area_colors: tuple[str, str] = (PAIR_AREA_COLOR_1, PAIR_AREA_COLOR_2),
+    overlap_color: str = PAIR_OVERLAP_COLOR,
+    geographic_axes: bool = False,
+    title: str | None = None,
+) -> None:
+    """Draw one channel-head pair (two contributing areas) on a coloured hillshade.
+
+    Each head's upstream contributing area is drawn as a **solid, opaque** patch
+    in a distinct colour (no transparency, so the areas read clearly), their
+    overlap in a third colour, and the valley network on top in **blue**. A
+    *touching* pair has adjacent/overlapping areas; a *non-touching* pair has
+    separated areas — the canonical Earth illustration of the coupling label.
+
+    With ``geographic_axes`` the axes show lon/lat degree ticks (the DEM must be
+    in a geographic CRS, e.g. EPSG:4326); otherwise a plain rectangular frame.
+    """
+    r, c = _get_rc(s)
+    seed_i = dem.duplicate_with_new_data(np.zeros_like(dem.z, bool))
+    seed_j = dem.duplicate_with_new_data(np.zeros_like(dem.z, bool))
+    seed_i.z[int(r[head_i]), int(c[head_i])] = True
+    seed_j.z[int(r[head_j]), int(c[head_j])] = True
+    dep_i = fd.dependencemap(seed_i)
+    dep_j = fd.dependencemap(seed_j)
+    overlap = np.asarray(dep_i.z & dep_j.z, dtype=bool)
+
+    if focus == "masks":
+        L, R, B, T = _bbox_from_pair_masks(dem, s, dep_i, dep_j, confluence_id, pad_frac)
+    else:
+        L, R, B, T = _bbox_from_points(s, head_i, head_j, confluence_id, pad_frac)
+    L, R, B, T = _clamp_bbox(L, R, B, T, dem)
+
+    dem_used = (
+        dem.crop(left=L, right=R, top=T, bottom=B, mode="coordinate")
+        if view_mode == "crop"
+        else dem
+    )
+    colored_hillshade(ax, dem_used.z, extent=dem_used.extent, hs_alpha=0.5)
+
+    # Solid (opaque) contributing areas — drawn under the streams.
+    ax.imshow(np.ma.masked_where(~np.asarray(dep_i.z, bool), dep_i.z),
+              cmap=ListedColormap([area_colors[0]]), alpha=1.0, extent=dem.extent,
+              origin="upper", zorder=2)
+    ax.imshow(np.ma.masked_where(~np.asarray(dep_j.z, bool), dep_j.z),
+              cmap=ListedColormap([area_colors[1]]), alpha=1.0, extent=dem.extent,
+              origin="upper", zorder=2)
+    if overlap.any():
+        ax.imshow(np.ma.masked_where(~overlap, overlap),
+                  cmap=ListedColormap([overlap_color]), alpha=1.0,
+                  extent=dem.extent, origin="upper", zorder=3)
+
+    # Valley network on top, blue and wide.
+    _plot_segments(ax, s.xy(), color=stream_color, alpha=1.0, linewidth=stream_lw, zorder=4)
+
+    xs, ys = s.transform * np.vstack((c, r))
+    ax.scatter(xs[head_i], ys[head_i], s=120, c=area_colors[0], edgecolor="k",
+               linewidths=1.0, zorder=6)
+    ax.scatter(xs[head_j], ys[head_j], s=120, c=area_colors[1], edgecolor="k",
+               linewidths=1.0, zorder=6)
+    ax.scatter(xs[confluence_id], ys[confluence_id], marker="*", s=260,
+               edgecolor="k", facecolor="gold", zorder=7)
+
+    if view_mode in ("crop", "zoom"):
+        ax.set_xlim(L, R)
+        ax.set_ylim(B, T)
+    ax.set_aspect("equal", "box")
+    if geographic_axes:
+        format_degree_axes(ax)
+    else:
+        frame_only(ax)
+    if title:
+        ax.set_title(title, fontsize=14)
+
+
+def largest_outlet_bbox(s: Any, pad_frac: float = 0.05) -> BBox | None:
+    """Bounding box ``(L, R, B, T)`` of the largest outlet's upstream subnetwork.
+
+    Picks the outlet whose upstream network has the most nodes — a convenient way
+    to focus a whole-DEM extraction on one large sub-basin. Returns ``None`` when
+    the network has no outlets.
+    """
+    from channel_heads.stream_utils import outlet_node_ids_from_streampoi
+
+    om = s.streampoi("outlets")
+    best: tuple[int, Any] | None = None
+    for oid in outlet_node_ids_from_streampoi(s):
+        m = np.zeros_like(om, bool)
+        m[oid] = True
+        s_up = s.upstreamto(m)
+        nnodes = int(np.asarray(s_up.node_indices[0]).size)
+        if best is None or nnodes > best[0]:
+            best = (nnodes, s_up)
+    if best is None:
+        return None
+    L, R, B, T = _stream_bbox(best[1])
+    dx, dy = R - L, T - B
+    return L - dx * pad_frac, R + dx * pad_frac, B - dy * pad_frac, T + dy * pad_frac
+
+
+def _dd_hull_in_bbox(s: Any, bbox: BBox, pixel_size_m: float) -> float:
+    """Drainage density (length/convex-hull area) of ``s`` clipped to ``bbox``."""
+    from channel_heads.dd_calibration import _basin_dd_hull
+
+    if s is None or pixel_size_m is None:
+        return float("nan")
+    L, R, B, T = bbox
+    xs, ys = _xy_all_nodes(s)
+    keep = (xs >= L) & (xs <= R) & (ys >= B) & (ys <= T)
+    if not keep.any():
+        return float("nan")
+    try:
+        s_clip = s.subgraph(keep)
+    except Exception:  # subgraph can fail on degenerate masks
+        return float("nan")
+    return _basin_dd_hull(s_clip, pixel_size_m)[2]
+
+
+def plot_network_complexity_comparison(
+    dem: Any,
+    variants: list,
+    bbox: BBox | None = None,
+    ncols: int = 4,
+    stream_color: str = "#1f4fff",
+    stream_lw: float = 1.4,
+    cmap: str = "Greys",
+    hs_alpha: float = 0.35,
+    pixel_size_m: float | None = None,
+    geographic_axes: bool = False,
+    figsize: tuple[float, float] | None = None,
+) -> Figure:
+    """Show one basin's network under several extraction setups, side by side.
+
+    ``variants`` is a list of
+    :class:`channel_heads.pipelines.earth.NetworkVariant` (Baseline + regimes).
+    Each panel draws that variant's streams (``stream_color``) over a light
+    grey-scale relief (``cmap``, valleys light so the streams stay legible),
+    cropped to ``bbox`` (``(L, R, B, T)``;
+    e.g. one large outlet from :func:`largest_outlet_bbox`). Titles carry the exact
+    threshold / trim / order-gap settings, the channel-head count in view and the
+    in-view drainage density ``Dd_hull`` (when ``pixel_size_m`` is given). With
+    ``geographic_axes`` the panels show lon/lat degree ticks.
+    """
+    from channel_heads.pipelines.earth import trim_description
+
+    n = len(variants)
+    ncols = min(ncols, n)
+    nrows = int(np.ceil(n / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize or (ncols * 5.0, nrows * 5.6))
+    axes_flat = np.atleast_1d(axes).ravel()
+
+    if bbox is not None:
+        L, R, B, T = _clamp_bbox(*bbox, dem)
+        dem_used = dem.crop(left=L, right=R, top=T, bottom=B, mode="coordinate")
+    else:
+        dl, dr, db, dt = dem.extent
+        L, R, B, T = dl, dr, db, dt
+        dem_used = dem
+
+    for ax, v in zip(axes_flat, variants):
+        colored_hillshade(ax, dem_used.z, extent=dem_used.extent, cmap=cmap,
+                          hs_alpha=hs_alpha)
+        n_heads = 0
+        if v.s is not None:
+            _plot_segments(ax, v.s.xy(), color=stream_color, alpha=0.95,
+                           linewidth=stream_lw, zorder=3)
+            heads = v.s.streampoi("channelheads")
+            xs, ys = _xy_all_nodes(v.s)
+            hx, hy = xs[heads], ys[heads]
+            n_heads = int(((hx >= L) & (hx <= R) & (hy >= B) & (hy <= T)).sum())
+        ax.set_xlim(L, R)
+        ax.set_ylim(B, T)
+        ax.set_aspect("equal", "box")
+        if geographic_axes:
+            format_degree_axes(ax)
+        else:
+            frame_only(ax)
+        dd = _dd_hull_in_bbox(v.s, (L, R, B, T), pixel_size_m)
+        dd_line = f"\nDd_hull = {dd:.2f} km/km²" if np.isfinite(dd) else ""
+        ax.set_title(
+            f"{v.label}\n"
+            f"T = {v.threshold_km2:.2f} km² ({v.threshold_cells} px)\n"
+            f"trim: {trim_description(v.pre_remove_max_order)} · "
+            f"order-gap: {v.order_gap_to_prune}\n"
+            f"{n_heads} channel heads in view{dd_line}",
+            fontsize=11,
+        )
+
+    for ax in axes_flat[n:]:
+        ax.set_visible(False)
+    fig.tight_layout()
+    return fig

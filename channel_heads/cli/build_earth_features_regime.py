@@ -11,9 +11,10 @@ changes:
      :func:`channel_heads.apply_strategy` (``pre_remove_max_order`` then
      ``order_gap_to_prune``) before any pair analysis runs.
 
-Regime presets:
-  - regA: T=0.05 km^2, pre_remove<=2 (drop 1st+2nd order), order_gap>=4
-  - regB: T=0.25 km^2, pre_remove<=1 (drop 1st order only), order_gap>=4
+Regime presets (top-3 data-driven, plain ``trim``, no order-gap delta):
+  - regA: T=0.20 km^2, pre_remove<=1 (drop 1st order only), no order-gap pruning
+  - regB: T=0.25 km^2, pre_remove<=1 (drop 1st order only), no order-gap pruning
+  - regC: T=0.15 km^2, pre_remove<=1 (drop 1st order only), no order-gap pruning
 
 Outputs (per regime, side-by-side with existing production artifacts):
   data/results/{basin}/full_features_{regime}.csv
@@ -107,6 +108,9 @@ def main(argv: list[str] | None = None) -> int:
         regime.order_gap_to_prune,
     )
 
+    # ``--max-outlets 0`` (or negative) disables the per-basin cap entirely so
+    # every outlet whose basin clears ``--min-basin-px`` is analyzed.
+    max_outlets = None if args.max_outlets <= 0 else args.max_outlets
     return build_regime_feature_dataset(
         regime,
         results_dir=RESULTS_DIR,
@@ -114,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
         force=args.force,
         no_master=args.no_master,
         min_basin_px=args.min_basin_px,
-        max_outlets=args.max_outlets,
+        max_outlets=max_outlets,
         log_override=log,
     )
 

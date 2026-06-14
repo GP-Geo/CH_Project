@@ -8,9 +8,11 @@ There are two tiers:
 1. **`notebooks/pipeline/00–14` — the canonical deep dive.** One enumerated,
    self-contained notebook per stage of [`docs/PIPELINE_DESIGN.md`](PIPELINE_DESIGN.md)
    / [`STAGE_ASSET_MAP.md`](../STAGE_ASSET_MAP.md). **Start here.**
-2. **Themed folders (`analysis/`, `mars/`, `regime/`, `training/`,
-   `diagnostics/`, `presentation/`, `interpretation/`)** — kept as supporting /
-   historical material, no longer the canonical reference.
+2. **Themed folders (`analysis/`, `mars/`, `training/`, `diagnostics/`,
+   `presentation/`, `interpretation/`)** — kept as supporting / historical
+   material, no longer the canonical reference. (`regime/` has been **archived**
+   under `notebooks/archive/regime/`; its calibration + regA–regE selection now
+   live in Stage-4 `pipeline/04_earth_mars_regime_calibration`.)
 
 ## Pipeline notebooks (`notebooks/pipeline/` — canonical, one per stage)
 
@@ -26,7 +28,7 @@ regenerate the set with `notebooks/pipeline/_build_pipeline_notebooks.py`.
 | 1 | `01_earth_source_data_exploration` | — (RAW_KEEP DEMs) |
 | 2 | `02_earth_interactive_network_exploration` | — |
 | 3 | `03_mars_interactive_network_exploration` | `run-mars-pipeline --stage topology` |
-| 4 | `04_earth_mars_regime_calibration` | — (frozen regimes) |
+| 4 | `04_earth_mars_regime_calibration` | — (calibration + regA–regE selection → `selected_regimes_AE.csv`) |
 | 5 | `05_final_earth_network_generation_and_qa` | `build-earth-features --regime <r>` |
 | 6 | `06_earth_pair_and_label_generation` | (pairing/labeling) |
 | 7 | `07_earth_model_input_construction` | `build-cnn-patches --regime <r>` |
@@ -57,12 +59,11 @@ regenerate the set with `notebooks/pipeline/_build_pipeline_notebooks.py`.
 | `05_mars_threshold_sensitivity` | 12 | analysis | Threshold sweep, touching fraction, regime comparison |
 | `dd_hull_mars_vs_earth_complexity` | 4 | decision | Earth vs Mars DD / complexity calibration |
 
-### `notebooks/regime/` — regime calibration
-| Notebook | Stage | Type | Purpose |
-|---|---|---|---|
-| `00_calibration_overview` | 4 | decision | Regime/pruning calibration record (frozen parameters) |
-| `01_mars_inference` | 11 | pipeline | Regime Mars inference with CNN embeddings |
-| `02_threshold_retune` | 9/12 | decision | Re-tune a regime operating threshold |
+### `notebooks/archive/regime/` — regime calibration (archived)
+Superseded by Stage-4 `pipeline/04_earth_mars_regime_calibration.ipynb`, which now
+covers both the Earth↔Mars calibration **and** the regA–regE selection
+(`selected_regimes_AE.csv`). Kept for provenance only: `00_calibration_overview`,
+`01_mars_inference`, `02_threshold_retune`, `03_optimize_regime_candidates`.
 
 ### `notebooks/training/` — Earth model training
 | Notebook | Stage | Type | Purpose |

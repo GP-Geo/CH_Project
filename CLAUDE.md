@@ -17,6 +17,7 @@ coverage. The package-first refactor is **complete**; all core logic lives in
 | Stage-by-stage inputs/outputs/deps | [docs/pipeline.md](docs/pipeline.md) |
 | Package architecture + public API | [docs/architecture.md](docs/architecture.md) |
 | Package API, ML pipeline, testing, conventions | [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) |
+| Regime quick reference (the three frozen regimes) | [docs/regimes_summary.md](docs/regimes_summary.md) |
 | Regime calibration rationale (frozen parameters) | [docs/REGIME_SELECTION.md](docs/REGIME_SELECTION.md) |
 | Model variants + Mars threshold | [docs/modeling.md](docs/modeling.md) |
 | Mars cross-planet pipeline | [docs/MARS_PIPELINE.md](docs/MARS_PIPELINE.md) |

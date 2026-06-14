@@ -14,6 +14,16 @@ Regenerate, then execute (inline backend captures figures — do NOT force Agg):
     python notebooks/pipeline/_build_pipeline_notebooks.py
     jupyter nbconvert --to notebook --execute --inplace \\
       --ExecutePreprocessor.timeout=1200 notebooks/pipeline/*.ipynb
+
+.. warning::
+    The committed ``*.ipynb`` have **diverged** from this generator — e.g. notebook
+    04 carries a hand-added §3 "Regime candidate optimization & selection" section
+    that is NOT reproduced here. Re-running this builder will DESTROY that content
+    and strip all rendered outputs. To refresh figures/numbers after a model
+    retrain, re-execute the committed notebooks in place instead::
+
+        jupyter nbconvert --to notebook --execute --inplace \\
+          --ExecutePreprocessor.timeout=1800 notebooks/pipeline/*.ipynb
 """
 from __future__ import annotations
 
@@ -41,7 +51,10 @@ REGIMES_ = ['regA', 'regB', 'regC']
 RC = {'regA': '#e41a1c', 'regB': '#377eb8', 'regC': '#4daf4a'}
 MODEL_FEATURES = ['orientation_diff_deg','headhead_dist_norm','apex_angle_deg',
                   'strahler_order_diff','proximity_profile_norm']
-OP_THR = {'regA': 0.756326, 'regB': 0.779264, 'regC': 0.759369}
+def _load_op_thr(r):  # per-regime operating threshold, read from disk (auto-tracks retrains)
+    p = MODELS / f'optimal_threshold_geom_plus_cnn_emb_{r}.txt'
+    return float(p.read_text().strip()) if p.exists() else float('nan')
+OP_THR = {r: _load_op_thr(r) for r in REGIMES_}
 def _abs(p):
     p = Path(p); return p if p.is_absolute() else ROOT / p
 print('channel_heads', ch.__version__, '| root', ROOT)
@@ -110,8 +123,9 @@ pd.DataFrame([{'regime': r.name, 'threshold_km2': r.threshold_km2,
                'pre_remove_max_order': r.pre_remove_max_order,
                'order_gap_to_prune': r.order_gap_to_prune,
                'character': c} for r, c in zip(REGIMES.values(),
-              ['densest base / aggressive tip removal',
-               'sparsest base / minimal pruning', 'intermediate density'])])"""),
+              ['intermediate density / drop 1st order only',
+               'sparsest base / drop 1st order only',
+               'densest base / drop 1st order only'])])"""),
     M("""### 4 · The unit contract
 
 A distance measured in pixels/arc-degrees is meaningless until converted with the
@@ -329,9 +343,10 @@ STAGES.append((4, "Earth-Mars regime calibration", [
 Earth and Mars coupling rates are only comparable if the networks are matched in
 **drainage density / complexity**. A sweep over stream-initiation thresholds and
 Strahler-pruning levels — measuring the Dd of each Earth basin's *convex-hull*
-network against the Mars reference — yields three frozen regimes that **bracket** the
-martian Dd. Running all three and reporting the spread of Mars results is the
-project's calibration-uncertainty estimate."""),
+network against the Mars reference — yields the three best-scoring regimes
+(regA T=0.20, regB T=0.25, regC T=0.15 km²; all plain `trim`, drop 1st order only)
+closest to the martian Dd. Running all three and reporting the spread of Mars
+results is the project's calibration-uncertainty estimate."""),
     C(SETUP),
     M("### 1 · The frozen presets (full)"),
     C("""from channel_heads.regimes import REGIMES
@@ -351,11 +366,12 @@ for fig in ['fig_mars_vs_earth_at_matched_complexity.png',
     if f.exists():
         print(fig); display(Image(filename=str(f)))"""),
     M("""**Takeaway.** The figures above show Earth networks pulled to the *same* hull-Dd as
-Mars; at matched complexity the three regimes straddle the martian distribution
-(regA dense, regB sparse, regC middle). These three threshold/pruning settings
-(0.05/0.25/0.10 km², frozen in `channel_heads.regimes`) propagate unchanged into
-every trained model and every Mars prediction downstream — so the only thing that
-varies across regimes is *complexity*, and the spread of results is our uncertainty."""),
+Mars; at matched complexity the three regimes sit closest to the martian distribution
+(regC densest at 0.15, regA 0.20, regB sparsest at 0.25 km²). These three
+threshold/pruning settings (0.20/0.25/0.15 km², plain `trim`, frozen in
+`channel_heads.regimes`) propagate unchanged into every trained model and every Mars
+prediction downstream — so the only thing that varies across regimes is *complexity*,
+and the spread of results is our uncertainty."""),
 ]))
 
 # ── Stage 5 ──────────────────────────────────────────────────────────────────
