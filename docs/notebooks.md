@@ -14,6 +14,13 @@ There are two tiers:
    under `notebooks/archive/regime/`; its calibration + regA–regE selection now
    live in Stage-4 `pipeline/04_earth_mars_regime_calibration`.)
 
+## Kernels
+
+Notebooks target the `ch-heads` conda env; kernelspecs are normalized to the
+generic `python3` kernel. Launch Jupyter from the `ch-heads` env so `python3`
+resolves to it, or install a named kernel once via
+`conda run -n ch-heads python -m ipykernel install --user --name ch-heads`.
+
 ## Pipeline notebooks (`notebooks/pipeline/` — canonical, one per stage)
 
 Each stage notebook is the authoritative, executable treatment of its stage:
@@ -47,7 +54,7 @@ regenerate the set with `notebooks/pipeline/_build_pipeline_notebooks.py`.
 |---|---|---|---|
 | `01_earth_source_data_qa` | 1 | QA gate | Verify all 17 DEMs exist, load, have valid CRS and z-range |
 | `02_earth_network_explorer` | 2 | exploration | Per-basin threshold/pruning preview |
-| `05_earth_network_qa` | 5 | QA gate | Formal Stage 5 gate — zero hard flags required before Stage 7 |
+| `05_earth_network_qa` | 5 | QA gate | Formal Stage 5 gate criteria (zero hard flags required before Stage 7); the executed gate evidence lives in `pipeline/05_final_earth_network_generation_and_qa` |
 
 ### `notebooks/mars/` — Mars pipeline
 | Notebook | Stage | Type | Purpose |
@@ -57,7 +64,7 @@ regenerate the set with `notebooks/pipeline/_build_pipeline_notebooks.py`.
 | `03_pair_features` | 10 | pipeline | 5-feature table build (`features`) |
 | `04_xgb_inference_5feat` | 11 | pipeline | Tabular XGBoost Mars inference (`models.xgboost`) |
 | `05_mars_threshold_sensitivity` | 12 | analysis | Threshold sweep, touching fraction, regime comparison |
-| `dd_hull_mars_vs_earth_complexity` | 4 | decision | Earth vs Mars DD / complexity calibration |
+| `dd_hull_mars_vs_earth_complexity` | 4 | decision | Earth vs Mars DD / complexity calibration — saved state may be stale (non-sequential execution); canonical treatment in `pipeline/04` |
 
 ### `notebooks/archive/regime/` — regime calibration (archived)
 Superseded by Stage-4 `pipeline/04_earth_mars_regime_calibration.ipynb`, which now
@@ -70,16 +77,16 @@ covers both the Earth↔Mars calibration **and** the regA–regE selection
 |---|---|---|---|
 | `00_pair_sample_qa` | 6 | QA | Visual touching/non-touching pair inspection |
 | `01_prepare_dataset` | 6 | pipeline | Dataset preparation |
-| `02_train_classifier` | 8 | pipeline | Train XGBoost classifier |
-| `03_feature_engineering` | 7 | pipeline | Geometric features + patch preview |
-| `04_cnn_embeddings` | 8 | pipeline | CNN training and embedding extraction |
-| `05_cnn_quick_eval` | 9 | QA | CNN quick evaluation |
+| `02_train_classifier` | 8 | pipeline | Train XGBoost classifier — superseded by `pipeline/07–08` |
+| `03_feature_engineering` | 7 | pipeline | Geometric features + patch preview — superseded by `pipeline/07–08` |
+| `04_cnn_embeddings` | 8 | pipeline | CNN training and embedding extraction — saved state may be stale (non-sequential execution); canonical treatment in `pipeline/07–09` |
+| `05_cnn_quick_eval` | 9 | QA | CNN quick evaluation — saved state may be stale (non-sequential execution); canonical treatment in `pipeline/07–09` |
 
 ### `notebooks/diagnostics/` — QA and investigation
 | Notebook | Stage | Type | Purpose |
 |---|---|---|---|
 | `dd_threshold_calibration` | 2/4 | decision | Stream-threshold vs Mars DD calibration |
-| `earth_network_pruning_experiments` | 2 | exploration | Pruning strategy experiments |
+| `earth_network_pruning_experiments` | 2 | exploration | Pruning strategy experiments — SUPERSEDED by the 2026-06-14 regime freeze; its section-12 recommendation (gap≥4) is stale; retained as Earth–Mars density-gap evidence |
 | `lobo_cv` | 9 | QA | Leave-one-basin-out CV (`eval.lobo`) |
 | `regB_threshold` | 9 | QA | regB threshold diagnostic |
 | `rasterization_diagnostics` | 7 | QA | Patch rasterization sanity checks |
@@ -93,6 +100,7 @@ covers both the Earth↔Mars calibration **and** the regA–regE selection
 | `per_outlet_touching_pairs` | 14 | presentation | Per-outlet touching-pair figures |
 | `simple_mars_earth_dd_presentation` | 14 | presentation | Earth vs Mars DD presentation |
 | `mars_high_conf_delta_L` | 13 | presentation | Lengthwise asymmetry (ΔL) of Mars regC high-conf (`prob>0.90`, ~996) couplings vs terrestrial coupled pairs (regC), incl. per-basin paper-reference comparison |
+| `14_poster_figure_inventory` | 14 | presentation | Figure inventory that generated the printed poster panels via `channel_heads.viz.poster` into `data/results/poster_figures/` (with manifest); fully executed (2.8 MB). Distinct from `pipeline/14_figures_poster_and_reporting`, the pipeline-stage notebook |
 
 ### `notebooks/interpretation/` — scientific interpretation
 | Notebook | Stage | Type | Purpose |

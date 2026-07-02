@@ -62,12 +62,16 @@ python -m channel_heads train-cnn-regime            --regime regA -v
 python -m channel_heads train-combined-xgb-regime   --regime regA
 python -m channel_heads run-mars-combined-regime    --regime regA
 
-# Or via the shell orchestrator (runs Steps 2–6 for ONE regime per invocation):
-scripts/run_regime_pipeline.sh regA   # then re-invoke for regB
+# Or via the shell orchestrator (runs ONE regime per invocation):
+scripts/run_regime_pipeline.sh regA            # then re-invoke for regB / regC
+scripts/run_regime_pipeline.sh regC retrain    # retrain-only mode (see below)
 ```
-> Note: `run_regime_pipeline.sh` currently accepts **only `regA` or `regB`**
-> (it exits on any other argument). Run regC by invoking the per-step CLI
-> commands above with `--regime regC`.
+> `run_regime_pipeline.sh` accepts `regA|regB|regC` plus an optional mode:
+> **`full`** (default) runs Steps 2–6 — Earth features → CNN patches →
+> train CNN → train combined XGBoost → Mars inference; **`retrain`** runs
+> Steps 4–5 only, retraining the regime CNN + combined XGBoost on the
+> *existing* Stage-7 rasters/manifests (skips feature/patch rebuild and Mars
+> inference). Per-step logs land in `/tmp/regime_<regime>/`.
 Then optionally re-tune a regime threshold: `python -m channel_heads retune-threshold-regime --regime regB`
 (inspect first read-only in `notebooks/archive/regime/02_threshold_retune`).
 
@@ -80,7 +84,22 @@ Drives: `train_cnn_baseline` -> `train_combined_xgb_phase6b` ->
 `channel_heads/cli/run_mars_pipeline.py --stage embeddings` ->
 `channel_heads/cli/run_mars_pipeline.py --stage combined`, then the per-regime steps.
 
-## 5. Diagnostics & figures (after a rebuild)
+## 5. Cross-basin validation (true LOBO)
+
+After (re)training a regime, run the true leave-one-basin-out validation —
+this produces the honest cross-basin numbers (pooled + per-basin) plus a
+leakage audit under `data/results/lobo/<regime>/<mode>/`:
+
+```bash
+python -m channel_heads lobo-validate --regime regA --mode geom_only
+```
+
+Modes: `geom_only` (leakage-free geometric features), `precomputed_emb`
+(reuses regime CNN embeddings — **leakage-flagged**, the CNN saw the held-out
+basin; see the emitted `leakage_audit.md`), `per_fold_cnn` (retrains a CNN per
+fold — fully honest but expensive). Repeat for `regB` / `regC`.
+
+## 6. Diagnostics & figures (after a rebuild)
 
 Regenerate `REPORT` artifacts from the notebooks (read-only/inline) or the
 wrapper scripts:
@@ -89,12 +108,11 @@ wrapper scripts:
 - `notebooks/presentation/`: `result_figures`, `mars_contact_sheets`, `per_outlet_touching_pairs`
 - batch PNGs: `channel_heads/cli/make_result_figures.py`, `scripts/rendering/render_mars_*`
 
-## 6. Post-rebuild checklist
+## 7. Post-rebuild checklist
 
 - [ ] `conda run -n ch-heads pytest -q` green.
-- [ ] Re-confirm `optimal_threshold*` files (a mid-session change to
-      `optimal_threshold_geom_plus_cnn_emb_regB.txt` was observed — verify it is
-      the intended value before trusting regB predictions).
+- [ ] Confirm `optimal_threshold_geom_plus_cnn_emb_reg{A,B,C}.txt` match the
+      2026-06-13 retune: regA 0.769133 / regB 0.773238 / regC 0.810635.
 - [ ] Spot-check a Mars contact sheet / per-outlet figure for sane geometry.
 - [ ] Update [DATA_STATUS.md](DATA_STATUS.md) tags from `STALE_AFTER_RASTER_FIX`
       → `CAN_REGENERATE` for the chains you rebuilt.

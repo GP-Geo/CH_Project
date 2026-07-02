@@ -27,13 +27,13 @@ pipelines.run_full_mars_pipeline()   # Mars inference (consumes them)
         │ extract_mars_pairs()             [MIGRATED]
         ▼
  mars_vn_pairs.gpkg
-        │ build_mars_features()            [transitional]
+        │ build_mars_features()
         ▼
  mars_pair_features_5feat_*.parquet ──► run_mars_xgb_inference()  ► tabular preds
-        │ build_mars_cnn_patches()         [transitional]
+        │ build_mars_cnn_patches()
         ▼
  cnn_patches_5class/ ─► extract_mars_cnn_embeddings() ─► mars_cnn_embeddings.parquet
-        │ run_mars_combined_inference()    [transitional]
+        │ run_mars_combined_inference()
         ▼
  mars_combined_*_predictions.{gpkg,parquet,csv}  ► compare_mars_model_outputs()
 ```
@@ -65,5 +65,5 @@ pipelines.run_full_mars_pipeline()   # Mars inference (consumes them)
   [data_management.md](data_management.md).
 
 The regime-calibration variants (regA/B/C) reuse the same stages with pruned
-Earth networks; see `scripts/run_regime_pipeline.sh` (transitional) and
+Earth networks; see `scripts/run_regime_pipeline.sh` and
 [modeling.md](modeling.md).

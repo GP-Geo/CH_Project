@@ -11,8 +11,13 @@ coverage. The package-first refactor is **complete**; all core logic lives in
 
 ## Start here
 
+New-maintainer reading order: [README.md](README.md) →
+[docs/architecture.md](docs/architecture.md) → `notebooks/pipeline/00–14` →
+[STAGE_ASSET_MAP.md](STAGE_ASSET_MAP.md).
+
 | If you need… | Read |
 |---|---|
+| Ownership, contacts, owner-only handoff checklist | [HANDOFF.md](HANDOFF.md) |
 | High-level pipeline stages 0–14 | [docs/PIPELINE_DESIGN.md](docs/PIPELINE_DESIGN.md) |
 | Stage-by-stage inputs/outputs/deps | [docs/pipeline.md](docs/pipeline.md) |
 | Package architecture + public API | [docs/architecture.md](docs/architecture.md) |
@@ -33,7 +38,8 @@ coverage. The package-first refactor is **complete**; all core logic lives in
 
 - **Never delete data.** Mark as legacy/archive instead (see `docs/data_management.md`).
 - The production models `models/xgb_touching_classifier.json` (threshold 0.577406)
-  and `models/cnn_outlet_final.pt` are **preserved as-is**; regime variants use
+  and `models/cnn_outlet_final.pt` are **preserved as-is** (tracked in git,
+  checksums in `models/MANIFEST.md`); regime variants use
   explicit suffixes (`_geom_*`, `_reg{A,B,C}`).
 - Mars CNN patches **must** stay 5-class to match the Earth-trained CNN.
 - Unit conversions go through `channel_heads/units.py` (single source of truth).

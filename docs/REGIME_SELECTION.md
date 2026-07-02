@@ -74,9 +74,9 @@ no single regime is declared "correct".
 
 > **Prior presets (superseded).** These replace the earlier hand-frozen presets
 > — regA (T=0.05, pre_remove=2, order_gap=4), regB (T=0.25, pre_remove=1,
-> order_gap=4), regC (T=0.10, pre_remove=1, order_gap=4). Every `*_reg{A,B,C}`
-> model artifact was trained on the *old* presets and is **stale** until
-> retrained (see "Downstream artifacts keyed to regime" below).
+> order_gap=4), regC (T=0.10, pre_remove=1, order_gap=4). The `*_reg{A,B,C}`
+> model chain was **retrained on the new presets on 2026-06-13** (see
+> "Downstream artifacts keyed to regime" below), so on-disk artifacts are valid.
 
 ---
 
@@ -142,10 +142,14 @@ The `coupling_n_workers` value affects only runtime performance, not results.
 
 ## Downstream artifacts keyed to regime
 
-> **All of these are STALE** as of the regime-definition change above: they were
-> trained/generated on the prior presets. Regenerate in order (Stage 5 build →
-> CNN → XGBoost → threshold → Mars inference) before regime inference results
-> are valid. See `docs/PIPELINE_RERUN.md`.
+> **Retrained 2026-06-13 on the redefined presets** (commit `e5a1083`): the
+> full chain (Stage 5 build → CNN → XGBoost → threshold → Mars inference) was
+> regenerated on the data-driven regimes above, so the on-disk regime
+> artifacts and Mars predictions are **valid**. New operating thresholds:
+> regA **0.769133**, regB **0.773238**, regC **0.810635**
+> (`models/optimal_threshold_geom_plus_cnn_emb_reg{A,B,C}.txt` are
+> authoritative). If a preset is ever changed again, regenerate in that same
+> order — see `docs/PIPELINE_RERUN.md`.
 
 | Artifact | Location | Keyed to |
 |----------|----------|----------|
@@ -154,7 +158,7 @@ The `coupling_n_workers` value affects only runtime performance, not results.
 | Regime CNN | `models/cnn_outlet_reg{A,B,C}.pt` | per regime |
 | Regime XGBoost | `models/xgb_geom_plus_cnn_emb_reg{A,B,C}.json` | per regime |
 | Regime threshold | `models/optimal_threshold_geom_plus_cnn_emb_reg{A,B,C}.txt` | per regime |
-| Regime rasters | `data/results/_rasters_reg{A,B,C}/` | per regime (STALE — pre-rewrite) |
+| Regime rasters | `data/results/_rasters_reg{A,B,C}/` | per regime (reconciled 2026-06-04; inputs to the 2026-06-13 retrain) |
 | Mars regime predictions | `data/Mars/model_outputs/mars_combined_reg{A,B,C}_predictions.parquet` | per regime |
 
 See `docs/DATA_STATUS.md` for current status of each artifact.

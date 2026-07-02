@@ -92,3 +92,41 @@ and calls `channel_heads.*` only (no duplicated cell logic). See
 - Data versioning (DVC) for large DEMs/outputs.
 - CLI: `--compute-asymmetry`, `--lat`, progress bars.
 - Notebook hygiene: jupytext pairing for reviewable diffs; reproducibility (pinned versions, system info).
+
+## 7. True LOBO validation (2026-06/07)
+
+A true leave-one-basin-out engine (`channel_heads/eval/lobo.py`, CLI
+`lobo-validate`) replaced the old within-basin "LOBO" evaluation. Honest
+numbers — **always label which statistic you quote** (pooled vs per-basin mean
+vs within-basin):
+
+| Regime | geom-only pooled AUC | geom-only per-basin mean AUC | precomputed_emb pooled AUC (leakage-flagged) |
+|--------|---------------------:|-----------------------------:|---------------------------------------------:|
+| regA | 0.778 | 0.714 | 0.885 |
+| regB | 0.769 | 0.701 | 0.883 |
+| regC | 0.783 | 0.739 | 0.898 |
+
+Source: `data/results/lobo/{regA,regB,regC}/{geom_only,precomputed_emb}/metrics_summary.csv`.
+The old ~0.91 headline is a *within-basin* held-out-test AUC, not cross-basin.
+
+- **Embedding-leakage finding:** in `precomputed_emb` mode the `emb_*` features
+  come from a CNN trained on 16/17 basins, contaminating the held-out basin in
+  every fold (see `data/results/lobo/*/precomputed_emb/leakage_audit.md`);
+  treat those scores as optimistic.
+- **Outstanding:** run
+  `python -m channel_heads lobo-validate --regime regC --mode per_fold_cnn --epochs 40`
+  — heavy (one CNN train per fold, 17 folds). This gives the leak-free
+  embedding estimate, expected to land between **0.783** (pooled geom-only)
+  and **0.898** (pooled precomputed, leakage-flagged). Implemented in
+  `channel_heads/eval/lobo_cnn.py`; never run — no outputs on disk.
+
+## 8. Closed questions & rejected approaches (negative-results ledger)
+
+Ideas that were tested and closed. Do not re-open without new evidence.
+
+| Question / approach | Outcome | Evidence | Closed |
+|---|---|---|---|
+| **Delta (order-gap) pruning at regime thresholds** | Inert at T ≥ ~0.15 km²: identical median Dd-hull/Strahler, the rule never fires post-trim. Only wins at T < ~0.10 km², where density stays far from Mars. *Caveat:* per-individual-basin delta **does** reduce Dd-hull — a per-basin metric would credit it. | `docs/REGIME_SELECTION.md` + `docs/regimes_summary.md` threshold-range-robustness sections; `notebooks/pipeline/04_earth_mars_regime_calibration.ipynb` §3a | 2026-06-14 |
+| **Reversing trim/delta pruning order** | Tested, no improvement. **No repo evidence — owner brain-dump required before handoff** (config, metric, result). Canonical order lives in `channel_heads/pruning.py`. | *(none in repo — owner input required)* | 2026-06 (owner recall) |
+| **Small threshold + delta-3 + aggressive `ge3` trim** | `ge3` falls below the `length_retained ≥ 0.30` hard floor everywhere — over-pruned, ineligible. | `notebooks/pipeline/04_earth_mars_regime_calibration.ipynb` §3a, cells 15–16 | 2026-06-14 |
+| **Closing the Earth–Mars Dd-hull gap by pruning/thresholding at all** | Earth is ~7–10× denser than Mars at any threshold (**~7–10× figure needs owner confirmation before handoff**). Best pruning: Earth median Dd-hull 1.687 vs Mars 0.224 km/km², 0% of Earth basins inside the Mars IQR. The residual gap is structural; the frozen regimes bracket the closest-feasible neighbourhood — they do **not** "match" Mars. | `notebooks/diagnostics/earth_network_pruning_experiments.ipynb` §12 (its recommendation is STALE, kept as evidence) + `notebooks/mars/dd_hull_mars_vs_earth_complexity.ipynb` | 2026-06 |

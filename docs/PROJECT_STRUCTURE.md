@@ -18,9 +18,9 @@ channel-heads/
 ├── channel_heads/      # Python package (importable library code)
 ├── tests/              # pytest suite (maps 1:1 to package modules)
 ├── scripts/            # headless CLI scripts (pipeline, training, QA, rendering)
-├── notebooks/          # foldered by role: training / analysis / mars / regime / diagnostics / presentation / archive (§3a)
+├── notebooks/          # foldered by role: pipeline / training / analysis / mars / interpretation / diagnostics / presentation / archive (§3a)
 ├── data/               # inputs + generated outputs (gitignored; §4)
-├── models/             # trained model artifacts (gitignored)
+├── models/             # trained model artifacts (git-tracked, ~3 MB; provenance in models/MANIFEST.md)
 ├── docs/               # ← consolidated documentation (this folder)
 ├── env/                # conda environment spec
 ├── .github/            # CI workflows
@@ -39,6 +39,21 @@ channel-heads/
 | `docs/PIPELINE_RERUN.md` | End-to-end regeneration order + guardrails. |
 | `notebooks/archive/optimization_review.md` | Notebook-local audit notes (archived with the experiment sweeps). |
 | `data/archive/README.md`, `data/outputs/README.LEGACY.md` | In-situ data markers (kept in place). |
+
+### Local-only files at repo root (not in git)
+
+Two QGIS projects sit at the repo root, gitignored via `*.qgz`:
+`channel_head_basins.qgz` (Earth basins; layers reference `./data/cropped_DEMs`
+and `./GuyPinkasLiran/DEMsG&S24` by relative path) and
+`Mars_channel_heads_project.qgz` (Mars). Because both use relative layer paths,
+they open correctly only on a machine that has the full data folders — they do
+not transfer with a fresh clone.
+
+`GuyPinkasLiran/` is the owner's **local-only** directory (gitignored). It holds
+the original Goren & Shelef source DEMs (`DEMsG&S24/`) from which
+`data/cropped_DEMs/` was cropped, plus personal poster/proposal material. None
+of it transfers with the repo — a new maintainer receives only the cropped
+per-basin DEMs (from the owner, off-repo) and the tracked example DEM.
 
 ---
 
@@ -95,8 +110,10 @@ visualization · MAINT = maintenance · ARCHIVE = retained, not maintained.
 
 The former `scripts/cli/*` wrappers and root-level Mars/Earth/regime training
 scripts are now `channel_heads/cli/` commands (e.g. `run-mars-pipeline`,
-`train-cnn-regime`, `train-combined-xgb-phase6b`, `eval-lobo-cv`,
-`retune-threshold-regime`, `make-result-figures`, `generate-poster-figures`).
+`train-cnn-regime`, `train-cnn-multiseed`, `train-combined-xgb-phase6b`,
+`eval-lobo-cv`, `lobo-validate` (true leave-one-basin-out validation +
+leakage audit), `retune-threshold-regime`, `make-result-figures`,
+`generate-poster-figures`).
 
 ### Run order — Mars cross-planet (Phases 1–6C)
 ```
@@ -133,9 +150,11 @@ which the in-notebook root-resolution cells assume — keep new notebooks at tha
 
 | Home | Contents |
 |------|----------|
+| `pipeline/` | **Start here.** Canonical stage-by-stage tier — one notebook per pipeline stage (`00`–`14`, matching `docs/PIPELINE_DESIGN.md` / `STAGE_ASSET_MAP.md`); the authoritative, self-contained walkthrough of the whole Earth→Mars flow. |
 | `training/` | Earth training pipeline `00_pair_sample_qa` → `05_cnn_quick_eval`; referenced by `channel_heads/cli/train_*`, `build_*`. |
 | `analysis/` | Earth basin QA/exploration: `01_earth_source_data_qa`, `02_earth_network_explorer`, `05_earth_network_qa`. |
 | `mars/` | Mars cross-planet exploration (`dd_hull_mars_vs_earth_complexity`). |
+| `interpretation/` | Scientific interpretation (`00_scientific_summary` — coupling rates, geography, terrain). |
 | `archive/regime/` | **Archived** regime calibration notebooks (`00_calibration_overview`, `01_mars_inference`, `02_threshold_retune`, `03_optimize_regime_candidates`) — superseded by Stage-4 `pipeline/04_earth_mars_regime_calibration` (calibration + regA–regE selection). |
 | `diagnostics/` | QA / investigative (`rasterization_diagnostics`, `earth_network_pruning_experiments` — source of `channel_heads/pruning.py`). |
 | `presentation/` | Presentation / figure generation (`simple_mars_earth_dd_presentation`, result figures, contact sheets). |

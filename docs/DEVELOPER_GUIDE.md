@@ -49,10 +49,10 @@ conda run -n ch-heads ruff check <files>      # targeted; repo-wide has known pr
 | `rasterization/` | 5-class 128×128 patch generation (`patches.py`, Earth + Mars), drawing primitives (`drawing.py`), `manifest.py`, and the class `schema.py`. Canonical for both planets. |
 | `models/` | XGBoost load/verify/predict (`xgboost.py`), `thresholds.py`, model `comparison.py`, CNN (`cnn.py` `OutletCNN` 5→…→4-dim, `cnn_features.py`, `embeddings.py`), `device.py` (`pick_device`), Mars `mars_inference.py` / `mars_combined.py`, regime-CNN embedding attach (`regime.py`). |
 | `training/` | Earth training: shared CNN loop (`cnn.py`), XGBoost variants (`xgboost.py`), dataset prep (`datasets.py`), labeling/filtering (`labeling.py`), regime dataset builders (`regime.py`). |
-| `eval/` | Threshold tuning + classification metrics (`metrics.py`), grouped/LOBO splits (`splitting.py`, `lobo.py`), `diagnostics.py`. |
+| `eval/` | Threshold tuning + classification metrics (`metrics.py`), grouped splits (`splitting.py`), `diagnostics.py`, **true-LOBO engine + leakage audit** (`lobo.py`), per-fold CNN factory (`lobo_cnn.py`; CLI `lobo-validate`). |
 | `io/` | Canonical paths (`paths.py`), parquet/CSV table I/O (`tables.py`), GeoPackage I/O (`geopackage.py`), generated-data cleanup manifest (`cleanup.py`). |
 | `pipelines/` | Readable top layer — one function per stage (`earth.py`, `mars.py`, `poster.py`). |
-| `viz/` | Earth DEM/basin plotting plus vector figures: contact sheets, ROC curves, per-outlet, stream-crossing QA, calibration. |
+| `viz/` | Earth DEM/basin plotting plus vector figures: contact sheets, ROC curves, per-outlet, stream-crossing QA, calibration, poster/report figures (`poster.py`, incl. conformal Mars hillshade overlays). |
 | `cli/` | CLI package: subcommand dispatcher + one module per command (run via `python -m channel_heads <command>` or the `channel-heads` / `ch-analyze` console scripts). |
 | `dd_calibration.py` | Drainage-density / threshold calibration helpers. |
 | `pruning.py` | Strahler-strip + order-gap network pruning (regime pipeline). |
@@ -62,11 +62,12 @@ conda run -n ch-heads ruff check <files>      # targeted; repo-wide has known pr
 
 Public API is re-exported from each subpackage's `__init__.py`.
 
-**Notebooks are the primary interface; scripts are thin wrappers.** Every
-B-class script's reusable logic lives in the modules above; the matching
-`notebooks/<home>/` notebook calls `channel_heads.*` (no duplicated cell logic)
-and runs read-only. See [PROJECT_STRUCTURE.md §3a](PROJECT_STRUCTURE.md) for the
-notebook ↔ script map. New notebooks must live at `notebooks/<role>/` (depth 2)
+**Notebooks are the primary interface; the CLI is the headless surface.** All
+reusable logic lives in the modules above; each `channel_heads/cli/` command is
+a thin `main(argv)` wrapper (`python -m channel_heads <command>`), and the
+matching `notebooks/<home>/` notebook calls `channel_heads.*` (no duplicated
+cell logic) and runs read-only. See [PROJECT_STRUCTURE.md §3a](PROJECT_STRUCTURE.md)
+for the notebook map. New notebooks must live at `notebooks/<role>/` (depth 2)
 so the root-resolution cells work, and must not embed "phase" numbering.
 
 ## 4. Core API (quick reference)

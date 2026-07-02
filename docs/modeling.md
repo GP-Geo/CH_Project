@@ -31,6 +31,27 @@ embedding. Mars patches **must stay 5-class** so the Earth-trained CNN applies
 without retraining. Compare variants with
 `channel_heads.models.comparison.compare_predictions`.
 
+## Validation: within-basin vs cross-basin (true LOBO)
+
+The historical headline (**AUC ≈ 0.91–0.92**) is a *within-basin* held-out-test
+statistic. Honest cross-basin generalization, measured with the true
+leave-one-basin-out engine (`channel-heads lobo-validate`), is geometry-only
+**pooled AUC ≈ 0.77–0.78** (per-basin mean ≈ 0.70–0.74); the `precomputed_emb`
+mode scores ~0.89 but is leakage-flagged (CNN embeddings trained on 16/17
+basins), and the leak-free `per_fold_cnn` mode has **not been run yet**. Always
+label which statistic you quote. Full numbers and the outstanding run:
+[ROADMAP_AND_RISKS.md](ROADMAP_AND_RISKS.md); details in
+[MARS_PIPELINE.md](MARS_PIPELINE.md).
+
+## Environment the artifacts were built with
+
+The tracked model artifacts were trained/validated with **Python 3.12.11,
+xgboost 3.2.0, torch 2.11.0, scikit-learn 1.7.2** (conda env `ch-heads`).
+`pyproject.toml` caps `xgboost<4` and `torch<3` so a fresh install keeps
+loading them identically; if you upgrade past those majors, re-verify the
+checksummed artifacts in `models/MANIFEST.md` still load and predict
+unchanged.
+
 ## The threshold issue (important for Mars)
 
 The Earth **F1-optimal** threshold (0.577406) is tuned to maximise F1 on the

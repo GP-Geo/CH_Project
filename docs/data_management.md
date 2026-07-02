@@ -1,9 +1,11 @@
 # Data management
 
-All of `data/` and `models/` is **gitignored**. This doc defines what each kind
-of data is, what can be deleted, and how to regenerate it. Authoritative
-per-path tags are in [DATA_STATUS.md](DATA_STATUS.md); regeneration commands are
-in [pipeline.md](pipeline.md).
+All of `data/` is **gitignored** (except two small tracked example files);
+`models/` is **tracked in git** as of 2026-07-02 (~3 MB, see
+`models/MANIFEST.md`). This doc defines what each kind of data is, what can be
+deleted, and how to regenerate it. Authoritative per-path tags — and the
+provenance of every raw input — are in [DATA_STATUS.md](DATA_STATUS.md);
+regeneration commands are in [pipeline.md](pipeline.md).
 
 ## Categories
 

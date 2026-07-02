@@ -34,7 +34,7 @@ channel_heads/
 │   ├── earth.py         #   train_earth_cnn -> train_earth_xgb_variants
 │   └── poster.py        #   generate_poster_figures
 │
-├── eval/                # threshold tuning, metrics, grouped/LOBO splits
+├── eval/                # threshold tuning, metrics, true-LOBO engine + leakage audit (lobo.py, lobo_cnn.py; CLI lobo-validate)
 ├── training/            # Earth CNN/XGBoost training loops + dataset/regime builders
 ├── cli/                 # CLI package: dispatcher + one module per command
 │
@@ -82,10 +82,10 @@ from channel_heads import models   # models.xgboost / thresholds / comparison / 
 | Earth training | ✅ package-resident | `channel_heads/training/{cnn,xgboost,datasets}.py`; `channel_heads/cli/train_*` (run via `python -m channel_heads train-*`) |
 | Regime calibration | ✅ package-resident | `channel_heads/training/regime.py`; `channel_heads/cli/*_regime.py` (run via `python -m channel_heads *-regime`) |
 
-The full pipeline is now package-resident. `channel_heads/cli/` is the CLI package (dispatcher + one module per command)
-wrappers that call package functions — the implementation no longer lives in
-scripts. `channel_heads/pipelines/earth.py` invokes the Earth training wrappers
-in-process via `runpy`.
+The full pipeline is now package-resident. `channel_heads/cli/` is the CLI
+package: a dispatcher plus one thin module per command. Implementations live in
+the library subpackages; `channel_heads/pipelines/` invokes the CLI command
+modules in-process (plain imports, no `runpy`).
 
 See also: [pipeline.md](pipeline.md) · [modeling.md](modeling.md) ·
 [data_management.md](data_management.md) · [notebooks.md](notebooks.md).

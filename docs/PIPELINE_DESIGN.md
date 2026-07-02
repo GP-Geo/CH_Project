@@ -1,5 +1,9 @@
 # PIPELINE_DESIGN.md
 
+> **Note.** Design charter written pre-refactor (2026-06-03); the next-steps
+> and open-questions sections are historical — current status lives in
+> [STAGE_ASSET_MAP.md](../STAGE_ASSET_MAP.md).
+
 High-level pipeline design for the Channel Heads project refactor.
 
 This document defines the intended scientific and computational workflow before
@@ -567,10 +571,10 @@ Recommended transition:
 
 ## Current open design questions
 
-1. What exactly is the final Earth-Mars regime-selection scheme?
+1. What exactly is the final Earth-Mars regime-selection scheme? — **ANSWERED:** three frozen regimes (regA/B/C); see [REGIME_SELECTION.md](REGIME_SELECTION.md).
 2. Which visual QA outputs are mandatory before model training?
 3. What caching strategy should be used for expensive pair, feature, and patch generation?
 4. Which model families should be included beyond XGBoost and CNN-based variants?
-5. How should Mars operating thresholds be selected and justified?
+5. How should Mars operating thresholds be selected and justified? — **ANSWERED:** precision-oriented per-regime thresholds; see [regimes_summary.md](regimes_summary.md) and [REGIME_SELECTION.md](REGIME_SELECTION.md).
 6. What should be the final scientific interpretation framework?
 7. What figures are needed for the poster and final reporting?

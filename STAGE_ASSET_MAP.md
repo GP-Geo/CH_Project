@@ -9,7 +9,10 @@ Status key:
 - ⚠️ **stale** — artifacts present but built on pre-rewrite data; valid for testing, need regeneration before final results
 - ❌ **gap** — no dedicated notebook or package support yet
 
-_Last updated: 2026-06-04_
+_Last updated: 2026-07-02_ — changelog: 2026-06-13 regime redefinition +
+full regime retrain (see `docs/REGIME_SELECTION.md`); 2026-06-20 true-LOBO
+validation run; 2026-07-02 handoff cleanup (models/ tracked in git,
+`lobo-validate` CLI committed).
 
 ---
 
@@ -148,18 +151,24 @@ noise. Frozen `cnn_outlet_final.pt` / `xgb_touching_classifier.json` untouched.
 
 ## Stage 9 — Earth model validation and tuning ✅
 
-**Refreshed 2026-06-04.** LOBO CV + thresholds + `ALL_MODELS_METRICS.csv` rebuilt
-on the retrained models; operating thresholds kept precision-oriented
-(max-precision@recall≥0.5), F1-optimal recorded as alternative. Fixed a
-`parents[1]` project-root bug in `eval_lobo_cv.py` / `retune_threshold_regime.py`
-(exposed when the refactor moved them into `channel_heads/cli/`).
+**Refreshed 2026-06-04; true-LOBO added 2026-06-20.** LOBO CV + thresholds +
+`ALL_MODELS_METRICS.csv` rebuilt on the retrained models; operating thresholds
+kept precision-oriented (max-precision@recall≥0.5), F1-optimal recorded as
+alternative. Fixed a `parents[1]` project-root bug in `eval_lobo_cv.py` /
+`retune_threshold_regime.py` (exposed when the refactor moved them into
+`channel_heads/cli/`).
+
+**True cross-basin validation** (`channel-heads lobo-validate`): `geom_only` +
+`precomputed_emb` modes ran 2026-06-20 → `data/results/lobo/` (geom-only pooled
+AUC ~0.77–0.78; see `docs/ROADMAP_AND_RISKS.md`). The leak-free `per_fold_cnn`
+mode is **outstanding** (never run).
 
 | Asset | Location |
 |---|---|
-| Script | `channel_heads/cli/eval_lobo_cv.py`, `channel_heads/cli/retune_threshold_regime.py` |
-| Package | `channel_heads/eval/lobo.py` |
+| Script | `channel_heads/cli/eval_lobo_cv.py` (within-basin), `channel_heads/cli/lobo_validate.py` (true LOBO), `channel_heads/cli/retune_threshold_regime.py` |
+| Package | `channel_heads/eval/lobo.py`, `channel_heads/eval/lobo_cnn.py` |
 | Notebooks | `notebooks/diagnostics/lobo_cv.ipynb`, `notebooks/archive/regime/02_threshold_retune.ipynb` |
-| Metrics | `models/lobo_cv_metrics.csv`, `models/ALL_MODELS_METRICS.csv` ✅ refreshed 2026-06-04 |
+| Metrics | `models/lobo_cv_metrics.csv` (within-basin), `data/results/lobo/` (cross-basin), `models/ALL_MODELS_METRICS.csv` ⚠️ predates the 2026-06-13 retrain — `optimal_threshold_*.txt` are authoritative |
 
 ---
 
@@ -182,21 +191,24 @@ the frozen `cnn_outlet_final.pt`. Old artifacts archived in
 
 ## Stage 11 — Mars inference ✅
 
-**Re-run 2026-06-04** on the new patches: regime combined (regA/B/C) + baseline
-combined. Coupling rates 53.0% / 64.1% / 38.6% (regA/B/C), within < 1.6 pp of the
-stale run; regime ordering preserved.
-
+**Re-run 2026-06-13** on the redefined-regime models: regime combined (regA/B/C)
++ baseline combined. Coupling rates **49.6% / 59.7% / 46.6%** (regA/B/C), from
+`mars_combined_reg{A,B,C}_predictions.parquet`.
 
 | Asset | Location |
 |---|---|
 | CLI | `channel_heads/cli/run_mars_pipeline.py --stage combined`, `channel_heads/cli/run_mars_combined_regime.py` |
 | Package | `channel_heads/models/mars_combined.py`, `channel_heads/models/mars_inference.py` |
-| Notebook | `notebooks/archive/regime/01_mars_inference.ipynb` |
-| Predictions | `data/Mars/model_outputs/mars_combined_reg{A,B,C}_predictions.*` ⚠️ stale |
+| Notebook | `notebooks/pipeline/11_mars_inference.ipynb` (executed 2026-07-02); historical: `notebooks/archive/regime/01_mars_inference.ipynb` |
+| Predictions | `data/Mars/model_outputs/mars_combined_reg{A,B,C}_predictions.*` ✅ 2026-06-13 |
 
 ---
 
 ## Stage 12 — Mars threshold and prediction analysis ✅
+
+⚠️ The saved threshold-sensitivity outputs predate the 2026-06-13 regime
+redefinition — re-run the threshold notebook on the Jun-13 predictions before
+relying on its numbers.
 
 | Asset | Location |
 |---|---|
@@ -207,6 +219,9 @@ stale run; regime ordering preserved.
 ---
 
 ## Stage 13 — Scientific interpretation ✅
+
+⚠️ Interpretation artifacts computed before 2026-06-13 reflect the superseded
+regime definitions; cross-check against the Jun-13 predictions.
 
 | Asset | Location |
 |---|---|
