@@ -28,6 +28,7 @@ COMMANDS: dict[str, str] = {
     "train-combined-xgb-regime": "train_combined_xgb_regime",
     "train-combined-xgb-phase6b": "train_combined_xgb_phase6b",
     "eval-lobo-cv": "eval_lobo_cv",
+    "lobo-validate": "lobo_validate",
     "retune-threshold-regime": "retune_threshold_regime",
     "run-mars-pipeline": "run_mars_pipeline",
     "run-mars-combined-regime": "run_mars_combined_regime",
