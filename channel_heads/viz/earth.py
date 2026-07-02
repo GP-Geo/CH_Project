@@ -23,9 +23,13 @@ from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
-from matplotlib.lines import Line2D
 
-from .poster import colored_hillshade, format_degree_axes, frame_only
+from .poster import (
+    colored_hillshade,
+    format_degree_axes,
+    frame_only,
+    network_legend_handles,
+)
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -666,17 +670,8 @@ def plot_earth_outlet_map(
     else:
         frame_only(ax)
     if legend:
-        handles = [
-            Line2D([0], [0], color=stream_color, lw=2.4, label="valley network"),
-            Line2D([0], [0], marker="o", color="w", markerfacecolor="black",
-                   markersize=8, linestyle="", label="channel head"),
-            Line2D([0], [0], marker="s", color="w", markerfacecolor="#ff7f00",
-                   markeredgecolor="k", markersize=9, linestyle="", label="confluence"),
-            Line2D([0], [0], marker="*", color="w", markerfacecolor="red",
-                   markeredgecolor="k", markersize=14, linestyle="", label="outlet"),
-        ]
-        ax.legend(handles=handles, loc="lower right", fontsize=9, frameon=True,
-                  framealpha=0.85)
+        ax.legend(handles=network_legend_handles(stream_color=stream_color),
+                  loc="lower right", fontsize=9, frameon=True, framealpha=0.85)
 
 
 # Distinct *solid* colours for the two contributing areas + their overlap, and

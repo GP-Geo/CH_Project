@@ -28,6 +28,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.collections import LineCollection
 from matplotlib.colors import BoundaryNorm, ListedColormap
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
@@ -443,30 +444,30 @@ def _draw_concept_pair(
 def pair_definition_concept(figsize: tuple[float, float] = (13.0, 6.0)) -> Figure:
     """Synthetic two-panel diagram explaining the first-meet pair concept.
 
-    Left panel: a *touching* pair (channel heads close, narrow apex). Right
-    panel: a *non-touching* pair (heads far apart, wide apex). Both label the
-    outlet, channel heads, confluence and the two branches. Pure synthetic
-    geometry — no data loaded.
+    Left panel: a *paired* (touching) pair (channel heads close, narrow apex).
+    Right panel: a *non-paired* (non-touching) pair (heads far apart, wide apex).
+    Both label the outlet, channel heads, confluence and the two branches. Pure
+    synthetic geometry — no data loaded.
     """
     fig, axes = plt.subplots(1, 2, figsize=figsize)
 
-    # Touching: heads close together, sharp apex.
+    # Paired: heads close together, sharp apex.
     _draw_concept_pair(
         axes[0],
         head1=(-0.6, 3.0),
         head2=(0.6, 3.0),
         confluence=(0.0, 1.6),
         outlet=(0.0, 0.0),
-        title="Touching pair\n(adjacent heads, narrow apex)",
+        title="Paired\n(adjacent heads, narrow apex)",
     )
-    # Non-touching: heads far apart, wide apex.
+    # Non-paired: heads far apart, wide apex.
     _draw_concept_pair(
         axes[1],
         head1=(-2.4, 3.0),
         head2=(2.4, 3.0),
         confluence=(0.0, 1.0),
         outlet=(0.0, 0.0),
-        title="Non-touching pair\n(distant heads, wide apex)",
+        title="Non-paired\n(distant heads, wide apex)",
     )
     fig.suptitle(
         "First-meet channel-head pair: outlet · confluence · two branches",
@@ -1049,6 +1050,28 @@ def colored_hillshade(
 # --------------------------------------------------------------------------- #
 # 9. Vector network overview map (Mars / generic)
 # --------------------------------------------------------------------------- #
+def network_legend_handles(
+    stream_color: str = "#1565ff",
+    network_label: str = "valley network",
+) -> list[Line2D]:
+    """Shared 4-entry network key (valley-network line + channel-head /
+    confluence / outlet markers).
+
+    Used by both the Earth outlet map and the Mars overview so the two panels
+    read against one identical legend; the Mars vectors are coloured to match
+    (``stream_color`` line, black channel heads, orange confluences, red outlet).
+    """
+    return [
+        Line2D([0], [0], color=stream_color, lw=2.4, label=network_label),
+        Line2D([0], [0], marker="o", color="w", markerfacecolor="black",
+               markersize=8, linestyle="", label="channel head"),
+        Line2D([0], [0], marker="s", color="w", markerfacecolor="#ff7f00",
+               markeredgecolor="k", markersize=9, linestyle="", label="confluence"),
+        Line2D([0], [0], marker="*", color="w", markerfacecolor="red",
+               markeredgecolor="k", markersize=14, linestyle="", label="outlet"),
+    ]
+
+
 def mars_marker_legend_handles() -> list[Line2D]:
     """Marker legend handles: channel head, confluence, outlet."""
     return [
@@ -1106,22 +1129,40 @@ def plot_network_on_hillshade(
     view_frac: float = 0.7,
     network_color: str = "#111111",
     network_lw: float = 1.2,
+    head_color: str = "yellow",
     title: str | None = None,
     geographic_axes: bool = False,
+    shape_true: bool = True,
+    dem_source: bool = False,
+    vert_exag: float = 2.0,
 ) -> tuple | None:
-    """Overlay a vector network on a (global) hillshade raster as regional context.
+    """Overlay a vector network on a hillshade raster as regional context.
 
-    The vectors (``segs_n`` and optional ``nodes_n``/``outlet_geom``, all in the
-    GeoDataFrame's own CRS) are reprojected to the raster CRS; a padded window of
-    the raster around the network is read and shown, the network is drawn on top,
-    and the view is tightened to the network plus a ``view_frac`` margin. Returns
-    the shown extent, or ``None`` (with a printed message) if rasterio or the
-    raster file is unavailable.
+    The vectors (``segs_n`` and optional ``nodes_n``/``outlet_geom``) and a padded
+    window of the raster around the network are reprojected to a **local conformal
+    projection** (azimuthal stereographic centred on the network) before drawing,
+    so circular ground features (e.g. impact craters) are *not* distorted. Global
+    compromise projections such as the Robinson MOLA hillshade are neither
+    conformal nor equal-area and, far from their central meridian, additionally
+    *shear* the view — which ``set_aspect("equal")`` cannot undo. Set
+    ``shape_true=False`` to plot in the raster's native CRS instead.
+
+    When ``dem_source`` is true, ``raster_path`` is read as an *elevation* raster
+    (e.g. the equirectangular MOLA DEM) and a grey hillshade is computed from the
+    reprojected window with ``vert_exag`` vertical exaggeration; otherwise the
+    raster is assumed to already be a (grey) hillshade.
+
+    The view is tightened to the network plus a ``view_frac`` margin. Returns the
+    shown extent (in the plot CRS), or ``None`` (with a printed message) if
+    rasterio or the raster file is unavailable.
     """
     try:
         import rasterio
+        from rasterio.transform import array_bounds
+        from rasterio.warp import Resampling, calculate_default_transform, reproject
         from rasterio.windows import bounds as window_bounds
         from rasterio.windows import from_bounds
+        from rasterio.windows import transform as window_transform
     except ImportError:  # pragma: no cover - optional geo extra
         print("[missing capability] rasterio not installed — skipping hillshade overlay")
         return None
@@ -1130,29 +1171,80 @@ def plot_network_on_hillshade(
         print(f"[missing artifact] hillshade not found: {raster_path}")
         return None
 
+    from pyproj import CRS
+
+    geo_crs = segs_n.crs.geodetic_crs
+    centroid = segs_n.to_crs(geo_crs).union_all().centroid
+
     with rasterio.open(raster_path) as src:
-        plot_crs = src.crs
-        segs_r = segs_n.to_crs(src.crs)
-        minx, miny, maxx, maxy = segs_r.total_bounds
+        native_crs = src.crs
+        segs_native = segs_n.to_crs(native_crs)
+        minx, miny, maxx, maxy = segs_native.total_bounds
         padx = (maxx - minx) * pad_mult + pad_min
         pady = (maxy - miny) * pad_mult + pad_min
         win = from_bounds(minx - padx, miny - pady, maxx + padx, maxy + pady,
                           src.transform)
-        arr = src.read(1, window=win, boundless=True, fill_value=0)
+        arr = src.read(1, window=win, boundless=True,
+                       fill_value=src.nodata if src.nodata is not None else 0)
         wb = window_bounds(win, src.transform)
-        nodes_r = nodes_n.to_crs(src.crs) if nodes_n is not None else None
-        outlet_r = (gpd_geoseries_to_crs(outlet_geom, segs_n.crs, src.crs)
-                    if outlet_geom is not None else None)
+        win_transform = window_transform(win, src.transform)
+        nodata = src.nodata
+        try:
+            radius = CRS(native_crs).ellipsoid.semi_major_metre or 3396190.0
+        except Exception:  # pragma: no cover - non-standard ellipsoid
+            radius = 3396190.0
 
-    ax.imshow(arr, cmap="gray", extent=(wb[0], wb[2], wb[1], wb[3]),
-              origin="upper", zorder=0)
+    arr = arr.astype("float32")
+    if dem_source and nodata is not None:
+        arr[arr == nodata] = np.nan
+
+    if shape_true:
+        # Azimuthal stereographic is conformal everywhere, so a tightly-windowed
+        # view around ``centroid`` has neither shape distortion nor shear.
+        plot_crs = CRS.from_proj4(
+            f"+proj=stere +lat_0={centroid.y} +lon_0={centroid.x} +k=1 "
+            f"+x_0=0 +y_0=0 +R={radius} +units=m +no_defs")
+        dst_transform, dw, dh = calculate_default_transform(
+            native_crs, plot_crs, arr.shape[1], arr.shape[0],
+            left=wb[0], bottom=wb[1], right=wb[2], top=wb[3])
+        dst = np.full((dh, dw), np.nan, dtype="float32")
+        reproject(
+            source=arr, destination=dst,
+            src_transform=win_transform, src_crs=native_crs,
+            dst_transform=dst_transform, dst_crs=plot_crs,
+            src_nodata=np.nan if dem_source else None, dst_nodata=np.nan,
+            resampling=Resampling.bilinear)
+        arr = dst
+        b = array_bounds(dh, dw, dst_transform)  # (left, bottom, right, top)
+        extent = (b[0], b[2], b[1], b[3])
+        px, py = abs(dst_transform.a), abs(dst_transform.e)
+    else:
+        plot_crs = native_crs
+        extent = (wb[0], wb[2], wb[1], wb[3])
+        px, py = abs(win_transform.a), abs(win_transform.e)
+
+    if dem_source:
+        from matplotlib.colors import LightSource
+        filled = np.nan_to_num(arr, nan=float(np.nanmin(arr)))
+        gray = LightSource(azdeg=315, altdeg=45).hillshade(
+            filled, dx=px, dy=py, vert_exag=vert_exag)
+        gray = np.where(np.isnan(arr), np.nan, gray)
+    else:
+        gray = arr
+
+    segs_r = segs_n.to_crs(plot_crs)
+    nodes_r = nodes_n.to_crs(plot_crs) if nodes_n is not None else None
+    outlet_r = (gpd_geoseries_to_crs(outlet_geom, segs_n.crs, plot_crs)
+                if outlet_geom is not None else None)
+
+    ax.imshow(gray, cmap="gray", extent=extent, origin="upper", zorder=0)
     segs_r.plot(ax=ax, color=network_color, linewidth=network_lw, zorder=2)
     if nodes_r is not None and "node_type" in nodes_r.columns:
         heads = nodes_r[nodes_r["node_type"] == "channel_head"]
         confs = nodes_r[nodes_r["node_type"] == "confluence"]
         if not heads.empty:
             ax.scatter([p.x for p in heads.geometry], [p.y for p in heads.geometry],
-                       c="yellow", s=16, marker="o", edgecolors="black",
+                       c=head_color, s=16, marker="o", edgecolors="black",
                        linewidths=0.3, zorder=4)
         if not confs.empty:
             ax.scatter([p.x for p in confs.geometry], [p.y for p in confs.geometry],
@@ -1162,19 +1254,20 @@ def plot_network_on_hillshade(
         ax.scatter(outlet_r.x, outlet_r.y, c="red", s=190, marker="*",
                    edgecolors="black", linewidths=0.5, zorder=6)
 
-    sx, sy = (maxx - minx), (maxy - miny)
+    nminx, nminy, nmaxx, nmaxy = segs_r.total_bounds
+    sx, sy = (nmaxx - nminx), (nmaxy - nminy)
     vx = sx * view_frac + pad_min * 0.3
     vy = sy * view_frac + pad_min * 0.3
-    ax.set_xlim(minx - vx, maxx + vx)
-    ax.set_ylim(miny - vy, maxy + vy)
+    ax.set_xlim(nminx - vx, nmaxx + vx)
+    ax.set_ylim(nminy - vy, nmaxy + vy)
     ax.set_aspect("equal")
     if geographic_axes:
-        add_geographic_ticks(ax, plot_crs, segs_n.crs.geodetic_crs)
+        add_geographic_ticks(ax, plot_crs, geo_crs)
     else:
         frame_only(ax)
     if title:
         ax.set_title(title, fontsize=13)
-    return wb
+    return extent
 
 
 def gpd_geoseries_to_crs(geom: Any, src_crs: Any, dst_crs: Any):
@@ -1336,6 +1429,244 @@ def drainage_density_regime_panel(
     return fig
 
 
+# --------------------------------------------------------------------------- #
+# 12. Earth network simplification vs Mars (extraction-protocol calibration)
+# --------------------------------------------------------------------------- #
+# Colours tie into the poster palette: Earth streams blue, Mars valleys orange,
+# convex hull ochre, basin outline muted green, pruned-away segments faint.
+_SIMPL_EARTH = PHASE_COLORS["earth"]
+_SIMPL_MARS = PHASE_COLORS["mars"]
+_SIMPL_HULL = PHASE_COLORS["calibration"]
+_SIMPL_BASIN = "#557f63"
+_SIMPL_REMOVED = "#d9c9b8"
+_SIMPL_SCALEBARS = np.array([0.2, 0.5, 1, 2, 5, 10, 20, 50, 100])
+
+
+def _simpl_bounds(*arrays: Any) -> tuple[np.ndarray, float]:
+    """Square map centre + half-extent (metres) covering all point arrays."""
+    pts = [np.asarray(a).reshape(-1, 2) for a in arrays if a is not None and np.asarray(a).size]
+    if not pts:
+        return np.array([0.0, 0.0]), 1.0
+    stacked = np.vstack(pts)
+    lo, hi = stacked.min(axis=0), stacked.max(axis=0)
+    center = (lo + hi) / 2.0
+    half = max(float((hi - lo).max()) / 2.0, 1.0) * 1.04
+    return center, half
+
+
+def _simpl_finish(ax, half_km: float, title: str) -> None:
+    ax.set_xlim(-half_km, half_km)
+    ax.set_ylim(-half_km, half_km)
+    ax.set_aspect("equal")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_title(title, fontsize=10, fontweight="normal")
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    scale = _SIMPL_SCALEBARS[np.argmin(np.abs(_SIMPL_SCALEBARS - half_km / 2.5))]
+    x0, y0 = -half_km * 0.90, -half_km * 0.90
+    ax.plot([x0, x0 + scale], [y0, y0], color="black", lw=2.0)
+    ax.text(x0 + scale / 2, y0 + half_km * 0.035, f"{scale:g} km",
+            ha="center", va="bottom", fontsize=7)
+
+
+def _simpl_draw_earth(ax, *, stream_seg, hull_xy, removed_seg, basin_xy, outlet_xy,
+                      title, center, half) -> None:
+    def to_km(a: Any) -> np.ndarray:
+        return (np.asarray(a) - center) / 1000.0
+
+    if basin_xy is not None and len(basin_xy):
+        b = to_km(basin_xy)
+        ax.plot(b[:, 0], b[:, 1], color=_SIMPL_BASIN, lw=1.0, alpha=0.95)
+    if removed_seg is not None and len(removed_seg):
+        ax.add_collection(LineCollection(to_km(removed_seg), colors=_SIMPL_REMOVED,
+                                         linewidths=0.5, alpha=0.9))
+    if stream_seg is not None and len(stream_seg):
+        lw = float(np.clip(42.0 / np.sqrt(max(len(stream_seg), 1)), 0.18, 1.1))
+        ax.add_collection(LineCollection(to_km(stream_seg), colors=_SIMPL_EARTH,
+                                         linewidths=lw, alpha=0.95))
+    if hull_xy is not None and len(hull_xy):
+        h = to_km(np.vstack([hull_xy, hull_xy[:1]]))
+        ax.plot(h[:, 0], h[:, 1], "--", color=_SIMPL_HULL, lw=1.2)
+        ax.fill(h[:, 0], h[:, 1], color=_SIMPL_HULL, alpha=0.08)
+    if outlet_xy is not None:
+        p = to_km(np.asarray(outlet_xy).reshape(1, 2))[0]
+        ax.scatter([p[0]], [p[1]], s=22, color="black", zorder=5)
+    _simpl_finish(ax, half / 1000.0, title)
+
+
+def _simpl_draw_mars(ax, *, lines, hull_xy, title) -> None:
+    parts = [np.asarray(ln)[:, :2] for ln in lines if np.asarray(ln).size]
+    center, half = _simpl_bounds(np.vstack(parts) if parts else None, hull_xy)
+
+    def to_km(a: Any) -> np.ndarray:
+        return (np.asarray(a) - center) / 1000.0
+
+    segs = [to_km(np.asarray(ln)[:, :2]) for ln in lines if np.asarray(ln).shape[0] >= 2]
+    if segs:
+        lw = float(np.clip(12.0 / np.sqrt(max(len(segs), 1)), 0.7, 1.8))
+        ax.add_collection(LineCollection(segs, colors=_SIMPL_MARS, linewidths=lw, alpha=0.96))
+    if hull_xy is not None and len(hull_xy):
+        h = to_km(np.vstack([hull_xy, hull_xy[:1]]))
+        ax.plot(h[:, 0], h[:, 1], "--", color=_SIMPL_HULL, lw=1.2)
+        ax.fill(h[:, 0], h[:, 1], color=_SIMPL_HULL, alpha=0.08)
+    _simpl_finish(ax, half / 1000.0, title)
+
+
+def _simpl_pick_mars_network(
+    mars_gpkg: Path | str, pin_id: int | None = None
+) -> tuple[int, float, dict[str, Any]]:
+    """Pick a large, branch-complex Mars network with a higher (denser) Dd_hull.
+
+    When ``pin_id`` is given that exact ``network_id`` is returned. Otherwise
+    selection favours networks at/above the Mars **median** Dd_hull (denser, not
+    sprawling), then ranks the large ones by segment count, Strahler order and
+    total length. Footprint shape is not constrained.
+    """
+    from channel_heads.dd_calibration import (
+        MARS_DD_STATS,
+        STATUS_OK,
+        mars_network_geometry,
+        mars_network_strahler,
+        mars_network_table,
+    )
+
+    tbl = mars_network_table(mars_gpkg)
+    tbl = tbl[tbl["status"] == STATUS_OK].copy()
+    geom = mars_network_geometry(mars_gpkg)
+    tbl = tbl[tbl["network_id"].isin(geom.keys())].copy()
+
+    if pin_id is not None:
+        if int(pin_id) not in geom:
+            raise ValueError(f"Mars network {pin_id} not found / not usable in {mars_gpkg}.")
+        dd = tbl.loc[tbl["network_id"] == int(pin_id), "dd_hull_km_km2"]
+        return int(pin_id), (float(dd.iloc[0]) if len(dd) else float("nan")), geom[int(pin_id)]
+
+    try:
+        st = mars_network_strahler(mars_gpkg)
+        st = st[st["status"] == STATUS_OK][["network_id", "max_strahler"]]
+        tbl = tbl.merge(st, on="network_id", how="left")
+    except Exception:  # noqa: BLE001 - Strahler is best-effort metadata
+        tbl["max_strahler"] = np.nan
+    tbl["n_segments"] = [len(geom[int(n)]["lines"]) for n in tbl["network_id"]]
+
+    big = tbl["length_km"] >= tbl["length_km"].quantile(0.75)
+    pool = tbl[(tbl["dd_hull_km_km2"] >= MARS_DD_STATS["median"]) & big].copy()
+    if pool.empty:
+        pool = tbl[big].copy()
+    if pool.empty:
+        pool = tbl.copy()
+    pool["score"] = (
+        pool["n_segments"].rank(pct=True)
+        + pool["max_strahler"].fillna(0).rank(pct=True)
+        + 0.5 * pool["length_km"].rank(pct=True)
+    )
+    row = pool.sort_values("score", ascending=False).iloc[0]
+    nid = int(row["network_id"])
+    return nid, float(row["dd_hull_km_km2"]), geom[nid]
+
+
+def earth_simplification_vs_mars(
+    basin_name: str,
+    outlet_node: int,
+    *,
+    threshold_km2: float = 0.2,
+    mars_gpkg: Path | str | None = None,
+    mars_network_id: int | None = None,
+    figsize: tuple[float, float] = (9.6, 9.9),
+) -> Figure:
+    """Square 2x2 calibration figure: Mars VN beside one Earth outlet simplified.
+
+    At a **fixed** extraction threshold (default 0.2 km²) one Earth outlet is
+    drawn as its full drainage network and under two Strahler-pruning levels —
+    drop 1st-order (keep ``S>=2``) and drop ``<=`` 2nd-order (keep ``S>=3``) —
+    each labelled with its per-outlet convex-hull drainage density ``Dd_hull``.
+    A large, branch-complex mapped Martian valley network (auto-selected toward
+    higher/denser Dd_hull, or pinned via ``mars_network_id``) is shown in the
+    fourth panel as the calibration target. The panels use independent local
+    extents, so the comparison is about network *form* and simplification, not
+    matched geography.
+
+    Parameters mirror the cached complexity sweep: ``outlet_node`` is the
+    threshold-dependent StreamObject node id at ``threshold_km2`` (the value in
+    ``dd_master_sweep_complexity.csv``). Returns the Matplotlib ``Figure``.
+    """
+    from channel_heads.basin_config import LOCAL_TO_PAPER_BASIN, get_basin_config
+    from channel_heads.dd_calibration import (
+        DEFAULT_MARS_VALLEYS_GPKG,
+        STATUS_OK,
+        collect_dd_hull_trim_for_dem,
+    )
+    from channel_heads.io.paths import EXAMPLE_DEMS
+
+    gpkg = Path(mars_gpkg) if mars_gpkg is not None else DEFAULT_MARS_VALLEYS_GPKG
+    cfg = get_basin_config(LOCAL_TO_PAPER_BASIN.get(basin_name, basin_name))
+    recs = collect_dd_hull_trim_for_dem(
+        dem_path=EXAMPLE_DEMS[basin_name],
+        basin_name=basin_name,
+        threshold_km2=threshold_km2,
+        z_th=cfg["z_th"],
+        lat_deg=float(cfg["lat"]),
+        min_outlet_basin_pixels=1000,
+        max_outlets=25,
+        geometry_for_outlets={outlet_node},
+    )
+    match = [r for r in recs if int(r.get("outlet_node", -1)) == outlet_node]
+    if not match:
+        with_geom = [r for r in recs if r.get("stream_seg_full") is not None]
+        if not with_geom:
+            raise ValueError(
+                f"No outlet geometry returned for {basin_name} at T={threshold_km2} km²."
+            )
+        rec = max(with_geom, key=lambda r: r["basin_area_km2"])
+    else:
+        rec = match[0]
+    for sfx in ("full", "trim", "ge3"):
+        if rec.get(f"status_{sfx}") != STATUS_OK:
+            raise ValueError(
+                f"{basin_name} outlet {rec['outlet_node']}: variant '{sfx}' is not valid "
+                f"(status={rec.get(f'status_{sfx}')})."
+            )
+
+    mars_nid, mars_dd, mars_geom = _simpl_pick_mars_network(gpkg, pin_id=mars_network_id)
+
+    center, half = _simpl_bounds(
+        rec.get("stream_seg_full"), rec.get("basin_boundary_xy"), rec.get("outlet_xy"),
+    )
+
+    # Square 2x2: Earth simplification reads full -> drop-1st -> drop-<=2nd
+    # across the top-left/top-right/bottom-left, ending at the Mars analogue.
+    fig, axes = plt.subplots(2, 2, figsize=figsize)
+    earth_specs = [
+        (axes[0, 0], "full", "Earth — full network"),
+        (axes[0, 1], "trim", "drop 1st order  (keep Strahler ≥ 2)"),
+        (axes[1, 0], "ge3", "drop ≤2nd order  (keep Strahler ≥ 3)"),
+    ]
+    for ax, sfx, label in earth_specs:
+        smax = int(rec[f"max_strahler_{sfx}"])
+        _simpl_draw_earth(
+            ax,
+            stream_seg=rec.get(f"stream_seg_{sfx}"),
+            hull_xy=rec.get(f"hull_xy_{sfx}"),
+            removed_seg=None if sfx == "full" else rec.get(f"removed_seg_{sfx}"),
+            basin_xy=rec.get("basin_boundary_xy"),
+            outlet_xy=rec.get("outlet_xy"),
+            title=f"{label}\nDd_hull = {rec[f'dd_hull_{sfx}']:.2f} km/km²  (max Strahler {smax})",
+            center=center, half=half,
+        )
+    _simpl_draw_mars(
+        axes[1, 1], lines=mars_geom["lines"], hull_xy=mars_geom["hull_xy"],
+        title=f"Mars mapped VN  (net {mars_nid})\nDd_hull = {mars_dd:.2f} km/km²",
+    )
+    fig.suptitle(
+        f"{basin_name.capitalize()} — outlet {int(rec['outlet_node'])} · drainage-network "
+        f"simplification at Threshold = {threshold_km2:g} km² vs Mars",
+        fontsize=13, y=0.99,
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.96))
+    return fig
+
+
 __all__ = [
     "PRODUCTION_GEOM_FEATURES",
     "POSTER_RCPARAMS",
@@ -1364,10 +1695,12 @@ __all__ = [
     "hillshade",
     "colored_hillshade",
     "plot_dem_hillshade",
+    "network_legend_handles",
     "mars_marker_legend_handles",
     "plot_network_overview",
     "plot_network_on_hillshade",
     "gpd_geoseries_to_crs",
     "main_synthesis_figure",
     "drainage_density_regime_panel",
+    "earth_simplification_vs_mars",
 ]

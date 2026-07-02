@@ -163,8 +163,7 @@ def render_outlet_touching_pairs(
     pct_touch = 100.0 * n_touch / n_total_pairs if n_total_pairs else 0
     ax.set_title(
         f"Mars network {nid} — outlet view\n"
-        f"{n_touch} of {n_total_pairs} pairs predicted touching "
-        f"({pct_touch:.1f}%) by {model_name}",
+        f"{n_touch} of {n_total_pairs} pairs predicted touching ({pct_touch:.1f}%)",
         fontsize=12,
     )
 
