@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+type: software
+title: "channel-heads: coupled channel-head detection in drainage networks (Earth-trained, Mars-applied)"
+version: 0.1.0
+date-released: 2026-07-02
+repository-code: "https://github.com/GP-Geo/CH_Project"
+license: MIT
+authors:
+  - family-names: Pinkas
+    given-names: Guy
+    email: guy.pinkas123@gmail.com
+    affiliation: "Department of Earth and Environmental Sciences, Ben-Gurion University of the Negev"
+# NOTE (owner): add Prof. Liran Goren as an author here once the authorship
+# plan is confirmed (see HANDOFF.md, "Owner checklist before departure").
+references:
+  - type: article
+    title: "Channel concavity controls planform complexity of branching drainage networks"
+    authors:
+      - family-names: Goren
+        given-names: Liran
+      - family-names: Shelef
+        given-names: Eitan
+    journal: "Earth Surface Dynamics"
+    volume: 12
+    start: 1347
+    end: 1369
+    year: 2024
+    doi: "10.5194/esurf-12-1347-2024"
