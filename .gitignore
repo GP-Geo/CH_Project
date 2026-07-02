@@ -75,8 +75,9 @@ data/exports/**/*.png
 output.pdf.png
 PROJECT_REVIEW_AND_IMPROVEMENTS.md
 
-# Trained models (large, regeneratable from notebooks)
-/models/
+# models/ is intentionally TRACKED (3 MB): the frozen production models
+# (xgb_touching_classifier.json, cnn_outlet_final.pt) are NOT bit-identically
+# regeneratable and must travel with the repo. See models/MANIFEST.md.
 
 # QGIS project files (user-specific)
 *.qgz

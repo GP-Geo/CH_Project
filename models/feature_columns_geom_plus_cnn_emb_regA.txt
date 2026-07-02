@@ -1,0 +1,9 @@
+orientation_diff_deg
+headhead_dist_norm
+apex_angle_deg
+strahler_order_diff
+proximity_profile_norm
+emb_0
+emb_1
+emb_2
+emb_3
