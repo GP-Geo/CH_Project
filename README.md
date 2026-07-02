@@ -4,10 +4,17 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TopoToolbox](https://img.shields.io/badge/TopoToolbox-0.0.6-green.svg)](https://github.com/TopoToolbox/pytopotoolbox)
 
-Automated detection, analysis, and ML-based classification of **coupled channel
-heads** in drainage networks derived from DEMs — trained on Earth, applied to
-Mars valley networks. Based on Goren & Shelef (2024,
-[doi:10.5194/esurf-12-1347-2024](https://doi.org/10.5194/esurf-12-1347-2024)).
+A reusable framework for detecting **coupled channel heads** in drainage
+networks derived from DEMs (Goren & Shelef 2024,
+[doi:10.5194/esurf-12-1347-2024](https://doi.org/10.5194/esurf-12-1347-2024)):
+train the classifiers on Earth DEMs, then transfer them to Mars valley
+networks. The pipeline is **data-agnostic** — swap in your own per-basin DEM
+GeoTIFFs on the Earth side, or your own target DEM + valley-network vectors on
+the Mars side, and the same stages 0–14 apply.
+
+> **Which branch?** Active development (and the handoff state) lives on
+> `refactor/package-first-architecture`; the default `main` predates the
+> package-first refactor and will be fast-forwarded at the owner's discretion.
 
 ## What this does
 
@@ -17,6 +24,12 @@ coupling with an **XGBoost** classifier (Earth held-out test AUC ≈ 0.92) augme
 by a **5-class CNN** that reads the local network geometry. Because every feature
 is **dimensionless**, the Earth-trained model transfers to Martian valley networks
 without retraining (**Earth → Mars transfer learning**).
+
+> **Which AUC?** The ≈ 0.92 figure is the **within-basin** held-out test AUC.
+> Honest cross-basin generalization (leave-one-basin-out,
+> `channel-heads lobo-validate`) is geometry-only **pooled AUC ≈ 0.77–0.78**
+> (per-basin mean ≈ 0.70–0.74); the geom+CNN cross-basin variant
+> (`per_fold_cnn`) has not been run yet.
 
 **Scientific goal.** Quantify how often Martian valley-network channel heads are
 coupled, and compare that signature to Earth's. Coupling is a fingerprint of the
@@ -38,9 +51,17 @@ are thin layers on top. See [docs/architecture.md](docs/architecture.md).
 conda env create -f env/environment.yml
 conda activate ch-heads
 pip install -e ".[dev,geo,viz,cnn,ml]"
-python -c "from channel_heads import CouplingAnalyzer; print('OK')"
-channel-heads --help          # list all pipeline/training/figure commands
 ```
+
+## Verify your install in 5 minutes
+
+1. **Import + CLI check** (no data needed):
+   `python -c "from channel_heads import CouplingAnalyzer; print('OK')"`, then
+   `channel-heads --help` to list all pipeline/training/figure commands.
+2. **Test suite** (no data needed — fixtures are fully synthetic):
+   `conda run -n ch-heads pytest -q --no-cov` (600+ tests, ~20 s).
+3. **Quick start below** (~3 s) — runs against the one DEM tracked in the repo
+   (`data/cropped_DEMs/Inyo_strm_crop.tif`), so it works on a fresh clone.
 
 ## Quick start (single basin)
 
@@ -55,12 +76,44 @@ dem.z[dem.z < get_z_th("inyo")] = np.nan          # elevation mask
 fd = tt3.FlowObject(dem)
 s  = tt3.StreamObject(fd, threshold=300)
 
-pairs, heads = first_meet_pairs_for_outlet(s, outlet_id=5)
+pairs, heads = first_meet_pairs_for_outlet(s, outlet=5)
 results = CouplingAnalyzer(fd, s, dem, connectivity=8).evaluate_pairs_for_outlet(5, pairs)
 print(results)
 ```
 
+An **outlet** is a terminal node of the extracted stream network (where one
+drainage tree exits the DEM), and every analysis is scoped to one outlet's tree;
+enumerate and browse outlets interactively in
+[`notebooks/analysis/02_earth_network_explorer.ipynb`](notebooks/analysis/02_earth_network_explorer.ipynb).
+This example uses the tracked Inyo DEM, so it runs straight after `git clone`.
+
 Batch CLI: `channel-heads analyze data/cropped_DEMs/Inyo_strm_crop.tif -o out.csv --threshold 300 -v`
+
+## Data: what you need and where the originals came from
+
+The framework expects two kinds of input — formats, not specific files, so you
+can bring your own:
+
+- **Earth (training):** one DEM GeoTIFF per basin / mountain range, placed in
+  `data/cropped_DEMs/`.
+- **Mars (target):** a DEM GeoTIFF (`data/Mars/`) plus valley-network polyline
+  vectors (`data/final_valleys/`).
+
+Provenance of the original datasets used in this project:
+
+| Dataset | Source |
+|---------|--------|
+| Earth per-basin DEMs | Crops of public-domain **SRTM GL3** obtained via OpenTopography ([doi:10.5069/G9445JDF](https://doi.org/10.5069/G9445JDF)), covering the 18 mountain ranges of Goren & Shelef (2024), Table A1 |
+| Mars DEM / hillshade | **NASA MOLA** (public domain); `Mars_DEM_reprojected.tif` is a derived reprojection whose exact recipe is undocumented — treat it as a frozen input |
+| Mars valley network | Alemanno, Orofino & Mancarella (2018), *Global map of Martian fluvial systems*, Earth and Space Science 5, 560–577 ([doi:10.1029/2018EA000362](https://doi.org/10.1029/2018EA000362)) |
+
+The full original data (~18 GB) is **not in the repo** — it lives with the
+owner (contact via [HANDOFF.md](HANDOFF.md)). One small example DEM
+(`data/cropped_DEMs/Inyo_strm_crop.tif`, 161 KB) is tracked so install
+verification works on a fresh clone. `models/` **is** tracked in git (~3 MB)
+with checksums + provenance in [`models/MANIFEST.md`](models/MANIFEST.md).
+Derived `data/` artifacts are regenerable from these inputs
+([docs/PIPELINE_RERUN.md](docs/PIPELINE_RERUN.md)); the original inputs are not.
 
 ## Pipeline stages (0 → 14)
 
@@ -106,9 +159,16 @@ channel-heads make-result-figures
 channel-heads generate-poster-figures
 ```
 
-All `data/` and `models/` artifacts are **regenerable**; the full regeneration
-order and guardrails are in [docs/PIPELINE_RERUN.md](docs/PIPELINE_RERUN.md).
+**Derived** `data/` artifacts are regenerable (the original inputs are not —
+see the data section above); `models/` is tracked in git with checksums in
+[`models/MANIFEST.md`](models/MANIFEST.md). The full regeneration order and
+guardrails are in [docs/PIPELINE_RERUN.md](docs/PIPELINE_RERUN.md).
 Validate the package at any time with `conda run -n ch-heads pytest -q`.
+
+**Wall clock.** The regime pipeline (step 2) retrains the CNNs — expect
+**hours per regime on CPU**; a GPU (PyTorch) is strongly recommended. Each
+step writes its log to `/tmp/regime_<regime>/<step>.log` (see
+`scripts/run_regime_pipeline.sh`), so progress can be tailed while it runs.
 
 ## Repository layout
 
@@ -117,12 +177,12 @@ channel_heads/      Python package — all pipeline/model/raster/training/viz lo
   cli/              command surface (python -m channel_heads <command>)
   pipelines/        readable top layer, one function per stage (earth/mars/poster)
   features/ pairing/ rasterization/ models/ training/ eval/ io/ viz/ mars/
-tests/              pytest suite (598 tests; maps ~1:1 to package modules)
+tests/              pytest suite (600+ tests; maps ~1:1 to package modules)
 scripts/            shell orchestrators, headless diagnostics, rendering, _archive/
 notebooks/          pipeline/ (canonical 00–14) + themed + archive/ (§ below)
 docs/               all project documentation (see index below)
-data/               inputs + generated outputs   (gitignored)
-models/             trained model artifacts        (gitignored)
+data/               inputs + generated outputs   (gitignored; one example DEM tracked)
+models/             trained model artifacts        (tracked, ~3 MB; see models/MANIFEST.md)
 env/                conda environment spec
 ```
 
@@ -153,6 +213,11 @@ Two tiers (full catalogue: [docs/notebooks.md](docs/notebooks.md)):
 2. **Themed folders** (`analysis/`, `mars/`, `training/`, `diagnostics/`,
    `presentation/`, `interpretation/`) — supporting / historical material that
    backs individual stages.
+
+Run notebooks with the `ch-heads` conda-env kernel; if Jupyter can't find it:
+`conda run -n ch-heads python -m ipykernel install --user --name ch-heads`.
+A good first path through the canonical tier: `pipeline/00 → 04 → 12/13`
+(setup → regime calibration → Mars results).
 
 Every notebook calls `channel_heads.*` only (no duplicated logic) and writes
 outputs solely via canonical path constants from `channel_heads.io.paths`.
@@ -191,6 +256,14 @@ All project documentation lives in [`docs/`](docs/):
 | [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) · [docs/ROADMAP_AND_RISKS.md](docs/ROADMAP_AND_RISKS.md) | Package API, testing, conventions · open work + risk register |
 
 Developer hub for contributors: [CLAUDE.md](CLAUDE.md).
+
+## Citation & contact
+
+Cite the software via [CITATION.cff](CITATION.cff). The underlying method is
+Goren & Shelef (2024), *Earth Surface Dynamics* 12, 1347–1369
+([doi:10.5194/esurf-12-1347-2024](https://doi.org/10.5194/esurf-12-1347-2024)).
+Ownership, contact details, and access to the full original data are documented
+in [HANDOFF.md](HANDOFF.md).
 
 ## License
 
