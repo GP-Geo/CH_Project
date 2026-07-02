@@ -92,6 +92,7 @@ covers both the Earth↔Mars calibration **and** the regA–regE selection
 | `mars_contact_sheets` | 14 | presentation | Mars contact sheets (vector polylines) |
 | `per_outlet_touching_pairs` | 14 | presentation | Per-outlet touching-pair figures |
 | `simple_mars_earth_dd_presentation` | 14 | presentation | Earth vs Mars DD presentation |
+| `mars_high_conf_delta_L` | 13 | presentation | Lengthwise asymmetry (ΔL) of Mars regC high-conf (`prob>0.90`, ~996) couplings vs terrestrial coupled pairs (regC), incl. per-basin paper-reference comparison |
 
 ### `notebooks/interpretation/` — scientific interpretation
 | Notebook | Stage | Type | Purpose |
