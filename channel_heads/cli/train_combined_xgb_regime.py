@@ -27,8 +27,8 @@ Production ``models/xgb_geom_plus_cnn_emb.json`` and the Phase 6B
 
 Run::
 
-    python scripts/train_combined_xgb_regime.py --regime regA
-    python scripts/train_combined_xgb_regime.py --regime regB
+    python -m channel_heads train-combined-xgb-regime --regime regA
+    python -m channel_heads train-combined-xgb-regime --regime regB
 """
 
 from __future__ import annotations

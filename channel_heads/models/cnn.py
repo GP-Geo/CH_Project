@@ -15,9 +15,7 @@ module importable without pulling in :mod:`channel_heads.training.cnn`, which
 imports back from this module (``training.cnn`` → ``models.cnn``) and would
 otherwise create an import cycle.
 
-The historical import location :mod:`channel_heads.cnn_model` re-exports the
-architecture/dataset symbols from here as a compatibility shim. Requires
-PyTorch.
+Requires PyTorch.
 """
 
 from __future__ import annotations

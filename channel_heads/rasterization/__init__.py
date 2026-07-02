@@ -1,8 +1,7 @@
 """Rasterization layer: patch generation + shared drawing primitives.
 
 Earth/Mars-compatible 5-class 128x128 patches for the CNN. Earth patch
-rasterization and batch precompute are package-resident here; legacy imports
-from :mod:`channel_heads.rasterizer` remain compatibility shims.
+rasterization and batch precompute are package-resident here.
 """
 
 from channel_heads.rasterization import (

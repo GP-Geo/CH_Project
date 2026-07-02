@@ -18,8 +18,9 @@ Figures (:mod:`channel_heads.pipelines.poster`)::
 
     generate_poster_figures
 
-Mars inference stages are package-resident. Earth training still delegates to
-historical scripts pending a separate refactor (see ``docs/architecture.md``).
+All stages are package-resident: Earth training and figure generation invoke
+the ``channel_heads.cli`` command modules in-process (see
+``docs/architecture.md``).
 """
 
 from channel_heads.pipelines import earth, mars, poster

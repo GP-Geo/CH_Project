@@ -27,9 +27,9 @@ from channel_heads.io import paths
 
 # (relative-glob-under-DATA_DIR, tag, regeneration hint)
 _RULES: list[tuple[str, str, str]] = [
-    ("results/_rasters_regA", "STALE_AFTER_RASTER_FIX", "scripts/cli/run_mars_pipeline.py (regA patches)"),
-    ("results/_rasters_regB", "STALE_AFTER_RASTER_FIX", "scripts/cli/run_mars_pipeline.py (regB patches)"),
-    ("results/_rasters_regC", "STALE_AFTER_RASTER_FIX", "scripts/cli/run_mars_pipeline.py (regC patches)"),
+    ("results/_rasters_regA", "STALE_AFTER_RASTER_FIX", "channel-heads run-mars-pipeline (regA patches)"),
+    ("results/_rasters_regB", "STALE_AFTER_RASTER_FIX", "channel-heads run-mars-pipeline (regB patches)"),
+    ("results/_rasters_regC", "STALE_AFTER_RASTER_FIX", "channel-heads run-mars-pipeline (regC patches)"),
     ("results/*/rasters", "STALE_AFTER_RASTER_FIX", "Earth rasterization stage"),
     ("Mars/model_inputs/cnn_patches_5class", "STALE_AFTER_RASTER_FIX", "pipelines.build_mars_cnn_patches"),
     ("Mars/model_outputs/figures_combined", "REPORT", "presentation notebooks"),

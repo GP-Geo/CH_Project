@@ -31,6 +31,9 @@ Examples:
 
   # Analyze specific outlets only
   ch-analyze dem.tif -o results.csv --outlets 5,12,18
+
+The canonical invocation is 'channel-heads analyze ...'; 'ch-analyze' is a
+legacy alias kept for compatibility.
         """,
     )
 

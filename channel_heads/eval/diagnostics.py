@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from sklearn.metrics import precision_recall_curve

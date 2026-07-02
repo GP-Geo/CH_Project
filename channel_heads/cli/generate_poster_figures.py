@@ -8,10 +8,18 @@ documented, canonical path is the presentation notebooks (see
 
 from __future__ import annotations
 
-from channel_heads import pipelines
+import argparse
 
 
 def main(argv=None) -> None:
+    parser = argparse.ArgumentParser(
+        prog="channel-heads generate-poster-figures",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.parse_args(argv)
+    from channel_heads import pipelines
+
     out = pipelines.generate_poster_figures()
     print(f"Figures written under: {out}")
 

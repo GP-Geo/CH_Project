@@ -7,8 +7,11 @@ the model trains on the others and predicts the held-out basin. We report the
 per-fold ROC-AUC mean±std and the pooled out-of-fold AUC / F1 / precision /
 recall / accuracy.
 
-Run::  python scripts/eval_lobo_cv.py
+Run::  python -m channel_heads eval-lobo-cv
 Writes models/lobo_cv_metrics.csv
+
+Note: this is the *within-basin* CV summary. For honest cross-basin
+validation use ``python -m channel_heads lobo-validate``.
 
 Primary interface: ``notebooks/diagnostics/lobo_cv.ipynb`` runs and displays the
 same LOBO comparison read-only (calls ``channel_heads.eval`` —
@@ -17,6 +20,8 @@ headless wrapper that persists ``models/lobo_cv_metrics.csv``.
 """
 
 from __future__ import annotations
+
+import argparse
 
 import pandas as pd
 
@@ -37,6 +42,12 @@ lobo = lobo_mod.lobo_xgb_report
 
 
 def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="channel-heads eval-lobo-cv",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.parse_args(argv)
     rows = []
     for name, path in DATASETS.items():
         if not path.exists():

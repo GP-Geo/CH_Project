@@ -25,9 +25,9 @@ never touched. Existing per-basin caches are skipped unless ``--force``.
 
 Run::
 
-    python scripts/build_earth_features_regime.py --regime regA
-    python scripts/build_earth_features_regime.py --regime regB --force
-    python scripts/build_earth_features_regime.py --regime regA --basins inyo taiwan
+    python -m channel_heads build-earth-features --regime regA
+    python -m channel_heads build-earth-features --regime regB --force
+    python -m channel_heads build-earth-features --regime regA --basins inyo taiwan
 """
 
 from __future__ import annotations

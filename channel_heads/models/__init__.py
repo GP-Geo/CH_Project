@@ -2,15 +2,15 @@
 
 Curated public surface over the historical implementation modules:
 
-* :mod:`channel_heads.models.xgboost`    — XGBoost inference (``inference.xgb`` is a shim)
-* :mod:`channel_heads.models.device`     — torch device selection (``inference.device`` is a shim)
+* :mod:`channel_heads.models.xgboost`    — XGBoost inference
+* :mod:`channel_heads.models.device`     — torch device selection
 * :mod:`channel_heads.models.thresholds` ← ``eval.metrics`` (threshold tuning)
 * :mod:`channel_heads.models.comparison` — model-variant comparison
 * :mod:`channel_heads.models.mars_combined` — Mars Phase-6C combined inference
 * :mod:`channel_heads.models.cnn`        — CNN architecture/dataset; lazily re-exports the training core from ``training.cnn`` (torch)
-* :mod:`channel_heads.models.cnn_features` — generic/Earth CNN embedding helpers (``cnn_features`` is a shim) (torch)
+* :mod:`channel_heads.models.cnn_features` — generic/Earth CNN embedding helpers (torch)
 * :mod:`channel_heads.models.embeddings` — Mars Phase-5 embedding orchestration (torch)
-* :mod:`channel_heads.models.regime`     — regime Mars-inference embedding attach (``inference.regime`` is a shim) (torch)
+* :mod:`channel_heads.models.regime`     — regime Mars-inference embedding attach (torch)
 
 The CNN/embedding submodules require PyTorch and are imported lazily so this
 package imports cleanly without it.

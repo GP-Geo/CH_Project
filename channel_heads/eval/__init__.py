@@ -6,12 +6,12 @@ Shared by the regime threshold-retune step and the diagnostics notebooks. See
 
 from __future__ import annotations
 
+from .diagnostics import holdout_split_predict, pr_curve_metrics
 from .metrics import (
     classification_metrics,
     f1_optimal_threshold,
     max_precision_threshold,
 )
-from .diagnostics import holdout_split_predict, pr_curve_metrics
 from .splitting import (
     RANDOM_STATE,
     TEST_SIZE,

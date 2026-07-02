@@ -38,6 +38,7 @@ from channel_heads.rasterization.drawing import (
     rotate_rc,
     xy_to_rc,
 )
+from channel_heads.rasterization.earth_patches import raster_quality_flags
 from channel_heads.rasterization.manifest import (
     build_patch_manifest,
     empty_flags,
@@ -50,7 +51,6 @@ from channel_heads.rasterization.schema import (
     CONFLUENCE_MARKER,
     OTHER_STREAMS,
 )
-from channel_heads.rasterization.earth_patches import raster_quality_flags
 
 log = get_logger("rasterization.mars_patches")
 

@@ -8,8 +8,7 @@ intended (see ``docs/modeling.md``).
 
 from __future__ import annotations
 
-import runpy
-import sys
+import importlib
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -102,26 +101,19 @@ def build_earth_basin_network(
 
 
 def _run_cli(script_name: str, argv: list[str] | None = None) -> None:
-    script = paths.PROJECT_ROOT / "scripts" / "cli" / script_name
-    if not script.exists():
-        raise FileNotFoundError(f"CLI script not found: {script}")
-    log.info("running scripts/cli/%s", script_name)
-    old_argv = sys.argv
-    sys.argv = [str(script), *(argv or [])]
-    try:
-        runpy.run_path(str(script), run_name="__main__")
-    finally:
-        sys.argv = old_argv
+    module = importlib.import_module(f"channel_heads.cli.{script_name}")
+    log.info("running channel-heads %s", script_name.replace("_", "-"))
+    module.main(list(argv or []))
 
 
 def train_earth_cnn() -> None:
     """Train + persist the Earth outlet CNN (models/cnn_outlet_final.pt)."""
-    _run_cli("train_cnn_baseline.py", ["-v"])
+    _run_cli("train_cnn_baseline", ["-v"])
 
 
 def train_earth_xgb_variants() -> None:
     """Train the 3 Earth XGBoost variants (geom-only / +emb / +logit)."""
-    _run_cli("train_combined_xgb_phase6b.py")
+    _run_cli("train_combined_xgb_phase6b")
 
 
 def train_earth_models() -> None:

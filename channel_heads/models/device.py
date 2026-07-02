@@ -3,9 +3,6 @@
 Canonical home of :func:`pick_device`, used by the CNN-using inference and
 embedding paths. Torch is imported lazily inside the function so importing this
 module never requires PyTorch.
-
-The historical import location :mod:`channel_heads.inference.device` re-exports
-this as a compatibility shim.
 """
 
 from __future__ import annotations

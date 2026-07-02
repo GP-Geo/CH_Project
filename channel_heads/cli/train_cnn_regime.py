@@ -13,8 +13,8 @@ Mirrors the training loop in ``notebooks/training/04_cnn_embeddings.ipynb``
 
 Run::
 
-    python scripts/train_cnn_regime.py --regime regA
-    python scripts/train_cnn_regime.py --regime regB --epochs 40
+    python -m channel_heads train-cnn-regime --regime regA
+    python -m channel_heads train-cnn-regime --regime regB --epochs 40
 """
 
 from __future__ import annotations

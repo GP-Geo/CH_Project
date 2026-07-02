@@ -9,7 +9,7 @@ description = "Coupled channel-head detection and basin-level analysis"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
-    {name = "Guy Pinkas"}
+    {name = "Guy Pinkas", email = "guy.pinkas123@gmail.com"}
 ]
 keywords = ["geomorphology", "hydrology", "drainage networks", "channel heads", "TopoToolbox"]
 classifiers = [
@@ -30,6 +30,7 @@ dependencies = [
     "matplotlib>=3.8",
     "topotoolbox>=0.0.6",
     "scikit-image>=0.24",
+    "tqdm>=4.66",
 ]
 
 [project.optional-dependencies]
@@ -45,19 +46,28 @@ geo = [
     "rasterio>=1.3",
     "geopandas>=1.0",
     "shapely>=2.0",
+    "pyproj>=3.6",
 ]
 
+# channel_heads.viz needs the geo stack + scikit-learn (ROC panels);
+# folium is notebook-only and kept for the interactive map notebooks.
 viz = [
+    "geopandas>=1.0",
+    "shapely>=2.0",
+    "pyproj>=3.6",
+    "scikit-learn>=1.7",
     "folium>=0.20",
 ]
 
+# Upper caps protect the frozen model artifacts (models/MANIFEST.md):
+# future major versions may change serialization/behavior.
 cnn = [
-    "torch>=2.0",
+    "torch>=2.0,<3",
 ]
 
 ml = [
     "scikit-learn>=1.7",
-    "xgboost>=3.2",
+    "xgboost>=3.2,<4",
     "pyarrow>=15.0",
     "scipy>=1.10",
 ]
@@ -68,7 +78,7 @@ all = [
 
 [project.urls]
 Homepage = "https://github.com/GP-Geo/CH_Project"
-Documentation = "https://github.com/GP-Geo/CH_Project/blob/main/CLAUDE.md"
+Documentation = "https://github.com/GP-Geo/CH_Project/blob/main/README.md"
 Repository = "https://github.com/GP-Geo/CH_Project"
 Issues = "https://github.com/GP-Geo/CH_Project/issues"
 
@@ -84,7 +94,8 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --cov=channel_heads --cov-report=term-missing"
+# Coverage is opt-in: run `pytest --cov=channel_heads --cov-report=term-missing`
+addopts = ""
 
 [tool.black]
 line-length = 100

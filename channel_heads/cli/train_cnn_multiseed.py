@@ -9,8 +9,8 @@ different draws.
 
 Run::
 
-    python scripts/train_cnn_multiseed.py --config baseline --seeds 3
-    python scripts/train_cnn_multiseed.py --config regA --seeds 3
+    python -m channel_heads train-cnn-multiseed --config baseline --seeds 3
+    python -m channel_heads train-cnn-multiseed --config regA --seeds 3
 """
 
 from __future__ import annotations

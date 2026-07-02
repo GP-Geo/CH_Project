@@ -4,8 +4,8 @@
 Thin wrapper — all logic lives in :mod:`channel_heads.pipelines`. Run a single
 stage with ``--stage`` or the whole chain with ``--stage all`` (default).
 
-    python scripts/cli/run_mars_pipeline.py --stage topology
-    python scripts/cli/run_mars_pipeline.py --stage all
+    python -m channel_heads run-mars-pipeline --stage topology
+    python -m channel_heads run-mars-pipeline --stage all
 """
 
 from __future__ import annotations

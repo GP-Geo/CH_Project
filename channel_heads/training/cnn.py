@@ -10,9 +10,7 @@ The defaults mirror ``notebooks/training/04_cnn_embeddings.ipynb`` (cell 1).
 
 The CNN architecture/dataset classes come from :mod:`channel_heads.models.cnn`
 and ``pick_device`` from :mod:`channel_heads.models.device` (re-exported here for
-backward compatibility). The historical import location
-:mod:`channel_heads.cnn_training` re-exports this module's surface as a
-compatibility shim. Requires PyTorch.
+backward compatibility). Requires PyTorch.
 """
 
 from __future__ import annotations

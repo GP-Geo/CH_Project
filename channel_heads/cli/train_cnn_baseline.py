@@ -16,8 +16,8 @@ parameters) is identical, and only ``raster_status == "ok"`` patches are used.
 
 Run::
 
-    python scripts/train_cnn_baseline.py
-    python scripts/train_cnn_baseline.py --epochs 40
+    python -m channel_heads train-cnn-baseline
+    python -m channel_heads train-cnn-baseline --epochs 40
 """
 
 from __future__ import annotations

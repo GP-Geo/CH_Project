@@ -20,13 +20,15 @@ order only, no order-gap delta pruning:
 - ``regB``: T = 0.25 km², pre_remove ≤ 1 (drop 1st order only), no order-gap pruning
 - ``regC``: T = 0.15 km², pre_remove ≤ 1 (drop 1st order only), no order-gap pruning
 
-.. warning::
+.. note::
     These definitions replace the prior hand-frozen presets
     (regA T=0.05/pre_remove=2/order_gap=4; regB T=0.25/pre_remove=1/order_gap=4;
-    regC T=0.10/pre_remove=1/order_gap=4). Every ``*_reg{A,B,C}`` artifact (CNN,
-    XGBoost, optimal thresholds, Mars predictions) was trained on the old
-    presets and is now **stale** — it must be regenerated before regime
-    inference results are valid. See ``docs/REGIME_SELECTION.md``.
+    regC T=0.10/pre_remove=1/order_gap=4). The full ``*_reg{A,B,C}`` artifact
+    chain (CNN, XGBoost, optimal thresholds, Mars predictions) was **retrained
+    on these presets on 2026-06-13** — operating thresholds regA 0.769133 /
+    regB 0.773238 / regC 0.810635 (``models/optimal_threshold_*_reg*.txt`` are
+    authoritative) — so on-disk regime artifacts are valid. See
+    ``docs/REGIME_SELECTION.md``.
 """
 
 from __future__ import annotations

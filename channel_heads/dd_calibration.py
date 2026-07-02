@@ -33,8 +33,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from scipy.spatial import ConvexHull
-from scipy.spatial.qhull import QhullError
+from scipy.spatial import ConvexHull, QhullError
 
 from .io.paths import DATA_DIR
 from .logging_config import get_logger
@@ -1251,7 +1250,7 @@ def run_practical_sweep(
         cache_csv = Path(cache_csv)
         if cache_csv.exists():
             if verbose:
-                print(f"Loading cached sweep: {cache_csv}")
+                logger.info("Loading cached sweep: %s", cache_csv)
             return pd.read_csv(cache_csv)
 
     all_rows: list[dict[str, Any]] = []
@@ -1270,10 +1269,10 @@ def run_practical_sweep(
                 min_orders=min_orders,
             )
         except Exception as exc:  # noqa: BLE001 - skip a broken DEM, keep going
-            print(f"  [{name}] failed: {exc}")
+            logger.warning("  [%s] failed: %s", name, exc)
             continue
         if verbose:
-            print(f"  {name}: {len(rows)} (outlet, threshold) rows")
+            logger.info("  %s: %d (outlet, threshold) rows", name, len(rows))
         all_rows.extend(rows)
 
     df = pd.DataFrame([_strip_geometry_columns(r) for r in all_rows])
@@ -1281,7 +1280,7 @@ def run_practical_sweep(
         cache_csv.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(cache_csv, index=False)
         if verbose:
-            print(f"Wrote {cache_csv} ({len(df)} rows)")
+            logger.info("Wrote %s (%d rows)", cache_csv, len(df))
     return df
 
 
@@ -1605,14 +1604,14 @@ def augment_sweep_with_outlet_coords(
                     out.at[idx, "outlet_row"] = int(rr[o])
                     out.at[idx, "outlet_col"] = int(cc[o])
         if verbose:
-            print(f"  augmented {dem_name}: {len(dem_grp)} rows")
+            logger.info("  augmented %s: %d rows", dem_name, len(dem_grp))
 
     if out_csv is not None:
         out_path = Path(out_csv)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out.to_csv(out_path, index=False)
         if verbose:
-            print(f"Wrote {out_path}")
+            logger.info("Wrote %s", out_path)
     return out
 
 

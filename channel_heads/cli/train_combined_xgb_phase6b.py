@@ -47,11 +47,12 @@ This script does NOT touch:
   - any Mars artifact under data/Mars/
 
 Run:
-    python scripts/train_combined_xgb_phase6b.py
+    python -m channel_heads train-combined-xgb-phase6b
 """
 
 from __future__ import annotations
 
+import argparse
 import logging
 from pathlib import Path
 
@@ -59,6 +60,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import GroupShuffleSplit
 
+from channel_heads.io.paths import PROJECT_ROOT  # noqa: E402
 from channel_heads.models.cnn import DEFAULT_EMBEDDING_DIM  # noqa: E402
 from channel_heads.models.device import pick_device  # noqa: E402
 from channel_heads.training import xgboost as xgb_training  # noqa: E402
@@ -73,8 +75,6 @@ from channel_heads.training.datasets import (  # noqa: E402
 # ---------------------------------------------------------------------------
 # Parameters
 # ---------------------------------------------------------------------------
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
 RASTER_MANIFEST_CSV = PROJECT_ROOT / "data/results/raster_manifest.csv"
 CNN_MODEL_PATH = PROJECT_ROOT / "models/cnn_outlet_final.pt"
 MASTER_V4_CSV = PROJECT_ROOT / "data/results/master_dataset_v4_cnn_full.csv"
@@ -223,6 +223,12 @@ def train_variant(
 # Main
 # ---------------------------------------------------------------------------
 def main(argv=None) -> None:
+    parser = argparse.ArgumentParser(
+        prog="channel-heads train-combined-xgb-phase6b",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.parse_args(argv)
     setup_logging()
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 

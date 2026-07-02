@@ -6,8 +6,7 @@ XGBoost. The embedding-extraction + patch-index merge glue was inline in the
 ``run-mars-combined-regime`` command; it now lives here so that command and
 ``notebooks/archive/regime/`` call the same implementation.
 
-This is the canonical home for the regime inference helpers;
-:mod:`channel_heads.inference.regime` re-exports them as a compatibility shim.
+This is the canonical home for the regime inference helpers.
 
 This is a deliberate, behavior-preserving move: ``extract_regime_embeddings``
 keeps the *strict* state-dict load + finite-value checks the regime pipeline

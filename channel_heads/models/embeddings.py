@@ -13,10 +13,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from channel_heads.models.cnn import DEFAULT_EMBEDDING_DIM, OutletCNN
 from channel_heads.io import paths
 from channel_heads.io.tables import write_table
 from channel_heads.logging_config import get_logger
+from channel_heads.models.cnn import DEFAULT_EMBEDDING_DIM, OutletCNN
 from channel_heads.models.cnn_features import CNN_FEATURE_COLS, extract_embeddings
 from channel_heads.models.device import pick_device
 

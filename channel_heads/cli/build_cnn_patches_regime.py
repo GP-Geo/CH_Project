@@ -21,8 +21,8 @@ A manifest CSV (``master_dataset_<regime>.csv`` with an added
 
 Run::
 
-    python scripts/build_cnn_patches_regime.py --regime regA
-    python scripts/build_cnn_patches_regime.py --regime regB
+    python -m channel_heads build-cnn-patches --regime regA
+    python -m channel_heads build-cnn-patches --regime regB
 """
 
 from __future__ import annotations

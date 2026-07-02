@@ -7,8 +7,7 @@ All main plotting functions accept:
         - "overview": full DEM + full network, no zoom
 
 This module is the canonical home for Earth DEM, basin-mask, outlet, and coupled
-pair plotting helpers. The historical :mod:`channel_heads.plotting_utils` module
-re-exports these names as a compatibility shim for notebooks.
+pair plotting helpers.
 """
 
 from __future__ import annotations

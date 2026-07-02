@@ -10,9 +10,6 @@ entry point performs the *same* pre-prediction checks.
 Everything in this module is pure model/IO glue — it does not change any
 scientific behavior: the same artifacts are loaded, the same invariants raise,
 and prediction is the standard ``predict_proba(...)[:, 1] >= threshold``.
-
-The historical import location :mod:`channel_heads.inference.xgb` re-exports
-everything here as a compatibility shim.
 """
 
 from __future__ import annotations

@@ -9,6 +9,12 @@ implementation is preserved as-is.
 
 from __future__ import annotations
 
+from channel_heads.rasterization.earth_batch import precompute_raster_dataset
+from channel_heads.rasterization.earth_patches import (
+    bresenham_line,
+    raster_quality_flags,
+    rasterize_outlet_pair,
+)
 from channel_heads.rasterization.schema import (
     BACKGROUND,
     BRANCH_A,
@@ -18,12 +24,6 @@ from channel_heads.rasterization.schema import (
     NUM_CLASSES,
     OTHER_STREAMS,
 )
-from channel_heads.rasterization.earth_patches import (
-    bresenham_line,
-    raster_quality_flags,
-    rasterize_outlet_pair,
-)
-from channel_heads.rasterization.earth_batch import precompute_raster_dataset
 
 __all__ = [
     "rasterize_outlet_pair",

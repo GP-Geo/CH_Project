@@ -15,7 +15,7 @@ that writes the PNG figures (ROC + Mars networks).
 
 from __future__ import annotations
 
-from pathlib import Path
+import argparse
 
 import geopandas as gpd
 import matplotlib
@@ -27,13 +27,11 @@ import pandas as pd  # noqa: E402
 import xgboost as xgb  # noqa: E402
 
 from channel_heads.eval import outlet_group_holdout  # noqa: E402
+from channel_heads.io.paths import PROJECT_ROOT as ROOT  # noqa: E402
 from channel_heads.viz import roc_curve_panel  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[2]  # scripts/cli/ -> repo root
 FIG_M = ROOT / "data/results/figures_models"
 FIG_MARS = ROOT / "data/Mars/model_outputs/figures_combined"
-FIG_M.mkdir(parents=True, exist_ok=True)
-FIG_MARS.mkdir(parents=True, exist_ok=True)
 
 GEOM = ["orientation_diff_deg", "headhead_dist_norm", "apex_angle_deg",
         "strahler_order_diff", "proximity_profile_norm"]
@@ -157,6 +155,14 @@ def make_networks(n_panels: int = 6):
 
 
 def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="channel-heads make-result-figures",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.parse_args(argv)
+    FIG_M.mkdir(parents=True, exist_ok=True)
+    FIG_MARS.mkdir(parents=True, exist_ok=True)
     make_roc()
     make_networks()
     return 0

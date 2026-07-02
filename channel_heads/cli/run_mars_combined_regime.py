@@ -69,8 +69,7 @@ OUTPUT_DIR = PROJECT_ROOT / "data/Mars/model_outputs"
 HIGH_CONF_PROB_MIN = 0.80
 
 # Regime CNN embedding extraction + patch-index merge live in
-# channel_heads.models.regime (shared with notebooks/archive/regime/;
-# channel_heads.inference.regime remains a compatibility shim).
+# channel_heads.models.regime (shared with notebooks/archive/regime/).
 
 
 def per_network_summary(df: pd.DataFrame) -> pd.DataFrame:

@@ -27,7 +27,7 @@ Example:
     >>> fd = tt3.FlowObject(dem)
     >>> s = tt3.StreamObject(fd, threshold=300)
     >>>
-    >>> pairs, heads = first_meet_pairs_for_outlet(s, outlet_id=5)
+    >>> pairs, heads = first_meet_pairs_for_outlet(s, outlet=5)
     >>> analyzer = CouplingAnalyzer(fd, s, dem)
     >>> results = analyzer.evaluate_pairs_for_outlet(5, pairs)
     >>>
@@ -35,6 +35,13 @@ Example:
     >>> config = get_basin_config("inyo")
     >>> asym = LengthwiseAsymmetryAnalyzer(s, dem, lat=config["lat"])
     >>> asym_results = asym.evaluate_pairs_for_outlet(5, pairs)
+
+Note:
+    Only ``io``, ``mars``, ``models``, ``pipelines`` and ``rasterization`` are
+    imported eagerly. The ``viz``, ``eval``, ``training``, ``features``,
+    ``pairing`` and ``cli`` subpackages are intentionally *not* imported here
+    (they pull optional heavy dependencies such as geopandas, scikit-learn and
+    torch) — import them explicitly, e.g. ``from channel_heads import viz``.
 """
 
 __version__ = "0.1.0"

@@ -41,7 +41,9 @@ htmlcov/
 */.ipynb_checkpoints/*
 
 # Environments
-env/
+# NOTE: env/environment.yml is project config and IS tracked; only ignore venvs.
+env/*
+!env/environment.yml
 venv/
 ENV/
 env.bak/
